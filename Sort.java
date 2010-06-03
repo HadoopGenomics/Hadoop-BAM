@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -40,7 +41,12 @@ public final class Sort extends Configured implements Tool {
 	}
 
 	private void submitJob(String inputFile, String outputDir) throws ClassNotFoundException, IOException, InterruptedException {
-		Job job = new Job(getConf());
+		Configuration conf = new Configuration(getConf());
+
+		// Used by SortOutputFormat to construct the output filename
+		conf.set(SortOutputFormat.INPUT_FILENAME_PROP, new File(inputFile).getName());
+
+		Job job = new Job(conf);
 
 		job.setJarByClass  (Sort.class);
 		job.setMapperClass (SortMapper.class);
@@ -126,4 +132,13 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 		}
 	}
 }
-final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {}
+final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
+	public static final String INPUT_FILENAME_PROP = "sort.input.filename";
+
+	@Override public Path getDefaultWorkFile(TaskAttemptContext context, String ext) throws IOException {
+		String filename  = context.getConfiguration().get(INPUT_FILENAME_PROP);
+		String extension = ext.isEmpty() ? ext : "." + ext;
+		String id        = context.getTaskAttemptID().toString();
+		return new Path(getOutputPath(context), filename + "_" + id + extension);
+	}
+}
