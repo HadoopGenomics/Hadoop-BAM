@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -10,8 +11,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -31,7 +34,32 @@ public final class Sort extends Configured implements Tool {
 	private final List<Job> jobs = new ArrayList<Job>();
 
 	@Override public int run(String[] args) throws ClassNotFoundException, IOException, InterruptedException {
-		submitJob(args[0], args[1]);
+		if (args.length < 2) {
+			System.err.println("Usage: " +Sort.class+ " <output directory> file [file...]");
+			return 2;
+		}
+
+		String outputDir = args[0];
+		File outputDirF = new File(outputDir);
+		if (outputDirF.exists() && !outputDirF.isDirectory()) {
+			System.err.printf("ERROR: specified output directory '%s' is not a directory!\n", outputDir);
+			return 2;
+		}
+
+		List<String> files = Arrays.asList(args).subList(1, args.length);
+
+		for (String file : files) if (!new File(file).isFile()) {
+			System.err.printf("ERROR: file '%s' is not a directory!\n", file);
+			return 2;
+		}
+
+		if (new HashSet<String>(files).size() < files.size()) {
+			System.err.println("ERROR: duplicate file names specified!");
+			return 2;
+		}
+
+		for (String file : files)
+			submitJob(file, outputDir);
 
 		int ret = 0;
 		for (Job job : jobs)
@@ -141,4 +169,7 @@ final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 		String id        = context.getTaskAttemptID().toString();
 		return new Path(getOutputPath(context), filename + "_" + id + extension);
 	}
+
+	// Allow the output directory to exist, so that we can make multiple jobs that write into it.
+	@Override public void checkOutputSpecs(JobContext job) throws FileAlreadyExistsException, IOException {}
 }
