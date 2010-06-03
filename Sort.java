@@ -1,5 +1,7 @@
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -25,7 +27,19 @@ public final class Sort extends Configured implements Tool {
 		System.exit(ToolRunner.run(new Configuration(), new Sort(), args));
 	}
 
+	private final List<Job> jobs = new ArrayList<Job>();
+
 	@Override public int run(String[] args) throws ClassNotFoundException, IOException, InterruptedException {
+		submitJob(args[0], args[1]);
+
+		int ret = 0;
+		for (Job job : jobs)
+			if (!job.waitForCompletion(true))
+				ret = 1;
+		return ret;
+	}
+
+	private void submitJob(String inputFile, String outputDir) throws ClassNotFoundException, IOException, InterruptedException {
 		Job job = new Job(getConf());
 
 		job.setJarByClass  (Sort.class);
@@ -39,10 +53,11 @@ public final class Sort extends Configured implements Tool {
 		job.setInputFormatClass (SortInputFormat.class);
 		job.setOutputFormatClass(SortOutputFormat.class);
 
-		FileInputFormat .setInputPaths(job, new Path(args[0]));
-		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		FileInputFormat .setInputPaths(job, new Path(inputFile));
+		FileOutputFormat.setOutputPath(job, new Path(outputDir));
 
-		return job.waitForCompletion(true) ? 0 : 1;
+		job.submit();
+		jobs.add(job);
 	}
 }
 
