@@ -112,22 +112,20 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 		return recReader;
 	}
 
-	// Wraps a LineRecordReader, but takes the Nth column of each line
-	// (separated by tab characters), throwing an error if it can't be
-	// losslessly converted to a long, and uses it as the key.
-	final static class SortInputRecordReader extends RecordReader<LongWritable,Text> {
+	// Like a LineRecordReader, but takes the Nth column of each line (separated
+	// by tab characters), throwing an error if it can't be losslessly converted
+	// to a long, and uses it as the key.
+	final static class SortInputRecordReader extends LineRecordReader {
 		private static final int N = 8; // The first column is N = 1
-
-		private final LineRecordReader lineReader = new LineRecordReader();
 
 		private LongWritable key = null;
 
 		@Override public boolean nextKeyValue() throws IOException {
-			boolean read = lineReader.nextKeyValue();
+			boolean read = super.nextKeyValue();
 			if (!read)
 				return false;
 
-			Text keyCol = getNthColumn(lineReader.getCurrentValue());
+			Text keyCol = getNthColumn(getCurrentValue());
 			key = new LongWritable(Long.parseLong(keyCol.toString()));
 			return true;
 		}
@@ -138,7 +136,7 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 			for (;;) {
 				int npos = text.find("\t", pos);
 				if (npos == -1)
-					throw new RuntimeException("Ran out of tabs on line " +lineReader.getCurrentKey());
+					throw new RuntimeException("Ran out of tabs on line " +super.getCurrentKey());
 
 				if (++col == N) {
 					// Grab [pos,npos).
@@ -148,16 +146,7 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 			}
 		}
 
-		@Override public LongWritable getCurrentKey  () { return key; }
-		@Override public Text         getCurrentValue() { return lineReader.getCurrentValue(); }
-		@Override public float        getProgress    () { return lineReader.getProgress(); }
-
-		@Override public void initialize(InputSplit s, TaskAttemptContext c) throws IOException {
-			lineReader.initialize(s, c);
-		}
-		@Override public void close() throws IOException {
-			lineReader.close();
-		}
+		@Override public LongWritable getCurrentKey() { return key; }
 	}
 }
 final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
