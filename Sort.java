@@ -1,4 +1,3 @@
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -7,6 +6,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -39,26 +39,29 @@ public final class Sort extends Configured implements Tool {
 			return 2;
 		}
 
-		String outputDir = args[0];
-		File outputDirF = new File(outputDir);
-		if (outputDirF.exists() && !outputDirF.isDirectory()) {
+		FileSystem fs = FileSystem.get(getConf());
+
+		Path outputDir = new Path(args[0]);
+		if (fs.exists(outputDir) && !fs.getFileStatus(outputDir).isDir()) {
 			System.err.printf("ERROR: specified output directory '%s' is not a directory!\n", outputDir);
 			return 2;
 		}
 
-		List<String> files = Arrays.asList(args).subList(1, args.length);
+		List<Path> files = new ArrayList<Path>(args.length - 1);
+		for (String file : Arrays.asList(args).subList(1, args.length))
+			files.add(new Path(file));
 
-		for (String file : files) if (!new File(file).isFile()) {
-			System.err.printf("ERROR: file '%s' is not a directory!\n", file);
-			return 2;
-		}
-
-		if (new HashSet<String>(files).size() < files.size()) {
+		if (new HashSet<Path>(files).size() < files.size()) {
 			System.err.println("ERROR: duplicate file names specified!");
 			return 2;
 		}
 
-		for (String file : files)
+		for (Path file : files) if (!fs.isFile(file)) {
+			System.err.printf("ERROR: file '%s' is not a file!\n", file);
+			return 2;
+		}
+
+		for (Path file : files)
 			submitJob(file, outputDir);
 
 		int ret = 0;
@@ -68,11 +71,11 @@ public final class Sort extends Configured implements Tool {
 		return ret;
 	}
 
-	private void submitJob(String inputFile, String outputDir) throws ClassNotFoundException, IOException, InterruptedException {
+	private void submitJob(Path inputFile, Path outputDir) throws ClassNotFoundException, IOException, InterruptedException {
 		Configuration conf = new Configuration(getConf());
 
 		// Used by SortOutputFormat to construct the output filename
-		conf.set(SortOutputFormat.INPUT_FILENAME_PROP, new File(inputFile).getName());
+		conf.set(SortOutputFormat.INPUT_FILENAME_PROP, inputFile.getName());
 
 		Job job = new Job(conf);
 
@@ -87,8 +90,8 @@ public final class Sort extends Configured implements Tool {
 		job.setInputFormatClass (SortInputFormat.class);
 		job.setOutputFormatClass(SortOutputFormat.class);
 
-		FileInputFormat .setInputPaths(job, new Path(inputFile));
-		FileOutputFormat.setOutputPath(job, new Path(outputDir));
+		FileInputFormat .setInputPaths(job, inputFile);
+		FileOutputFormat.setOutputPath(job, outputDir);
 
 		job.submit();
 		jobs.add(job);
