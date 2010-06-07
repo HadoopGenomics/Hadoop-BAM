@@ -33,9 +33,12 @@ public final class Sort extends Configured implements Tool {
 
 	private final List<Job> jobs = new ArrayList<Job>();
 
-	@Override public int run(String[] args) throws ClassNotFoundException, IOException, InterruptedException {
+	@Override public int run(String[] args)
+		throws ClassNotFoundException, IOException, InterruptedException
+	{
 		if (args.length < 2) {
-			System.err.println("Usage: " +Sort.class+ " <output directory> file [file...]");
+			System.err.println(
+				"Usage: " +Sort.class+ " <output directory> file [file...]");
 			return 2;
 		}
 
@@ -43,7 +46,9 @@ public final class Sort extends Configured implements Tool {
 
 		Path outputDir = new Path(args[0]);
 		if (fs.exists(outputDir) && !fs.getFileStatus(outputDir).isDir()) {
-			System.err.printf("ERROR: specified output directory '%s' is not a directory!\n", outputDir);
+			System.err.printf(
+				"ERROR: specified output directory '%s' is not a directory!\n",
+				outputDir);
 			return 2;
 		}
 
@@ -71,7 +76,9 @@ public final class Sort extends Configured implements Tool {
 		return ret;
 	}
 
-	private void submitJob(Path inputFile, Path outputDir) throws ClassNotFoundException, IOException, InterruptedException {
+	private void submitJob(Path inputFile, Path outputDir)
+		throws ClassNotFoundException, IOException, InterruptedException
+	{
 		Configuration conf = new Configuration(getConf());
 
 		// Used by SortOutputFormat to construct the output filename
@@ -102,14 +109,21 @@ public final class Sort extends Configured implements Tool {
 final class SortMapper extends Mapper<LongWritable,Text, LongWritable,Text> {}
 
 final class SortReducer extends Reducer<LongWritable,Text, NullWritable,Text> {
-	@Override protected void reduce(LongWritable ignored, Iterable<Text> lines, Reducer<LongWritable,Text, NullWritable,Text>.Context context) throws IOException, InterruptedException {
+	@Override protected void reduce(
+			LongWritable ignored, Iterable<Text> lines,
+			Reducer<LongWritable,Text, NullWritable,Text>.Context context)
+		throws IOException, InterruptedException
+	{
 		for (Text line : lines)
 			context.write(NullWritable.get(), line);
 	}
 }
 
 final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
-	@Override public RecordReader<LongWritable,Text> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+	@Override public RecordReader<LongWritable,Text> createRecordReader(
+			InputSplit split, TaskAttemptContext context)
+		throws IOException, InterruptedException
+	{
 		RecordReader<LongWritable,Text> recReader = new SortInputRecordReader();
 		recReader.initialize(split, context);
 		return recReader;
@@ -139,7 +153,8 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 			for (;;) {
 				int npos = text.find("\t", pos);
 				if (npos == -1)
-					throw new RuntimeException("Ran out of tabs on line " +super.getCurrentKey());
+					throw new RuntimeException(
+						"Ran out of tabs on line " +super.getCurrentKey());
 
 				if (++col == N) {
 					// Grab [pos,npos).
@@ -155,13 +170,19 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 	public static final String INPUT_FILENAME_PROP = "sort.input.filename";
 
-	@Override public Path getDefaultWorkFile(TaskAttemptContext context, String ext) throws IOException {
+	@Override public Path getDefaultWorkFile(
+			TaskAttemptContext context, String ext)
+		throws IOException
+	{
 		String filename  = context.getConfiguration().get(INPUT_FILENAME_PROP);
 		String extension = ext.isEmpty() ? ext : "." + ext;
 		String id        = context.getTaskAttemptID().toString();
 		return new Path(getOutputPath(context), filename + "_" + id + extension);
 	}
 
-	// Allow the output directory to exist, so that we can make multiple jobs that write into it.
-	@Override public void checkOutputSpecs(JobContext job) throws FileAlreadyExistsException, IOException {}
+	// Allow the output directory to exist, so that we can make multiple jobs
+	// that write into it.
+	@Override public void checkOutputSpecs(JobContext job)
+		throws FileAlreadyExistsException, IOException
+	{}
 }
