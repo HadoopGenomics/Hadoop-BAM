@@ -145,7 +145,7 @@ final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
 			Text keyCol = getNthColumn(getCurrentValue());
 			if (keyCol == null)
 				throw new RuntimeException(
-					"Ran out of tabs on line " +super.getCurrentKey());
+					"Ran out of tabs at index " +super.getCurrentKey());
 
 			key = new LongWritable(Long.parseLong(keyCol.toString()));
 			return true;
