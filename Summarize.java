@@ -75,10 +75,14 @@ final class RecordBlock implements Writable {
 	}
 
 	public void parseFrom(Text line, int i) {
-		before [i] = new Text();
-		after  [i] = new Text();
-		column4[i] = new LongWritable(
-			Long.parseLong(getNthColumn(line, before[i], after[i]).toString()));
+		before[i] = new Text();
+		after [i] = new Text();
+
+		Text col = getNthColumn(line, before[i], after[i]);
+		if (col == null)
+			throw new RuntimeException("Missing column on line '" +line+ "'!");
+
+		column4[i] = new LongWritable(Long.parseLong(col.toString()));
 	}
 
 	public void setLength(int l) { size = l; }
