@@ -1,4 +1,6 @@
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -6,16 +8,19 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -25,6 +30,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
+import hadooptrunk.InputSampler;
+import hadooptrunk.TotalOrderPartitioner;
 
 public final class Sort extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
@@ -84,6 +92,8 @@ public final class Sort extends Configured implements Tool {
 		// Used by SortOutputFormat to construct the output filename
 		conf.set(SortOutputFormat.INPUT_FILENAME_PROP, inputFile.getName());
 
+		setSamplingConf(inputFile, conf);
+
 		Job job = new Job(conf);
 
 		job.setJarByClass  (Sort.class);
@@ -100,8 +110,38 @@ public final class Sort extends Configured implements Tool {
 		FileInputFormat .setInputPaths(job, inputFile);
 		FileOutputFormat.setOutputPath(job, outputDir);
 
+		job.setPartitionerClass(TotalOrderPartitioner.class);
+
+		// Sample first so that we get a better partitioning
+		sample(inputFile, job);
+
 		job.submit();
 		jobs.add(job);
+	}
+
+	private void setSamplingConf(Path inputFile, Configuration conf)
+		throws IOException
+	{
+		Path inputDir = inputFile.getParent();
+		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
+
+		Path partition = new Path(inputDir, "_partitioning");
+		TotalOrderPartitioner.setPartitionFile(conf, partition);
+
+		try {
+			URI partitionURI = new URI(partition.toString() + "#_partitioning");
+			DistributedCache.addCacheFile(partitionURI, conf);
+			DistributedCache.createSymlink(conf);
+		} catch (URISyntaxException e) { assert false; }
+	}
+
+	private void sample(Path inputFile, Job job)
+		throws ClassNotFoundException, IOException, InterruptedException
+	{
+		InputSampler.Sampler<LongWritable,Text> sampler =
+			new InputSampler.IntervalSampler<LongWritable,Text>(0.01, 100);
+
+		InputSampler.<LongWritable,Text>writePartitionFile(job, sampler);
 	}
 }
 
