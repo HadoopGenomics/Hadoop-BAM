@@ -9,11 +9,11 @@ import java.nio.ByteBuffer;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
-public final class BAMIndex {
+public final class SplittingBAMIndex {
 	private final NavigableSet<Long> virtualOffsets = new TreeSet<Long>();
 
-	public BAMIndex() {}
-	public BAMIndex(final File path) throws IOException { readIndex(path); }
+	public SplittingBAMIndex() {}
+	public SplittingBAMIndex(final File path) throws IOException { readIndex(path); }
 
 	public void readIndex(final File path) throws IOException {
 		virtualOffsets.clear();
@@ -56,9 +56,9 @@ public final class BAMIndex {
 	public static void main(String[] args) {
 		if (args.length == 0) {
 			System.out.println(
-				"Usage: BAMIndex [BAM indices...]\n\n"+
+				"Usage: SplittingBAMIndex [splitting BAM indices...]\n\n"+
 
-				"Writes a few statistics about each BAM index.");
+				"Writes a few statistics about each splitting BAM index.");
 			return;
 		}
 
@@ -67,7 +67,7 @@ public final class BAMIndex {
 			if (f.isFile() && f.canRead()) {
 				try {
 					System.err.printf("%s:\n", f);
-					BAMIndex bi = new BAMIndex(f);
+					final SplittingBAMIndex bi = new SplittingBAMIndex(f);
 					final long first = bi.first();
 					final long last  = bi.last();
 					System.err.printf(
