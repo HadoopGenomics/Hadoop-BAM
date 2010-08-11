@@ -1,5 +1,7 @@
 // File created: 2010-08-03 12:20:20
 
+package fi.tkk.ics.hadoop.bam;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;

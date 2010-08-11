@@ -1,0 +1,42 @@
+<project default="compile">
+	<property name="targetdir" value="bin"/>
+	<property name="srcdir"    value="src"/>
+
+	<fileset id="srcfiles" dir="${srcdir}" includes="**/*.java"/>
+
+	<target name="compile">
+		<mkdir dir="${targetdir}"/>
+		<javac
+			srcdir="src"
+			destdir="${targetdir}"
+			source="1.6" target="1.6"
+			classpath="."
+			encoding="UTF-8"
+			debug="on"
+		>
+			<include name="**/*.java"/>
+			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
+		</javac>
+	</target>
+	<target name="jar" depends="compile">
+		<jar destfile="hadoop-bam.jar" basedir="${targetdir}" includes="**/*.class"/>
+	</target>
+	<target name="clean">
+		<delete>
+			<fileset dir="${targetdir}" includes="**/*.class"/>
+		</delete>
+	</target>
+	<target name="javadoc">
+		<javadoc
+			destdir="doc"
+			locale="en_GB"
+			   encoding="UTF-8"
+			docencoding="UTF-8"
+			source="1.6"
+			linksource="yes"
+			breakiterator="yes"
+		>
+			<fileset refid="srcfiles"/>
+		</javadoc>
+	</target>
+</project>
