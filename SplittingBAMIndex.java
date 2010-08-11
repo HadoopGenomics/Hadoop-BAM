@@ -13,13 +13,15 @@ public final class SplittingBAMIndex {
 	private final NavigableSet<Long> virtualOffsets = new TreeSet<Long>();
 
 	public SplittingBAMIndex() {}
-	public SplittingBAMIndex(final File path) throws IOException { readIndex(path); }
+	public SplittingBAMIndex(final File path) throws IOException {
+		this(new BufferedInputStream(new FileInputStream(path)));
+	}
+	public SplittingBAMIndex(final InputStream in) throws IOException {
+		readIndex(in);
+	}
 
-	public void readIndex(final File path) throws IOException {
+	public void readIndex(final InputStream in) throws IOException {
 		virtualOffsets.clear();
-
-		final InputStream in =
-			new BufferedInputStream(new FileInputStream(path));
 
 		final ByteBuffer bb = ByteBuffer.allocate(8);
 
