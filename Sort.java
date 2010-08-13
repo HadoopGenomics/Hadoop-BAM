@@ -14,25 +14,24 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import hadooptrunk.InputSampler;
 import hadooptrunk.TotalOrderPartitioner;
+
+import fi.tkk.ics.hadoop.bam.BAMInputFormat;
+import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 
 public final class Sort extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
@@ -102,9 +101,9 @@ public final class Sort extends Configured implements Tool {
 
 		job.setMapOutputKeyClass(LongWritable.class);
 		job.setOutputKeyClass   (NullWritable.class);
-		job.setOutputValueClass (Text.class);
+		job.setOutputValueClass (SAMRecordWritable.class);
 
-		job.setInputFormatClass (SortInputFormat.class);
+		job.setInputFormatClass (BAMInputFormat.class);
 		job.setOutputFormatClass(SortOutputFormat.class);
 
 		FileInputFormat .setInputPaths(job, inputFile);
@@ -146,72 +145,37 @@ public final class Sort extends Configured implements Tool {
 }
 
 // The identity function is fine.
-final class SortMapper extends Mapper<LongWritable,Text, LongWritable,Text> {}
+final class SortMapper
+	extends Mapper<LongWritable,SAMRecordWritable, LongWritable,SAMRecordWritable>
+{}
 
-final class SortReducer extends Reducer<LongWritable,Text, NullWritable,Text> {
+final class SortReducer
+	extends Reducer<LongWritable,SAMRecordWritable, NullWritable,SAMRecordWritable>
+{
 	@Override protected void reduce(
-			LongWritable ignored, Iterable<Text> lines,
-			Reducer<LongWritable,Text, NullWritable,Text>.Context context)
+			LongWritable ignored, Iterable<SAMRecordWritable> records,
+			Reducer<LongWritable,SAMRecordWritable, NullWritable,SAMRecordWritable>.Context ctx)
 		throws IOException, InterruptedException
 	{
-		for (Text line : lines)
-			context.write(NullWritable.get(), line);
+		for (SAMRecordWritable rec : records)
+			ctx.write(NullWritable.get(), rec);
 	}
 }
 
-final class SortInputFormat extends FileInputFormat<LongWritable,Text> {
-	@Override public RecordReader<LongWritable,Text> createRecordReader(
-			InputSplit split, TaskAttemptContext context)
-		throws IOException, InterruptedException
-	{
-		RecordReader<LongWritable,Text> recReader = new SortInputRecordReader();
-		recReader.initialize(split, context);
-		return recReader;
-	}
-
-	// Like a LineRecordReader, but takes the Nth column of each line (separated
-	// by tab characters), throwing an error if it can't be losslessly converted
-	// to a long, and uses it as the key.
-	final static class SortInputRecordReader extends LineRecordReader {
-		private static final int N = 8; // The first column is N = 1
-
-		private LongWritable key = null;
-
-		@Override public boolean nextKeyValue() throws IOException {
-			boolean read = super.nextKeyValue();
-			if (!read)
-				return false;
-
-			Text keyCol = getNthColumn(getCurrentValue());
-			if (keyCol == null)
-				throw new RuntimeException(
-					"Ran out of tabs at index " +super.getCurrentKey());
-
-			key = new LongWritable(Long.parseLong(keyCol.toString()));
-			return true;
-		}
-
-		private static Text getNthColumn(Text text) {
-			int col = 0;
-			int pos = 0;
-			for (;;) {
-				int npos = text.find("\t", pos);
-				if (npos == -1)
-					return null;
-
-				if (++col == N) {
-					// Grab [pos,npos).
-					return new Text(Arrays.copyOfRange(text.getBytes(), pos, npos));
-				}
-				pos = npos + 1;
-			}
-		}
-
-		@Override public LongWritable getCurrentKey() { return key; }
-	}
-}
-final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
+final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 	public static final String INPUT_FILENAME_PROP = "sort.input.filename";
+
+	@Override public RecordWriter<NullWritable,SAMRecordWritable> getRecordWriter(
+			TaskAttemptContext context)
+		throws IOException
+	{
+		if (super.header == null) {
+			Configuration c = context.getConfiguration();
+			readSAMHeaderFrom(
+				new Path(c.get(INPUT_FILENAME_PROP)), FileSystem.get(c));
+		}
+		return super.getRecordWriter(context);
+	}
 
 	@Override public Path getDefaultWorkFile(
 			TaskAttemptContext context, String ext)
