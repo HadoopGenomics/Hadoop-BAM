@@ -146,15 +146,19 @@ public final class Sort extends Configured implements Tool {
 
 // The identity function is fine.
 final class SortMapper
-	extends Mapper<LongWritable,SAMRecordWritable, LongWritable,SAMRecordWritable>
+	extends Mapper<LongWritable,SAMRecordWritable,
+	               LongWritable,SAMRecordWritable>
 {}
 
 final class SortReducer
-	extends Reducer<LongWritable,SAMRecordWritable, NullWritable,SAMRecordWritable>
+	extends Reducer<LongWritable,SAMRecordWritable,
+	                NullWritable,SAMRecordWritable>
 {
 	@Override protected void reduce(
 			LongWritable ignored, Iterable<SAMRecordWritable> records,
-			Reducer<LongWritable,SAMRecordWritable, NullWritable,SAMRecordWritable>.Context ctx)
+			Reducer<LongWritable,SAMRecordWritable,
+			        NullWritable,SAMRecordWritable>.Context
+				ctx)
 		throws IOException, InterruptedException
 	{
 		for (SAMRecordWritable rec : records)
@@ -165,8 +169,8 @@ final class SortReducer
 final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 	public static final String INPUT_FILENAME_PROP = "sort.input.filename";
 
-	@Override public RecordWriter<NullWritable,SAMRecordWritable> getRecordWriter(
-			TaskAttemptContext context)
+	@Override public RecordWriter<NullWritable,SAMRecordWritable>
+		getRecordWriter(TaskAttemptContext context)
 		throws IOException
 	{
 		if (super.header == null) {
