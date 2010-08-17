@@ -20,6 +20,9 @@ import fi.tkk.ics.hadoop.bam.customsamtools.BAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.customsamtools.LazyBAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
 
+// In every mapper, the record will have a header, since BAMInputFormat
+// provides one. It is lost when transferring the SAMRecord to a reducer,
+// however.
 public class SAMRecordWritable implements Writable {
 	private SAMRecord record;
 
@@ -27,20 +30,18 @@ public class SAMRecordWritable implements Writable {
 	public void      set(SAMRecord r) { record = r; }
 
 	@Override public void write(DataOutput out) throws IOException {
-		// Passing null is somewhat risky but we don't have much choice: we can't
-		// get a SAMFileHeader here from anywhere.
-		//
-		// In theory, it shouldn't matter, since the representation of an
-		// alignment in BAM doesn't depend on the header data at all. Only its
-		// interpretation does, and a simple read/write codec shouldn't really
-		// have anything to say about that.
+		// In theory, it shouldn't matter whether we give a header to
+		// BAMRecordCodec or not, since the representation of an alignment in BAM
+		// doesn't depend on the header data at all. Only its interpretation
+		// does, and a simple read/write codec shouldn't really have anything to
+		// say about that.
 		//
 		// But in practice, it already does matter for decode(), which is why
-		// LazyBAMRecordCodec exists. If this does blow up one day, we need to do
-		// a similar copy-paste job for BAMRecordCodec.encode() and/or the
-		// classes it depends on. (Unless you're in less of a hurry and want to
-		// file bug reports.)
-		final BAMRecordCodec codec = new BAMRecordCodec(null);
+		// LazyBAMRecordCodec exists. If this does blow up one day due to
+		// record.getHeader() == null, we need to do a similar copy-paste job for
+		// BAMRecordCodec.encode() and/or the classes it depends on. (Unless
+		// you're in less of a hurry and want to file bug reports.)
+		final BAMRecordCodec codec = new BAMRecordCodec(record.getHeader());
 		codec.setOutputStream(new DataOutputWrapper(out));
 		codec.encode(record);
 	}
