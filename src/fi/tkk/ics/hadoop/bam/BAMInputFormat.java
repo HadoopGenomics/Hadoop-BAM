@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -31,10 +32,10 @@ public class BAMInputFormat
 		FileSystem fs;
 		try {
 			fs = FileSystem.get(job.getConfiguration());
+			return getIndex(path, fs) != null;
 		} catch (IOException e) {
 			return false;
 		}
-		return getIndex(path, fs) != null;
 	}
 
 	@Override public List<InputSplit> getSplits(JobContext job)
@@ -46,15 +47,18 @@ public class BAMInputFormat
 
 		final List<InputSplit> newSplits = new ArrayList<InputSplit>();
 
-		final FileSystem fs = FileSystem.get(job.getConfiguration());
+		final Configuration cfg = job.getConfiguration();
 
 		for (int i = 0; i < splits.size(); ++i) {
 			final FileSplit fileSplit = (FileSplit)splits.get(i);
 			final Path file = fileSplit.getPath();
 
-			final SplittingBAMIndex idx = getIndex(file, fs);
-			if (idx == null)
-				throw new IOException("No index, couldn't split");
+			final SplittingBAMIndex idx;
+			try {
+				idx = getIndex(file, file.getFileSystem(cfg));
+			} catch (IOException e) {
+				throw new IOException("No index, couldn't split", e);
+			}
 
 			final long start =         fileSplit.getStart();
 			final long end   = start + fileSplit.getLength();
@@ -91,14 +95,12 @@ public class BAMInputFormat
 		return rr;
 	}
 
-	private SplittingBAMIndex getIndex(final Path path, final FileSystem fs) {
+	private SplittingBAMIndex getIndex(final Path path, final FileSystem fs)
+		throws IOException
+	{
 		SplittingBAMIndex idx = indices.get(path);
 		if (idx == null && !indices.containsKey(path)) {
-			try {
-				idx = new SplittingBAMIndex(fs.open(getIdxPath(path)));
-			} catch (IOException e) {
-				idx = null;
-			}
+			idx = new SplittingBAMIndex(fs.open(getIdxPath(path)));
 			indices.put(path, idx);
 		}
 		return idx;
