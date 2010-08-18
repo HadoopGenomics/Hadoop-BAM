@@ -32,7 +32,7 @@ public class BAMRecordReader
 
 	private BlockCompressedInputStream bci;
 	private BAMRecordCodec codec;
-	private float fileSizeFloat;
+	private long fileStart, virtualEnd;
 
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
@@ -42,31 +42,45 @@ public class BAMRecordReader
 		final Path file = split.getPath();
 		final FileSystem fs = FileSystem.get(ctx.getConfiguration());
 
-		final long fileSize = fs.getFileStatus(file).getLen();
-		fileSizeFloat = fileSize;
-
 		final FSDataInputStream in = fs.open(file);
 		codec = new BAMRecordCodec(new SAMFileReader(in).getFileHeader());
 
 		in.seek(0);
 		bci =
 			new BlockCompressedInputStream(
-				new WrapSeekable<FSDataInputStream>(in, fileSize, file));
+				new WrapSeekable<FSDataInputStream>(
+					in, fs.getFileStatus(file).getLen(), file));
 
-		bci.seek(split.getStartVirtualOffset());
+		final long virtualStart = split.getStartVirtualOffset();
+
+		fileStart  = virtualStart >>> 16;
+		virtualEnd = split.getEndVirtualOffset();
+
+		bci.seek(virtualStart);
 		codec.setInputStream(bci);
 	}
 	@Override public void close() throws IOException { bci.close(); }
 
-	/** Inexact; generally never reaches 1. */
 	@Override public float getProgress() {
-		return (float)(bci.getFilePointer() >>> 16) / fileSizeFloat;
+		final long virtPos = bci.getFilePointer();
+		final long filePos = virtPos >>> 16;
+		if (virtPos >= virtualEnd)
+			return 1;
+		else {
+			final long fileEnd = virtualEnd >>> 16;
+			// Add 1 to the denominator to make sure it doesn't reach 1 here when
+			// filePos == fileEnd.
+			return (float)(filePos - fileStart) / (fileEnd - fileStart + 1);
+		}
 	}
 	@Override public LongWritable      getCurrentKey  () { return key; }
 	@Override public SAMRecordWritable getCurrentValue() { return record; }
 
 	@Override public boolean nextKeyValue() {
-		SAMRecord r = codec.decode();
+		if (bci.getFilePointer() >= virtualEnd)
+			return false;
+
+		final SAMRecord r = codec.decode();
 		if (r == null)
 			return false;
 		key.set((long)r.getReferenceIndex() << 32
