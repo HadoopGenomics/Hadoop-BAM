@@ -88,8 +88,9 @@ public final class Sort extends Configured implements Tool {
 	{
 		Configuration conf = new Configuration(getConf());
 
-		// Used by SortOutputFormat to construct the output filename
-		conf.set(SortOutputFormat.INPUT_FILENAME_PROP, inputFile.getName());
+		// Used by SortOutputFormat to construct the output filename and to fetch
+		// the SAM header to output
+		conf.set(SortOutputFormat.INPUT_PATH_PROP, inputFile.toString());
 
 		setSamplingConf(inputFile, conf);
 
@@ -167,7 +168,7 @@ final class SortReducer
 }
 
 final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
-	public static final String INPUT_FILENAME_PROP = "sort.input.filename";
+	public static final String INPUT_PATH_PROP = "sort.input.path";
 
 	@Override public RecordWriter<NullWritable,SAMRecordWritable>
 		getRecordWriter(TaskAttemptContext context)
@@ -176,7 +177,7 @@ final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 		if (super.header == null) {
 			Configuration c = context.getConfiguration();
 			readSAMHeaderFrom(
-				new Path(c.get(INPUT_FILENAME_PROP)), FileSystem.get(c));
+				new Path(c.get(INPUT_PATH_PROP)), FileSystem.get(c));
 		}
 		return super.getRecordWriter(context);
 	}
@@ -185,7 +186,8 @@ final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 			TaskAttemptContext context, String ext)
 		throws IOException
 	{
-		String filename  = context.getConfiguration().get(INPUT_FILENAME_PROP);
+		String path      = context.getConfiguration().get(INPUT_PATH_PROP);
+		String filename  = new Path(path).getName();
 		String extension = ext.isEmpty() ? ext : "." + ext;
 		String id        = context.getTaskAttemptID().toString();
 		return new Path(getOutputPath(context), filename + "_" + id + extension);
