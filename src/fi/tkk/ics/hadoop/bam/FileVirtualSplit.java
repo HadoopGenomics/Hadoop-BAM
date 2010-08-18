@@ -33,7 +33,7 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 	@Override public long getLength() {
 		// Approximate: we don't know here how many blocks are in between two
 		// file offsets, so just use the differences between the file offsets
-		// (unless it's zero, in which case the beginning aend are in the same
+		// (unless it's zero, in which case the beginning and end are in the same
 		// block and we can actually give an exact answer).
 		final long vsHi   = vStart & ~0xffff;
 		final long veHi   = vEnd   & ~0xffff;
