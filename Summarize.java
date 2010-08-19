@@ -1,20 +1,25 @@
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -23,88 +28,19 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-// Probably the most important/interesting class here.
-//
-// Not a WritableComparable<RecordBlock> because we don't need/want it to be
-// used as a key, only a value.
-final class RecordBlock implements Writable {
+import hadooptrunk.InputSampler;
+import hadooptrunk.MultipleOutputs;
+import hadooptrunk.TotalOrderPartitioner;
 
-	public static final int BLOCK_SIZE = 3;
-
-	// The column we want; first column is N = 1
-	private static final int N = 4;
-
-	// Very TODO... this is just for demo purposes
-	private LongWritable[] column4;
-	private Text[] before, after;
-	private int size;
-
-	public RecordBlock() {
-		column4 = new LongWritable[BLOCK_SIZE];
-		before  = new Text[BLOCK_SIZE];
-		after   = new Text[BLOCK_SIZE];
-		size = BLOCK_SIZE;
-	}
-
-	public Text getSummary() {
-		long sum = 0;
-		for (int i = 0; i < size; ++i)
-			sum += column4[i].get();
-		return new Text(before[0].toString() + sum + after[0].toString());
-	}
-
-	@Override public void write(DataOutput out) throws IOException {
-		for (int i = 0; i < size; ++i) {
-			column4[i].write(out);
-			before [i].write(out);
-			after  [i].write(out);
-		}
-	}
-	@Override public void readFields(DataInput in) throws IOException {
-		for (int i = 0; i < size; ++i) {
-			column4[i].readFields(in);
-			before [i].readFields(in);
-			after  [i].readFields(in);
-		}
-	}
-
-	public void parseFrom(Text line, int i) {
-		before[i] = new Text();
-		after [i] = new Text();
-
-		Text col = getNthColumn(line, before[i], after[i]);
-		if (col == null)
-			throw new RuntimeException("Missing column on line '" +line+ "'!");
-
-		column4[i] = new LongWritable(Long.parseLong(col.toString()));
-	}
-
-	public void setLength(int l) { size = l; }
-
-	private static Text getNthColumn(Text text, Text before, Text after) {
-		int col = 0;
-		int pos = 0;
-		for (;;) {
-			int npos = text.find("\t", pos);
-			if (npos == -1)
-				return null;
-
-			if (++col == N) {
-				// [pos,npos) is the Nth column.
-				before.set(text.getBytes(), 0, pos);
-				after .set(text.getBytes(), npos, text.getLength() - npos);
-				return new Text(Arrays.copyOfRange(text.getBytes(), pos, npos));
-			}
-			pos = npos + 1;
-		}
-	}
-}
+import fi.tkk.ics.hadoop.bam.BAMInputFormat;
+import fi.tkk.ics.hadoop.bam.BAMRecordReader;
+import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
 
 public final class Summarize extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
@@ -116,9 +52,16 @@ public final class Summarize extends Configured implements Tool {
 	@Override public int run(String[] args)
 		throws ClassNotFoundException, IOException, InterruptedException
 	{
-		if (args.length < 2) {
+		if (args.length < 3) {
 			System.err.println(
-				"Usage: " +Summarize.class+ " <output directory> file [file...]");
+				"Usage: Summarize <output directory> <levels> "+
+				"file [file...]\n\n"+
+
+				"Levels should be a comma-separated list of positive integers. "+
+				"For each level,\noutputs a summary file describing the average "+
+				"number of alignments at various\npositions in the file. The "+
+				"level is the number of alignments that are\nsummarized into "+
+				"one.");
 			return 2;
 		}
 
@@ -132,8 +75,24 @@ public final class Summarize extends Configured implements Tool {
 			return 2;
 		}
 
-		List<Path> files = new ArrayList<Path>(args.length - 1);
-		for (String file : Arrays.asList(args).subList(1, args.length))
+		String[] levels = args[1].split(",");
+		for (String l : levels) {
+			try {
+				int lvl = Integer.parseInt(l);
+				if (lvl > 0)
+					continue;
+				System.err.printf(
+					"ERROR: specified summary level '%d' is not positive!\n",
+					lvl);
+			} catch (NumberFormatException e) {
+				System.err.printf(
+					"ERROR: specified summary level '%s' is not an integer!\n", l);
+			}
+			return 2;
+		}
+
+		List<Path> files = new ArrayList<Path>(args.length - 2);
+		for (String file : Arrays.asList(args).subList(2, args.length))
 			files.add(new Path(file));
 
 		if (new HashSet<Path>(files).size() < files.size()) {
@@ -147,7 +106,7 @@ public final class Summarize extends Configured implements Tool {
 		}
 
 		for (Path file : files)
-			submitJob(file, outputDir);
+			submitJob(file, outputDir, levels);
 
 		int ret = 0;
 		for (Job job : jobs)
@@ -156,7 +115,8 @@ public final class Summarize extends Configured implements Tool {
 		return ret;
 	}
 
-	private void submitJob(Path inputFile, Path outputDir)
+	private void submitJob(
+			Path inputFile, Path outputDir, String[] summaryLvls)
 		throws ClassNotFoundException, IOException, InterruptedException
 	{
 		Configuration conf = new Configuration(getConf());
@@ -164,15 +124,28 @@ public final class Summarize extends Configured implements Tool {
 		// Used by SummarizeOutputFormat to construct the output filename
 		conf.set(SummarizeOutputFormat.INPUT_FILENAME_PROP, inputFile.getName());
 
+		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, summaryLvls);
+
+		setSamplingConf(inputFile, conf);
+
+		// As far as I can tell there's no non-deprecated way of getting this
+		// info.
+		int maxReduceTasks =
+			new JobClient(new JobConf(conf)).getClusterStatus()
+			.getMaxReduceTasks();
+
+		conf.setInt("mapred.reduce.tasks", maxReduceTasks * 9 / 10);
+
 		Job job = new Job(conf);
 
 		job.setJarByClass  (Summarize.class);
 		job.setMapperClass (SummarizeMapper.class);
 		job.setReducerClass(SummarizeReducer.class);
 
-		job.setMapOutputKeyClass(LongWritable.class);
-		job.setOutputKeyClass   (NullWritable.class);
-		job.setOutputValueClass (Text.class);
+		job.setMapOutputKeyClass  (IntWritable.class);
+		job.setMapOutputValueClass(Range.class);
+		job.setOutputKeyClass     (NullWritable.class);
+		job.setOutputValueClass   (RangeCount.class);
 
 		job.setInputFormatClass (SummarizeInputFormat.class);
 		job.setOutputFormatClass(SummarizeOutputFormat.class);
@@ -180,107 +153,260 @@ public final class Summarize extends Configured implements Tool {
 		FileInputFormat .setInputPaths(job, inputFile);
 		FileOutputFormat.setOutputPath(job, outputDir);
 
+		job.setPartitionerClass(TotalOrderPartitioner.class);
+
+		sample(inputFile, job);
+
+		for (String s : summaryLvls)
+			MultipleOutputs.addNamedOutput(
+				job, "summary" + s, SummarizeOutputFormat.class,
+				NullWritable.class, Range.class);
+
 		job.submit();
 		jobs.add(job);
 	}
-}
 
-final class SummarizeMapper
-	extends Mapper<LongWritable,RecordBlock, LongWritable,Text>
-{
-	@Override protected void map(
-			LongWritable key, RecordBlock block,
-			Mapper<LongWritable,RecordBlock, LongWritable,Text>.Context context)
-		throws IOException, InterruptedException
+	private void setSamplingConf(Path inputFile, Configuration conf)
+		throws IOException
 	{
-		context.write(key, block.getSummary());
+		Path inputDir = inputFile.getParent();
+		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
+
+		Path partition = new Path(inputDir, "_partitioning");
+		TotalOrderPartitioner.setPartitionFile(conf, partition);
+
+		try {
+			URI partitionURI = new URI(partition.toString() + "#_partitioning");
+			DistributedCache.addCacheFile(partitionURI, conf);
+			DistributedCache.createSymlink(conf);
+		} catch (URISyntaxException e) { assert false; }
+	}
+
+	private void sample(Path inputFile, Job job)
+		throws ClassNotFoundException, IOException, InterruptedException
+	{
+		InputSampler.Sampler<IntWritable,Range> sampler =
+			new InputSampler.IntervalSampler<IntWritable,Range>(0.01, 100);
+
+		InputSampler.<IntWritable,Range>writePartitionFile(job, sampler);
 	}
 }
+
+// The identity function is fine.
+final class SummarizeMapper
+	extends Mapper<IntWritable,Range, IntWritable,Range>
+{}
 
 final class SummarizeReducer
-	extends Reducer<LongWritable,Text, NullWritable,Text>
+	extends Reducer<IntWritable,Range, NullWritable,RangeCount>
 {
+	public static final String SUMMARY_LEVELS_PROP = "summarize.summary.levels";
+
+	private MultipleOutputs<NullWritable,RangeCount> mos;
+
+	// Each list is paired with the number of ranges it uses to compute a single
+	// summary output.
+	private final List<Triple<Integer, String, List<Range>>> summaryLists =
+		new ArrayList<Triple<Integer, String, List<Range>>>();
+
+	@Override public void setup(
+			Reducer<IntWritable,Range, NullWritable,RangeCount>.Context
+				ctx)
+	{
+		mos = new MultipleOutputs<NullWritable,RangeCount>(ctx);
+
+		for (String s : ctx.getConfiguration().getStrings(SUMMARY_LEVELS_PROP)) {
+			int level = Integer.parseInt(s);
+			summaryLists.add(
+				new Triple<Integer, String, List<Range>>(
+					level, "summary" + level, new ArrayList<Range>()));
+		}
+	}
+
 	@Override protected void reduce(
-			LongWritable ignored, Iterable<Text> lines,
-			Reducer<LongWritable,Text, NullWritable,Text>.Context context)
+			IntWritable ignored, Iterable<Range> ranges,
+			Reducer<IntWritable,Range, NullWritable,RangeCount>.Context
+				context)
 		throws IOException, InterruptedException
 	{
-		for (Text line : lines)
-			context.write(NullWritable.get(), line);
+		for (Range range : ranges)
+		for (Triple<Integer, String, List<Range>> tuple : summaryLists) {
+			int level = tuple.fst;
+			String outName = tuple.snd;
+			List<Range> rangeList = tuple.thd;
+
+			rangeList.add(range);
+			if (rangeList.size() == level)
+				doSummary(rangeList, outName);
+		}
+
+		// Don't lose any remaining ones at the end.
+		for (Triple<Integer, String, List<Range>> tuple : summaryLists)
+			doSummary(tuple.thd, tuple.snd);
+	}
+
+	private void doSummary(Collection<Range> group, String outName)
+		throws IOException, InterruptedException
+	{
+		RangeCount summary = computeSummary(group);
+		group.clear();
+		mos.write(NullWritable.get(), summary, outName);
+	}
+
+	private RangeCount computeSummary(Collection<Range> group) {
+		RangeCount rc = new RangeCount();
+
+		// Calculate mean centre of mass and length.
+		int com = 0;
+		int len = 0;
+		for (Range r : group) {
+			com += r.getCentreOfMass();
+			len += r.getLength();
+		}
+		com /= group.size();
+		len /= group.size();
+
+		int beg = com - len/2;
+		int end = com + len/2;
+
+		rc.range.beg.set(beg);
+		rc.range.end.set(end);
+		rc.count.    set(group.size());
+
+		return rc;
 	}
 }
 
-final class SummarizeInputFormat
-	extends FileInputFormat<LongWritable,RecordBlock>
-{
-	@Override public RecordReader<LongWritable,RecordBlock> createRecordReader(
-			InputSplit split, TaskAttemptContext context)
-		throws IOException, InterruptedException
-	{
-		RecordReader<LongWritable,RecordBlock> r =
-			new SummarizeInputRecordReader();
-		r.initialize(split, context);
-		return r;
+final class Range implements Writable {
+	public final IntWritable beg = new IntWritable();
+	public final IntWritable end = new IntWritable();
+
+	public void setFrom(SAMRecord record) {
+		beg.set(record.getAlignmentStart());
+		end.set(record.getAlignmentEnd());
 	}
 
-	// Reads RecordBlock.BLOCK_SIZE using a LineRecordReader, then forms them
-	// into a RecordBlock.
+	public int getCentreOfMass() { return (beg.get() + end.get()) / 2; }
+	public int getLength()       { return  end.get() - beg.get();      }
+
+	@Override public void write(DataOutput out) throws IOException {
+		beg.write(out);
+		end.write(out);
+	}
+	@Override public void readFields(DataInput in) throws IOException {
+		beg.readFields(in);
+		end.readFields(in);
+	}
+}
+
+final class RangeCount implements Comparable<RangeCount>, Writable {
+	public final Range       range = new Range();
+	public final IntWritable count = new IntWritable();
+
+	// This is what the TextOutputFormat will write. The format is
+	// tabix-compatible; see http://samtools.sourceforge.net/tabix.shtml.
 	//
-	// Depending on the InputSplits we get from the LineRecordReader, we may end
-	// up with blocks smaller than BLOCK_SIZE: at most one per InputSplit.
-	final static class SummarizeInputRecordReader
-		extends RecordReader<LongWritable,RecordBlock>
-	{
-		private final LineRecordReader lineReader = new LineRecordReader();
+	// It might not be sorted by range.beg though! With the centre of mass
+	// approach, it most likely won't be.
+	@Override public String toString() {
+		return "s" // Sequence name: we lose it.
+		     + "\t" + range.beg
+		     + "\t" + range.end
+		     + "\t" + count;
+	}
 
-		private final RecordBlock value = new RecordBlock();
+	// Comparisons only take into account the leftmost position.
+	@Override public int compareTo(RangeCount o) {
+		return Integer.valueOf(range.beg.get()).compareTo(o.range.beg.get());
+	}
 
-		// LineRecordReader nullifies the key when it runs out of lines, but we
-		// oftentimes have a valid value even in that case, so we keep our own
-		// key.
-		private LongWritable key;
-
-		@Override public RecordBlock  getCurrentValue() { return value; }
-		@Override public LongWritable getCurrentKey  () { return key; }
-
-		@Override public void initialize(
-				InputSplit split, TaskAttemptContext context)
-			throws IOException, InterruptedException
-		{
-			lineReader.initialize(split, context);
-		}
-
-		@Override public boolean nextKeyValue() throws IOException {
-
-			for (int i = 0; i < RecordBlock.BLOCK_SIZE; ++i) {
-				boolean read = lineReader.nextKeyValue();
-				if (!read) {
-					if (i == 0)
-						return false;
-					value.setLength(i);
-					break;
-				}
-				key = lineReader.getCurrentKey();
-				value.parseFrom(lineReader.getCurrentValue(), i);
-			}
-			return true;
-		}
-
-		@Override public void close() throws IOException { lineReader.close(); }
-		@Override public float getProgress() { return lineReader.getProgress(); }
+	@Override public void write(DataOutput out) throws IOException {
+		range.write(out);
+		count.write(out);
+	}
+	@Override public void readFields(DataInput in) throws IOException {
+		range.readFields(in);
+		count.readFields(in);
 	}
 }
-final class SummarizeOutputFormat extends TextOutputFormat<NullWritable,Text> {
+
+// We want the centre of mass to be used as the key already at this point,
+// because we want a total order so that we can meaningfully look at
+// consecutive ranges in the reducers. If we were to set the final key in the
+// mapper, the partitioner wouldn't use it.
+//
+// And since getting the centre of mass requires calculating the Range as well,
+// we might as well get that here as well.
+final class SummarizeInputFormat extends FileInputFormat<IntWritable,Range> {
+
+	private final BAMInputFormat bamIF = new BAMInputFormat();
+
+	@Override protected boolean isSplitable(JobContext job, Path path) {
+		return bamIF.isSplitable(job, path);
+	}
+	@Override public List<InputSplit> getSplits(JobContext job)
+		throws IOException
+	{
+		return bamIF.getSplits(job);
+	}
+
+	@Override public RecordReader<IntWritable,Range>
+		createRecordReader(InputSplit split, TaskAttemptContext ctx)
+			throws InterruptedException, IOException
+	{
+		final RecordReader<IntWritable,Range> rr = new SummarizeRecordReader();
+		rr.initialize(split, ctx);
+		return rr;
+	}
+}
+final class SummarizeRecordReader extends RecordReader<IntWritable,Range> {
+
+	private final BAMRecordReader bamRR = new BAMRecordReader();
+	private final IntWritable     key   = new IntWritable();
+	private final Range           range = new Range();
+
+	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
+		throws IOException
+	{
+		bamRR.initialize(spl, ctx);
+	}
+	@Override public void close() throws IOException { bamRR.close(); }
+
+	@Override public float getProgress() { return bamRR.getProgress(); }
+
+	@Override public IntWritable getCurrentKey  () { return key; }
+	@Override public Range       getCurrentValue() { return range; }
+
+	@Override public boolean nextKeyValue() {
+		if (!bamRR.nextKeyValue())
+			return false;
+
+		range.setFrom(bamRR.getCurrentValue().get());
+		key.set(range.getCentreOfMass());
+		return true;
+	}
+}
+
+final class SummarizeOutputFormat
+	extends TextOutputFormat<NullWritable,RangeCount>
+{
 	public static final String INPUT_FILENAME_PROP = "summarize.input.filename";
 
 	@Override public Path getDefaultWorkFile(
 			TaskAttemptContext context, String ext)
 		throws IOException
 	{
-		String filename  = context.getConfiguration().get(INPUT_FILENAME_PROP);
-		String extension = ext.isEmpty() ? ext : "." + ext;
-		String id        = context.getTaskAttemptID().toString();
-		return new Path(getOutputPath(context), filename + "_" + id + extension);
+		Configuration conf = context.getConfiguration();
+
+		// From MultipleOutputs. If we had a later version of FileOutputFormat as
+		// well, we'd use getOutputName().
+		String summaryName = conf.get("mapreduce.output.basename");
+
+		String inputName  = conf.get(INPUT_FILENAME_PROP);
+		String extension  = ext.isEmpty() ? ext : "." + ext;
+		int    part       = context.getTaskAttemptID().getTaskID().getId();
+		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
+			inputName + "-" + summaryName + "-" + part + extension);
 	}
 
 	// Allow the output directory to exist, so that we can make multiple jobs
@@ -288,4 +414,15 @@ final class SummarizeOutputFormat extends TextOutputFormat<NullWritable,Text> {
 	@Override public void checkOutputSpecs(JobContext job)
 		throws FileAlreadyExistsException, IOException
 	{}
+}
+
+final class Triple<A,B,C> {
+	public A fst;
+	public B snd;
+	public C thd;
+	public Triple(A a, B b, C c) {
+		fst = a;
+		snd = b;
+		thd = c;
+	}
 }
