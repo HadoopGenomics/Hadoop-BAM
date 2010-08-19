@@ -46,11 +46,12 @@ public abstract class BAMRecordWriter<K>
 	public BAMRecordWriter(OutputStream output, SAMFileHeader header)
 		throws IOException
 	{
-		final OutputStream out = new BlockCompressedOutputStream(output);
+		final OutputStream compressedOut =
+			new BlockCompressedOutputStream(output);
 
-		binaryCodec = new BinaryCodec(output);
+		binaryCodec = new BinaryCodec(compressedOut);
 		recordCodec = new BAMRecordCodec(header);
-		recordCodec.setOutputStream(out);
+		recordCodec.setOutputStream(compressedOut);
 
 		writeHeader(header);
 	}
