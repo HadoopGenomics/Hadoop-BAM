@@ -199,8 +199,9 @@ final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 		String path      = context.getConfiguration().get(INPUT_PATH_PROP);
 		String filename  = new Path(path).getName();
 		String extension = ext.isEmpty() ? ext : "." + ext;
-		String id        = context.getTaskAttemptID().toString();
-		return new Path(getOutputPath(context), filename + "_" + id + extension);
+		int    part      = context.getTaskAttemptID().getTaskID().getId();
+		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
+			filename + "-" + part + extension);
 	}
 
 	// Allow the output directory to exist, so that we can make multiple jobs
