@@ -31,24 +31,40 @@ public abstract class BAMRecordWriter<K>
 			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
-		this(
-			output,
-			new SAMFileReader(
-				FileSystem.get(ctx.getConfiguration()).open(input))
-			.getFileHeader(),
-			writeHeader,
-			ctx);
+		final SAMFileReader r =
+			new SAMFileReader(FileSystem.get(ctx.getConfiguration()).open(input));
+		final SAMFileHeader hdr = r.getFileHeader();
+		r.close();
+		init(output, hdr, writeHeader, ctx);
 	}
 	public BAMRecordWriter(
 			Path output, SAMFileHeader header, boolean writeHeader,
 			TaskAttemptContext ctx)
 		throws IOException
 	{
-		this(
+		init(
 			FileSystem.get(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	public BAMRecordWriter(
+			OutputStream output, SAMFileHeader header, boolean writeHeader)
+		throws IOException
+	{
+		init(output, header, writeHeader);
+	}
+
+	// Working around not being able to call a constructor other than as the
+	// first statement...
+	private void init(
+			Path output, SAMFileHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
+		throws IOException
+	{
+		init(
+			FileSystem.get(ctx.getConfiguration()).create(output),
+			header, writeHeader);
+	}
+	private void init(
 			OutputStream output, SAMFileHeader header, boolean writeHeader)
 		throws IOException
 	{

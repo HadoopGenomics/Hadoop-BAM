@@ -27,7 +27,9 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 	public void setSAMHeader(SAMFileHeader header) { this.header = header; }
 
 	public void readSAMHeaderFrom(Path path, FileSystem fs) throws IOException {
-		this.header = new SAMFileReader(fs.open(path)).getFileHeader();
+		InputStream i = fs.open(path);
+		readSAMHeaderFrom(i);
+		i.close();
 	}
 	public void readSAMHeaderFrom(InputStream in) {
 		this.header = new SAMFileReader(in).getFileHeader();
