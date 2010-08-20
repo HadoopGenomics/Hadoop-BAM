@@ -18,21 +18,23 @@ import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
  */
 public class KeyIgnoringBAMRecordWriter<K> extends BAMRecordWriter<K> {
 	public KeyIgnoringBAMRecordWriter(
-			Path output, Path input, TaskAttemptContext ctx)
+			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
-		super(output, input, ctx);
+		super(output, input, writeHeader, ctx);
 	}
 	public KeyIgnoringBAMRecordWriter(
-			Path output, SAMFileHeader header, TaskAttemptContext ctx)
+			Path output, SAMFileHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
 		throws IOException
 	{
-		super(output, header, ctx);
+		super(output, header, writeHeader, ctx);
 	}
-	public KeyIgnoringBAMRecordWriter(OutputStream output, SAMFileHeader header)
+	public KeyIgnoringBAMRecordWriter(
+			OutputStream output, SAMFileHeader header, boolean writeHeader)
 		throws IOException
 	{
-		super(output, header);
+		super(output, header, writeHeader);
 	}
 
 	@Override public void write(K ignored, SAMRecordWritable rec) {

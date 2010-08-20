@@ -27,7 +27,8 @@ public abstract class BAMRecordWriter<K>
 	private BAMRecordCodec recordCodec;
 
 	/** A SAMFileHeader is read from the input. */
-	public BAMRecordWriter(Path output, Path input, TaskAttemptContext ctx)
+	public BAMRecordWriter(
+			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
 		this(
@@ -35,15 +36,20 @@ public abstract class BAMRecordWriter<K>
 			new SAMFileReader(
 				FileSystem.get(ctx.getConfiguration()).open(input))
 			.getFileHeader(),
+			writeHeader,
 			ctx);
 	}
 	public BAMRecordWriter(
-			Path output, SAMFileHeader header, TaskAttemptContext ctx)
+			Path output, SAMFileHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
 		throws IOException
 	{
-		this(FileSystem.get(ctx.getConfiguration()).create(output), header);
+		this(
+			FileSystem.get(ctx.getConfiguration()).create(output),
+			header, writeHeader);
 	}
-	public BAMRecordWriter(OutputStream output, SAMFileHeader header)
+	public BAMRecordWriter(
+			OutputStream output, SAMFileHeader header, boolean writeHeader)
 		throws IOException
 	{
 		final OutputStream compressedOut =
@@ -53,7 +59,8 @@ public abstract class BAMRecordWriter<K>
 		recordCodec = new BAMRecordCodec(header);
 		recordCodec.setOutputStream(compressedOut);
 
-		writeHeader(header);
+		if (writeHeader)
+			this.writeHeader(header);
 	}
 
 	@Override public void close(TaskAttemptContext ctx) {
