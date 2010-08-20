@@ -15,6 +15,8 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -93,6 +95,14 @@ public final class Sort extends Configured implements Tool {
 		conf.set(SortOutputFormat.INPUT_PATH_PROP, inputFile.toString());
 
 		setSamplingConf(inputFile, conf);
+
+		// As far as I can tell there's no non-deprecated way of getting this
+		// info.
+		int maxReduceTasks =
+			new JobClient(new JobConf(conf)).getClusterStatus()
+			.getMaxReduceTasks();
+
+		conf.setInt("mapred.reduce.tasks", maxReduceTasks * 9 / 10);
 
 		Job job = new Job(conf);
 
