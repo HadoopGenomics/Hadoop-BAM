@@ -35,9 +35,9 @@ import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 
-public final class Sort extends Configured implements Tool {
+public final class BAMSort extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new Configuration(), new Sort(), args));
+		System.exit(ToolRunner.run(new Configuration(), new BAMSort(), args));
 	}
 
 	private final List<Job> jobs = new ArrayList<Job>();
@@ -47,7 +47,7 @@ public final class Sort extends Configured implements Tool {
 	{
 		if (args.length < 2) {
 			System.err.println(
-				"Usage: " +Sort.class+ " <output directory> file [file...]");
+				"Usage: BAMSort <output directory> file [file...]");
 			return 2;
 		}
 
@@ -106,7 +106,7 @@ public final class Sort extends Configured implements Tool {
 
 		Job job = new Job(conf);
 
-		job.setJarByClass  (Sort.class);
+		job.setJarByClass  (BAMSort.class);
 		job.setMapperClass (SortMapper.class);
 		job.setReducerClass(SortReducer.class);
 
@@ -178,7 +178,7 @@ final class SortReducer
 }
 
 final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
-	public static final String INPUT_PATH_PROP = "sort.input.path";
+	public static final String INPUT_PATH_PROP = "bamsort.input.path";
 
 	@Override public RecordWriter<NullWritable,SAMRecordWritable>
 		getRecordWriter(TaskAttemptContext context)
