@@ -85,9 +85,8 @@ public class BAMInputFormat
 	}
 
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
-		createRecordReader(
-			InputSplit split, TaskAttemptContext ctx)
-		throws InterruptedException, IOException
+		createRecordReader(InputSplit split, TaskAttemptContext ctx)
+			throws InterruptedException, IOException
 	{
 		final RecordReader<LongWritable,SAMRecordWritable> rr =
 			new BAMRecordReader();
