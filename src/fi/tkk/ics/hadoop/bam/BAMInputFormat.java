@@ -28,7 +28,7 @@ public class BAMInputFormat
 
 	private Path getIdxPath(Path path) { return path.suffix(".splitting-bai"); }
 
-	@Override protected boolean isSplitable(JobContext job, Path path) {
+	@Override public boolean isSplitable(JobContext job, Path path) {
 		FileSystem fs;
 		try {
 			fs = FileSystem.get(job.getConfiguration());
