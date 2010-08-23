@@ -13,7 +13,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -122,7 +121,6 @@ public final class BAMSort extends Configured implements Tool {
 
 		job.setPartitionerClass(TotalOrderPartitioner.class);
 
-		// Sample first so that we get a better partitioning
 		sample(inputFile, job);
 
 		job.submit();
@@ -148,10 +146,12 @@ public final class BAMSort extends Configured implements Tool {
 	private void sample(Path inputFile, Job job)
 		throws ClassNotFoundException, IOException, InterruptedException
 	{
-		InputSampler.Sampler<LongWritable,Text> sampler =
-			new InputSampler.IntervalSampler<LongWritable,Text>(0.01, 100);
+		InputSampler.Sampler<LongWritable,SAMRecordWritable> sampler =
+			new InputSampler.IntervalSampler<LongWritable,SAMRecordWritable>(
+				0.01, 100);
 
-		InputSampler.<LongWritable,Text>writePartitionFile(job, sampler);
+		InputSampler.<LongWritable,SAMRecordWritable>writePartitionFile(
+			job, sampler);
 	}
 }
 
