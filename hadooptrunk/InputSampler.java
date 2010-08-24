@@ -1,6 +1,10 @@
 // From https://issues.apache.org/jira/secure/attachment/12406879/patch-5668-3.txt
 //
 // Removed logging since it requires apache-commons
+//
+// Fixed https://issues.apache.org/jira/browse/MAPREDUCE-1987 at least
+// partially, by changing int numPartitions to take the min with the number of
+// unique samples
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -302,7 +306,6 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     Configuration conf = job.getConfiguration();
     final InputFormat inf = 
         ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
-    int numPartitions = job.getNumReduceTasks();
     K[] samples = sampler.getSample(inf, job);
     RawComparator<K> comparator =
       (RawComparator<K>) job.getSortComparator();
@@ -315,6 +318,11 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     SequenceFile.Writer writer = SequenceFile.createWriter(fs, 
       conf, dst, job.getMapOutputKeyClass(), NullWritable.class);
     NullWritable nullValue = NullWritable.get();
+    int uniques = 1;
+    for (int i = 1; i < samples.length; ++i)
+      if (comparator.compare(samples[i], samples[i-1]) != 0)
+        ++uniques;
+    int numPartitions = Math.min(job.getNumReduceTasks(), uniques);
     float stepSize = samples.length / (float) numPartitions;
     int last = -1;
     for(int i = 1; i < numPartitions; ++i) {

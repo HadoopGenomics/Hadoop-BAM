@@ -1,4 +1,9 @@
 // From https://issues.apache.org/jira/secure/attachment/12406879/patch-5668-3.txt
+//
+// Coupled with the fix for
+// https://issues.apache.org/jira/browse/MAPREDUCE-1987 in InputSampler, allows
+// for too few splits in the keyset
+//
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -77,8 +82,8 @@ public class TotalOrderPartitioner<K extends WritableComparable<?>,V>
       Job job = new Job(conf);
       Class<K> keyClass = (Class<K>)job.getMapOutputKeyClass();
       K[] splitPoints = readPartitions(fs, partFile, keyClass, conf);
-      if (splitPoints.length != job.getNumReduceTasks() - 1) {
-        throw new IOException("Wrong number of partitions in keyset");
+      if (splitPoints.length > job.getNumReduceTasks() - 1) {
+        throw new IOException("Too many partitions in keyset");
       }
       RawComparator<K> comparator =
         (RawComparator<K>) job.getSortComparator();
