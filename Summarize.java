@@ -239,7 +239,13 @@ final class SummarizeReducer
 			if (rangeList.size() == level)
 				doSummary(rangeList, outName);
 		}
+	}
 
+	@Override protected void cleanup(
+			Reducer<IntWritable,Range, NullWritable,RangeCount>.Context
+				context)
+		throws IOException, InterruptedException
+	{
 		// Don't lose any remaining ones at the end.
 		for (Triple<Integer, String, List<Range>> tuple : summaryLists)
 			if (!tuple.thd.isEmpty())
