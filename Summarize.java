@@ -134,7 +134,7 @@ public final class Summarize extends Configured implements Tool {
 			new JobClient(new JobConf(conf)).getClusterStatus()
 			.getMaxReduceTasks();
 
-		conf.setInt("mapred.reduce.tasks", maxReduceTasks * 9 / 10);
+		conf.setInt("mapred.reduce.tasks", Math.max(1, maxReduceTasks * 9 / 10));
 
 		Job job = new Job(conf);
 
