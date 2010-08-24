@@ -250,6 +250,8 @@ final class SummarizeReducer
 		for (Triple<Integer, String, List<Range>> tuple : summaryLists)
 			if (!tuple.thd.isEmpty())
 				doSummary(tuple.thd, tuple.snd);
+
+		mos.close();
 	}
 
 	private void doSummary(Collection<Range> group, String outName)
