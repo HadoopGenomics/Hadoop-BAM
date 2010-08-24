@@ -411,7 +411,17 @@ final class SummarizeOutputFormat
 		// well, we'd use getOutputName().
 		String summaryName = conf.get("mapreduce.output.basename");
 
-		String inputName  = conf.get(INPUT_FILENAME_PROP);
+		// A RecordWriter is created as soon as a reduce task is started, even
+		// though MultipleOutputs eventually overrides it with its own.
+		//
+		// To avoid creating a file called "inputfilename-null" when that
+		// RecordWriter is initialized, make it a hidden file instead, like this.
+		//
+		// We can't use a filename we'd use later, because TextOutputFormat would
+		// throw later on, as the file would already exist.
+		String inputName = summaryName == null ? ".unused_" : "";
+
+		inputName        += conf.get(INPUT_FILENAME_PROP);
 		String extension  = ext.isEmpty() ? ext : "." + ext;
 		int    part       = context.getTaskAttemptID().getTaskID().getId();
 		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
