@@ -77,6 +77,11 @@ public final class BAMIndexer {
 		final LongBuffer lb = byteBuffer.asLongBuffer();
 
 		skipToAlignmentList(in);
+
+		// Always write the first one to make sure it's not skipped
+		lb.put(0, in.getFilePointer());
+		out.write(byteBuffer.array());
+
 		for (int i = 0;;) {
 			final PtrSkipPair pair = readAlignment(in);
 			if (pair == null)
