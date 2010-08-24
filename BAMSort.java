@@ -133,11 +133,14 @@ public final class BAMSort extends Configured implements Tool {
 		Path inputDir = inputFile.getParent();
 		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
 
-		Path partition = new Path(inputDir, "_partitioning");
+		String name = inputFile.getName();
+
+		Path partition = new Path(inputDir, "_partitioning" + name);
 		TotalOrderPartitioner.setPartitionFile(conf, partition);
 
 		try {
-			URI partitionURI = new URI(partition.toString() + "#_partitioning");
+			URI partitionURI = new URI(
+				partition.toString() + "#_partitioning" + name);
 			DistributedCache.addCacheFile(partitionURI, conf);
 			DistributedCache.createSymlink(conf);
 		} catch (URISyntaxException e) { assert false; }
