@@ -62,6 +62,8 @@ public final class BAMIndexer {
 	private final ByteBuffer byteBuffer;
 	private final int granularity;
 
+	private static final int PRINT_EVERY = 500*1024*1024;
+
 	public BAMIndexer(int g) {
 		granularity = g;
 		byteBuffer = ByteBuffer.allocate(8); // Enough to fit a long
@@ -82,6 +84,8 @@ public final class BAMIndexer {
 		lb.put(0, in.getFilePointer());
 		out.write(byteBuffer.array());
 
+		long prevPrint = in.getFilePointer() >> 16;
+
 		for (int i = 0;;) {
 			final PtrSkipPair pair = readAlignment(in);
 			if (pair == null)
@@ -91,6 +95,12 @@ public final class BAMIndexer {
 				i = 0;
 				lb.put(0, pair.ptr);
 				out.write(byteBuffer.array());
+
+				final long filePos = pair.ptr >> 16;
+				if (filePos - prevPrint >= PRINT_EVERY) {
+					System.out.print("-");
+					prevPrint = filePos;
+				}
 			}
 			fullySkip(in, pair.skip);
 		}
