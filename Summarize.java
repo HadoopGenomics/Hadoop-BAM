@@ -139,7 +139,7 @@ public final class Summarize extends Configured implements Tool {
 		Job job = new Job(conf);
 
 		job.setJarByClass  (Summarize.class);
-		job.setMapperClass (SummarizeMapper.class);
+		job.setMapperClass (Mapper.class);
 		job.setReducerClass(SummarizeReducer.class);
 
 		job.setMapOutputKeyClass  (IntWritable.class);
@@ -191,11 +191,6 @@ public final class Summarize extends Configured implements Tool {
 		InputSampler.<IntWritable,Range>writePartitionFile(job, sampler);
 	}
 }
-
-// The identity function is fine.
-final class SummarizeMapper
-	extends Mapper<IntWritable,Range, IntWritable,Range>
-{}
 
 final class SummarizeReducer
 	extends Reducer<IntWritable,Range, NullWritable,RangeCount>
