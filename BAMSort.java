@@ -106,7 +106,7 @@ public final class BAMSort extends Configured implements Tool {
 		Job job = new Job(conf);
 
 		job.setJarByClass  (BAMSort.class);
-		job.setMapperClass (SortMapper.class);
+		job.setMapperClass (Mapper.class);
 		job.setReducerClass(SortReducer.class);
 
 		job.setMapOutputKeyClass(LongWritable.class);
@@ -154,12 +154,6 @@ public final class BAMSort extends Configured implements Tool {
 			job, sampler);
 	}
 }
-
-// The identity function is fine.
-final class SortMapper
-	extends Mapper<LongWritable,SAMRecordWritable,
-	               LongWritable,SAMRecordWritable>
-{}
 
 final class SortReducer
 	extends Reducer<LongWritable,SAMRecordWritable,
