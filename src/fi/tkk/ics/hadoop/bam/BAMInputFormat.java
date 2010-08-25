@@ -2,7 +2,6 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
