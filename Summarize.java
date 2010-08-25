@@ -403,7 +403,7 @@ final class SummarizeOutputFormat
 
 	@Override public RecordWriter<NullWritable,RangeCount> getRecordWriter(
 			TaskAttemptContext ctx)
-		throws IOException, InterruptedException
+		throws IOException
 	{
 		Path path = getDefaultWorkFile(ctx, "");
 		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
