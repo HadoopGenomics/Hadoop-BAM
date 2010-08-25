@@ -1,5 +1,6 @@
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,6 +26,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -39,7 +41,7 @@ import hadooptrunk.TotalOrderPartitioner;
 
 import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
-import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.customsamtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
 
 public final class Summarize extends Configured implements Tool {
@@ -398,6 +400,18 @@ final class SummarizeOutputFormat
 	extends TextOutputFormat<NullWritable,RangeCount>
 {
 	public static final String INPUT_FILENAME_PROP = "summarize.input.filename";
+
+	@Override public RecordWriter<NullWritable,RangeCount> getRecordWriter(
+			TaskAttemptContext ctx)
+		throws IOException, InterruptedException
+	{
+		Path path = getDefaultWorkFile(ctx, "");
+		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
+
+		return new TextOutputFormat.LineRecordWriter<NullWritable,RangeCount>(
+			new DataOutputStream(
+				new BlockCompressedOutputStream(fs.create(path))));
+	}
 
 	@Override public Path getDefaultWorkFile(
 			TaskAttemptContext context, String ext)
