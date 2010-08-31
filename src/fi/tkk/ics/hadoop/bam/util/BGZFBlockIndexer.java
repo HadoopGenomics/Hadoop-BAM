@@ -79,6 +79,7 @@ public final class BGZFBlockIndexer {
 		final LongBuffer lb = byteBuffer.asLongBuffer();
 
 		long prevPrint = 0;
+		pos = 0;
 
 		for (int i = 0;;) {
 			if (!skipBlock(in))
