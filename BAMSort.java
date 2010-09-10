@@ -46,7 +46,14 @@ public final class BAMSort extends Configured implements Tool {
 	{
 		if (args.length < 2) {
 			System.err.println(
-				"Usage: BAMSort <output directory> file [file...]");
+				"Usage: BAMSort <output directory> file [file...]\n\n"+
+
+				"Sorts the alignments in each input file according to their "+
+				"leftmost position.\nThe output is in BAM file format, but does "+
+				"not include the BAM header. (This\nis because, in distributed "+
+				"usage, the output is split into multiple parts, and\nit's "+
+				"easier to add the header afterwards than to remove it from all "+
+				"of them.)");
 			return 2;
 		}
 
