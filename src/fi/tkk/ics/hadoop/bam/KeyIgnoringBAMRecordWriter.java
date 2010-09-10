@@ -14,7 +14,7 @@ import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
 
 /** A convenience class that you can use as a RecordWriter for BAM files.
  *
- * The write function ignores the key, just outputting the SAMRecord.
+ * <p>The write function ignores the key, just outputting the SAMRecord.</p>
  */
 public class KeyIgnoringBAMRecordWriter<K> extends BAMRecordWriter<K> {
 	public KeyIgnoringBAMRecordWriter(

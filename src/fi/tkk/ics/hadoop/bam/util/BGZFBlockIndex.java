@@ -11,6 +11,11 @@ import java.nio.ByteBuffer;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
+/** An index into BGZF-compressed files, for {@link BGZFSplitFileInputFormat}.
+ * Reads files that are created by {@link BGZFBlockIndexer}.
+ *
+ * <p>Indexes the positions of individual gzip blocks in the file.</p>
+ */
 public final class BGZFBlockIndex {
 	private final NavigableSet<Long> offsets = new TreeSet<Long>();
 
@@ -58,6 +63,9 @@ public final class BGZFBlockIndex {
 	private long   lastBlock() { return prevBlock(fileSize() - 1); }
 	private long    fileSize() { return offsets.last(); }
 
+	/** Writes some statistics about each BGZF block index file given as an
+	 * argument.
+	 */
 	public static void main(String[] args) {
 		if (args.length == 0) {
 			System.out.println(

@@ -10,9 +10,12 @@ import org.apache.hadoop.fs.Seekable;
 
 import net.sf.samtools.util.SeekableStream;
 
-// Hadoop and the SAM tools each have their own "seekable stream" abstraction.
-// This class wraps Hadoop's so that we can give such a one to
-// BlockCompressedInputStream and retain seekability.
+/** Wraps Hadoop's "seekable stream" abstraction so that we can give such a one
+ * to BlockCompressedInputStream and retain seekability.
+ *
+ * <p>This is necessary because Hadoop and the SAM tools each have their own
+ * "seekable stream" abstraction.</p>
+ */
 public class WrapSeekable<S extends InputStream & Seekable>
 	extends SeekableStream
 {

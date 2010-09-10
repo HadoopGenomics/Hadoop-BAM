@@ -59,6 +59,9 @@ public class BAMRecordReader
 	}
 	@Override public void close() throws IOException { bci.close(); }
 
+	/** Unless the end has been reached, this only takes file position into
+	 * account, not the position within the block.
+	 */
 	@Override public float getProgress() {
 		final long virtPos = bci.getFilePointer();
 		final long filePos = virtPos >>> 16;

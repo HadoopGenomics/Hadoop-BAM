@@ -15,6 +15,12 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+/** An {@link org.apache.hadoop.mapreduce.InputFormat} for BGZF-compressed
+ * files.
+ *
+ * <p>A {@link BGZFBlockIndex} for each Path used is required, or an
+ * <code>IOException</code> is thrown out of {@link #getSplits}.</p>
+ */
 public abstract class BGZFSplitFileInputFormat<K,V>
 	extends FileInputFormat<K,V>
 {
@@ -33,6 +39,7 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 		}
 	}
 
+	/** The splits returned are FileSplits. */
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{

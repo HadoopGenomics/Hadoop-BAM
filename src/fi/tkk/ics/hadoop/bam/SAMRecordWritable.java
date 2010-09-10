@@ -20,9 +20,15 @@ import fi.tkk.ics.hadoop.bam.customsamtools.BAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.customsamtools.LazyBAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
 
-// In every mapper, the record will have a header, since BAMInputFormat
-// provides one. It is lost when transferring the SAMRecord to a reducer,
-// however.
+/** A {@link Writable} {@link SAMRecord}.
+ *
+ * <p>In every mapper, the record will have a header, since BAMInputFormat
+ * provides one. It is lost when transferring the SAMRecord to a reducer,
+ * however. The current implementation of {@link BAMRecordCodec} does not
+ * require a record for encoding nor decoding of a <code>SAMRecord</code>, so
+ * this fortunately doesn't matter for either {@link #write} or {@link
+ * #readFields}.</p>
+ */
 public class SAMRecordWritable implements Writable {
 	private SAMRecord record;
 

@@ -15,6 +15,10 @@ import java.util.Arrays;
 
 import net.sf.samtools.util.BlockCompressedInputStream;
 
+/** An indexing tool for BAM files, making them palatable to {@link
+ * BAMInputFormat}. Writes splitting BAM indices as understood by {@link
+ * SplittingBAMIndex}.
+ */
 public final class SplittingBAMIndexer {
 	public static void main(String[] args) {
 		if (args.length <= 1) {

@@ -11,6 +11,11 @@ import java.nio.ByteBuffer;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
+/** An index into BAM files, for {@link BAMInputFormat}. Reads files that are
+ * created by {@link SplittingBAMIndexer}.
+ *
+ * <p>Indexes the positions of individual BAM records in the file.</p>
+ */
 public final class SplittingBAMIndex {
 	private final NavigableSet<Long> virtualOffsets = new TreeSet<Long>();
 
@@ -57,6 +62,9 @@ public final class SplittingBAMIndex {
 	private long    last() { return prevAlignment(bamSize() - 1); }
 	private long bamSize() { return virtualOffsets.last() >>> 16; }
 
+	/** Writes some statistics about each splitting BAM index file given as an
+	 * argument.
+	 */
 	public static void main(String[] args) {
 		if (args.length == 0) {
 			System.out.println(

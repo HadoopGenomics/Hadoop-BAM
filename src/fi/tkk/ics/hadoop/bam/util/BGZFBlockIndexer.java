@@ -14,6 +14,10 @@ import java.nio.ByteOrder;
 import java.nio.LongBuffer;
 import java.util.Arrays;
 
+/** An indexing tool for BGZF-compressed files, making them palatable to {@link
+ * BGZFSplitFileInputFormat}. Writes BGZF block indices as understood by {@link
+ * BGZFBlockIndex}.
+ */
 public final class BGZFBlockIndexer {
 	public static void main(String[] args) {
 		if (args.length <= 0) {

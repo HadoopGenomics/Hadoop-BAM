@@ -19,6 +19,13 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+/** An {@link org.apache.hadoop.mapreduce.InputFormat} for BAM files. Values
+ * are the individual records; see {@link BAMRecordReader} for the meaning of
+ * the key.
+ *
+ * <p>A {@link SplittingBAMIndex} for each Path used is required, or an
+ * <code>IOException</code> is thrown out of {@link #getSplits}.</p>
+ */
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
@@ -37,6 +44,7 @@ public class BAMInputFormat
 		}
 	}
 
+	/** The splits returned are FileVirtualSplits. */
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
@@ -83,6 +91,7 @@ public class BAMInputFormat
 		return newSplits;
 	}
 
+	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException

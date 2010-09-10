@@ -11,6 +11,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 
+/** Like a {@link org.apache.hadoop.mapreduce.lib.input.FileSplit}, but uses
+ * BGZF virtual offsets to fit with {@link
+ * net.sf.samtools.util.BlockCompressedInputStream}.
+ */
 public class FileVirtualSplit extends InputSplit implements Writable {
 	private Path file;
 	private long vStart;
@@ -30,11 +34,14 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 
 	@Override public String[] getLocations() { return locations; }
 
+	/** Inexact due to the nature of virtual offsets.
+    *
+    * We can't know how many blocks there are in between two file offsets, nor
+    * how large those blocks are. So this uses only the difference between the
+    * file offsets—unless that difference is zero, in which case the split is
+    * wholly contained in one block and thus we can give an exact result.
+	 */
 	@Override public long getLength() {
-		// Approximate: we don't know here how many blocks are in between two
-		// file offsets, so just use the differences between the file offsets
-		// (unless it's zero, in which case the beginning and end are in the same
-		// block and we can actually give an exact answer).
 		final long vsHi   = vStart & ~0xffff;
 		final long veHi   = vEnd   & ~0xffff;
 		final long hiDiff = veHi - vsHi;

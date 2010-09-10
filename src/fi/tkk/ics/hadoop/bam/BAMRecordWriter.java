@@ -20,13 +20,18 @@ import fi.tkk.ics.hadoop.bam.customsamtools.BAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.customsamtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
 
+/** A base {@link RecordWriter} for BAM records.
+ *
+ * <p>Handles the output stream, writing the header if requested, and provides
+ * the {@link #writeAlignment} function for subclasses.</p>
+ */
 public abstract class BAMRecordWriter<K>
 	extends RecordWriter<K,SAMRecordWritable>
 {
 	private BinaryCodec    binaryCodec;
 	private BAMRecordCodec recordCodec;
 
-	/** A SAMFileHeader is read from the input. */
+	/** A SAMFileHeader is read from the input Path. */
 	public BAMRecordWriter(
 			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException

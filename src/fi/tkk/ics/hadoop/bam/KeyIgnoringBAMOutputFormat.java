@@ -14,14 +14,26 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 
+/** Writes only the BAM records, not the key.
+ *
+ * <p>A {@link SAMFileHeader} must be provided via {@link #setSAMHeader} or
+ * {@link #readSAMHeaderFrom} before {@link #getRecordWriter} is called.</p>
+ *
+ * <p>Optionally, the BAM header may be written to the output file(s). This
+ * defaults to false, because in distributed usage one often ends up with (and,
+ * for decent performance, wants to end up with) multiple files, and one does
+ * not want the header in each file.</p>
+ */
 public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 	protected SAMFileHeader header;
 	private boolean writeHeader = false;
 
 	public KeyIgnoringBAMOutputFormat() {}
 
-	// Defaults to false: only the BAM records will be written.
+	/** Whether the header will be written or not. */
 	public boolean getWriteHeader()          { return writeHeader; }
+
+	/** Set whether the header will be written or not. */
 	public void    setWriteHeader(boolean b) { writeHeader = b; }
 
 	public void setSAMHeader(SAMFileHeader header) { this.header = header; }
@@ -35,7 +47,9 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 		this.header = new SAMFileReader(in).getFileHeader();
 	}
 
-	/** setSAMHeader or readSAMHeaderFrom must have been called first. */
+	/** <code>setSAMHeader</code> or <code>readSAMHeaderFrom</code> must have
+	 * been called first.
+	 */
 	@Override public RecordWriter<K,SAMRecordWritable> getRecordWriter(
 			TaskAttemptContext ctx)
 		throws IOException
