@@ -76,7 +76,8 @@ public final class BGZFBlockIndexer {
 		final OutputStream out = new BufferedOutputStream(
 			new FileOutputStream(file.getPath() + ".bgzfi"));
 
-		final LongBuffer lb = byteBuffer.asLongBuffer();
+		final LongBuffer lb =
+			byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
 
 		long prevPrint = 0;
 		pos = 0;

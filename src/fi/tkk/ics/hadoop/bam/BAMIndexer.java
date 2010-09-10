@@ -76,7 +76,8 @@ public final class BAMIndexer {
 		final OutputStream out = new BufferedOutputStream(
 			new FileOutputStream(file.getPath() + ".splitting-bai"));
 
-		final LongBuffer lb = byteBuffer.asLongBuffer();
+		final LongBuffer lb =
+			byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
 
 		skipToAlignmentList(in);
 
