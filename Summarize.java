@@ -265,9 +265,9 @@ final class SummarizeReducer
 	private RangeCount computeSummary(Collection<Range> group) {
 		RangeCount rc = new RangeCount();
 
-		// Calculate mean centre of mass and length.
-		int com = 0;
-		int len = 0;
+		// Calculate mean centre of mass and length. Use long to avoid overflow.
+		long com = 0;
+		long len = 0;
 		for (Range r : group) {
 			com += r.getCentreOfMass();
 			len += r.getLength();
@@ -275,8 +275,8 @@ final class SummarizeReducer
 		com /= group.size();
 		len /= group.size();
 
-		int beg = com - len/2;
-		int end = com + len/2;
+		int beg = (int)com - (int)len/2;
+		int end = (int)com + (int)len/2;
 
 		rc.range.beg.set(beg);
 		rc.range.end.set(end);
