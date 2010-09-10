@@ -97,7 +97,7 @@ public class BAMInputFormat
 		throws IOException
 	{
 		SplittingBAMIndex idx = indices.get(path);
-		if (idx == null && !indices.containsKey(path)) {
+		if (idx == null) {
 			idx = new SplittingBAMIndex(fs.open(getIdxPath(path)));
 			indices.put(path, idx);
 		}
