@@ -15,11 +15,11 @@ import java.util.Arrays;
 
 import net.sf.samtools.util.BlockCompressedInputStream;
 
-public final class BAMIndexer {
+public final class SplittingBAMIndexer {
 	public static void main(String[] args) {
 		if (args.length <= 1) {
 			System.out.println(
-				"Usage: BAMIndexer GRANULARITY [BAM files...]\n\n"+
+				"Usage: SplittingBAMIndexer GRANULARITY [BAM files...]\n\n"+
 
 				"Writes, for each GRANULARITY alignments in a BAM file, its "+
 				"virtual file offset\nas a big-endian 64-bit integer into "+
@@ -40,7 +40,7 @@ public final class BAMIndexer {
 			return;
 		}
 
-		final BAMIndexer indexer = new BAMIndexer(granularity);
+		final SplittingBAMIndexer indexer = new SplittingBAMIndexer(granularity);
 
 		for (final String arg : Arrays.asList(args).subList(1, args.length)) {
 			final File f = new File(arg);
@@ -64,7 +64,7 @@ public final class BAMIndexer {
 
 	private static final int PRINT_EVERY = 500*1024*1024;
 
-	public BAMIndexer(int g) {
+	public SplittingBAMIndexer(int g) {
 		granularity = g;
 		byteBuffer = ByteBuffer.allocate(8); // Enough to fit a long
 	}
