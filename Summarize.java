@@ -16,6 +16,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
@@ -144,7 +145,7 @@ public final class Summarize extends Configured implements Tool {
 		job.setMapperClass (Mapper.class);
 		job.setReducerClass(SummarizeReducer.class);
 
-		job.setMapOutputKeyClass  (IntWritable.class);
+		job.setMapOutputKeyClass  (LongWritable.class);
 		job.setMapOutputValueClass(Range.class);
 		job.setOutputKeyClass     (NullWritable.class);
 		job.setOutputValueClass   (RangeCount.class);
@@ -190,15 +191,15 @@ public final class Summarize extends Configured implements Tool {
 	private void sample(Path inputFile, Job job)
 		throws ClassNotFoundException, IOException, InterruptedException
 	{
-		InputSampler.Sampler<IntWritable,Range> sampler =
-			new InputSampler.IntervalSampler<IntWritable,Range>(0.01, 100);
+		InputSampler.Sampler<LongWritable,Range> sampler =
+			new InputSampler.IntervalSampler<LongWritable,Range>(0.01, 100);
 
-		InputSampler.<IntWritable,Range>writePartitionFile(job, sampler);
+		InputSampler.<LongWritable,Range>writePartitionFile(job, sampler);
 	}
 }
 
 final class SummarizeReducer
-	extends Reducer<IntWritable,Range, NullWritable,RangeCount>
+	extends Reducer<LongWritable,Range, NullWritable,RangeCount>
 {
 	public static final String SUMMARY_LEVELS_PROP = "summarize.summary.levels";
 
@@ -209,8 +210,13 @@ final class SummarizeReducer
 	private final List<Triple<Integer, String, List<Range>>> summaryLists =
 		new ArrayList<Triple<Integer, String, List<Range>>>();
 
+	// This is a safe initial choice: it doesn't matter whether the first actual
+	// reference ID we get matches this or not, since all summaryLists are empty
+	// anyway.
+	private int currentReferenceID = 0;
+
 	@Override public void setup(
-			Reducer<IntWritable,Range, NullWritable,RangeCount>.Context
+			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context
 				ctx)
 	{
 		mos = new MultipleOutputs<NullWritable,RangeCount>(ctx);
@@ -224,11 +230,20 @@ final class SummarizeReducer
 	}
 
 	@Override protected void reduce(
-			IntWritable ignored, Iterable<Range> ranges,
-			Reducer<IntWritable,Range, NullWritable,RangeCount>.Context
+			LongWritable key, Iterable<Range> ranges,
+			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context
 				context)
 		throws IOException, InterruptedException
 	{
+		final int referenceID = (int)(key.get() >>> 32);
+
+		// When the reference sequence changes we have to flush out everything
+		// we've got and start from scratch again.
+		if (referenceID != currentReferenceID) {
+			currentReferenceID = referenceID;
+			doAllSummaries();
+		}
+
 		for (Range range : ranges)
 		for (Triple<Integer, String, List<Range>> tuple : summaryLists) {
 			int level = tuple.fst;
@@ -242,16 +257,20 @@ final class SummarizeReducer
 	}
 
 	@Override protected void cleanup(
-			Reducer<IntWritable,Range, NullWritable,RangeCount>.Context
+			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context
 				context)
 		throws IOException, InterruptedException
 	{
 		// Don't lose any remaining ones at the end.
+		doAllSummaries();
+
+		mos.close();
+	}
+
+	private void doAllSummaries() throws IOException, InterruptedException {
 		for (Triple<Integer, String, List<Range>> tuple : summaryLists)
 			if (!tuple.thd.isEmpty())
 				doSummary(tuple.thd, tuple.snd);
-
-		mos.close();
 	}
 
 	private void doSummary(Collection<Range> group, String outName)
@@ -263,7 +282,7 @@ final class SummarizeReducer
 	}
 
 	private RangeCount computeSummary(Collection<Range> group) {
-		RangeCount rc = new RangeCount();
+		RangeCount rc = new RangeCount(currentReferenceID);
 
 		// Calculate mean centre of mass and length. Use long to avoid overflow.
 		long com = 0;
@@ -309,8 +328,11 @@ final class Range implements Writable {
 }
 
 final class RangeCount implements Comparable<RangeCount>, Writable {
-	public final Range       range = new Range();
-	public final IntWritable count = new IntWritable();
+	public  final Range       range = new Range();
+	public  final IntWritable count = new IntWritable();
+	private final IntWritable rid;
+
+	public RangeCount(int id) { rid = new IntWritable(id); }
 
 	// This is what the TextOutputFormat will write. The format is
 	// tabix-compatible; see http://samtools.sourceforge.net/tabix.shtml.
@@ -318,7 +340,7 @@ final class RangeCount implements Comparable<RangeCount>, Writable {
 	// It might not be sorted by range.beg though! With the centre of mass
 	// approach, it most likely won't be.
 	@Override public String toString() {
-		return "s" // Sequence name: we lose it.
+		return rid
 		     + "\t" + range.beg
 		     + "\t" + range.end
 		     + "\t" + count;
@@ -332,21 +354,23 @@ final class RangeCount implements Comparable<RangeCount>, Writable {
 	@Override public void write(DataOutput out) throws IOException {
 		range.write(out);
 		count.write(out);
+		rid  .write(out);
 	}
 	@Override public void readFields(DataInput in) throws IOException {
 		range.readFields(in);
 		count.readFields(in);
+		rid  .readFields(in);
 	}
 }
 
-// We want the centre of mass to be used as the key already at this point,
-// because we want a total order so that we can meaningfully look at
-// consecutive ranges in the reducers. If we were to set the final key in the
-// mapper, the partitioner wouldn't use it.
+// We want the centre of mass to be used as (the low order bits of) the key
+// already at this point, because we want a total order so that we can
+// meaningfully look at consecutive ranges in the reducers. If we were to set
+// the final key in the mapper, the partitioner wouldn't use it.
 //
 // And since getting the centre of mass requires calculating the Range as well,
 // we might as well get that here as well.
-final class SummarizeInputFormat extends FileInputFormat<IntWritable,Range> {
+final class SummarizeInputFormat extends FileInputFormat<LongWritable,Range> {
 
 	private final BAMInputFormat bamIF = new BAMInputFormat();
 
@@ -359,19 +383,19 @@ final class SummarizeInputFormat extends FileInputFormat<IntWritable,Range> {
 		return bamIF.getSplits(job);
 	}
 
-	@Override public RecordReader<IntWritable,Range>
+	@Override public RecordReader<LongWritable,Range>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
 	{
-		final RecordReader<IntWritable,Range> rr = new SummarizeRecordReader();
+		final RecordReader<LongWritable,Range> rr = new SummarizeRecordReader();
 		rr.initialize(split, ctx);
 		return rr;
 	}
 }
-final class SummarizeRecordReader extends RecordReader<IntWritable,Range> {
+final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 
 	private final BAMRecordReader bamRR = new BAMRecordReader();
-	private final IntWritable     key   = new IntWritable();
+	private final LongWritable    key   = new LongWritable();
 	private final Range           range = new Range();
 
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
@@ -383,15 +407,17 @@ final class SummarizeRecordReader extends RecordReader<IntWritable,Range> {
 
 	@Override public float getProgress() { return bamRR.getProgress(); }
 
-	@Override public IntWritable getCurrentKey  () { return key; }
-	@Override public Range       getCurrentValue() { return range; }
+	@Override public LongWritable getCurrentKey  () { return key; }
+	@Override public Range        getCurrentValue() { return range; }
 
 	@Override public boolean nextKeyValue() {
 		if (!bamRR.nextKeyValue())
 			return false;
 
-		range.setFrom(bamRR.getCurrentValue().get());
-		key.set(range.getCentreOfMass());
+		final SAMRecord rec = bamRR.getCurrentValue().get();
+
+		range.setFrom(rec);
+		key.set((long)rec.getReferenceIndex() << 32 | range.getCentreOfMass());
 		return true;
 	}
 }
