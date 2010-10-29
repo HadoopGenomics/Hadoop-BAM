@@ -1,3 +1,5 @@
+package fi.tkk.ics.hadoop.bam.util.hadoop;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,8 +29,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import hadooptrunk.InputSampler;
-import hadooptrunk.TotalOrderPartitioner;
+import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
+import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 
 import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
@@ -103,7 +105,8 @@ public final class BAMSort extends Configured implements Tool {
 		setSamplingConf(inputFile, conf);
 
 		// As far as I can tell there's no non-deprecated way of getting this
-		// info.
+		// info. We can silence this warning but not the import.
+		@SuppressWarnings("deprecation")
 		int maxReduceTasks =
 			new JobClient(new JobConf(conf)).getClusterStatus()
 			.getMaxReduceTasks();

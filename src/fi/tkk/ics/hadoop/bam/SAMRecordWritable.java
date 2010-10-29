@@ -16,9 +16,9 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 
-import fi.tkk.ics.hadoop.bam.customsamtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.customsamtools.LazyBAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
+import fi.tkk.ics.hadoop.bam.custom.samtools.LazyBAMRecordCodec;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 /** A {@link Writable} {@link SAMRecord}.
  *

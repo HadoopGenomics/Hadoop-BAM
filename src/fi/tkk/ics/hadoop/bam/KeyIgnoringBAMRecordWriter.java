@@ -10,7 +10,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import net.sf.samtools.SAMFileHeader;
 
-import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 /** A convenience class that you can use as a RecordWriter for BAM files.
  *

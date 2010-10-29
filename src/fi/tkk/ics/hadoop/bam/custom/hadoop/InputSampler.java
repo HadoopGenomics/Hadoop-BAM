@@ -24,7 +24,7 @@
  */
 
 //package org.apache.hadoop.mapreduce.lib.partition;
-package hadooptrunk;
+package fi.tkk.ics.hadoop.bam.custom.hadoop;
 
 import java.io.IOException;
 import java.util.ArrayList;

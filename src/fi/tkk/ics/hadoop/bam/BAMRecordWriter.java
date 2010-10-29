@@ -16,9 +16,9 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 
-import fi.tkk.ics.hadoop.bam.customsamtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.customsamtools.BlockCompressedOutputStream;
-import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 /** A base {@link RecordWriter} for BAM records.
  *

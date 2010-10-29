@@ -15,8 +15,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
-import fi.tkk.ics.hadoop.bam.customsamtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
