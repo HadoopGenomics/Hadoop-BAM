@@ -35,6 +35,7 @@
 			source="1.6"
 			linksource="yes"
 			breakiterator="yes"
+			windowtitle="hadoop-bam API documentation"
 		>
 			<fileset refid="srcfiles"/>
 		</javadoc>
