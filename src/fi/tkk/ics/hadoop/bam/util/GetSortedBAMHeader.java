@@ -1,5 +1,7 @@
 // File created: 2010-08-20 13:54:10
 
+package fi.tkk.ics.hadoop.bam.util;
+
 import java.io.File;
 
 import net.sf.samtools.SAMFileHeader;
