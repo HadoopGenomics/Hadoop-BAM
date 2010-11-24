@@ -62,8 +62,8 @@ import hadooptrunk.TotalOrderPartitioner;
 
 import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
-import fi.tkk.ics.hadoop.bam.customsamtools.BlockCompressedOutputStream;
-import fi.tkk.ics.hadoop.bam.customsamtools.SAMRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 public final class Summarize extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
