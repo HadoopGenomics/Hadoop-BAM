@@ -1,6 +1,15 @@
-// Added an OutputStream constructor.
+// Added an OutputStream constructor and made close() not write the empty
+// block.
 //
-// Required since Hadoop can't provide a File.
+// The constructor is required since Hadoop can't provide a File, and the
+// close() change allows us to concatenate partial Hadoop outputs with 'cat' or
+// 'hadoop fs -getmerge' without BlockCompressedInputStream thinking it's found
+// EOF prematurely when it's reading the concatenated result.
+//
+// Note that this is an actual FUNCTIONALITY CHANGE. This is not just a drop-in
+// replacement with some additions like the other classes here tend to be. The
+// empty block writing could be made conditional on some modifiable boolean
+// setting, but since we never need the empty block this hasn't been done.
 
 /*
  * The MIT License
@@ -196,14 +205,14 @@ public class BlockCompressedOutputStream
         //     System.err.println("In BlockCompressedOutputStream, had to throttle back " + numberOfThrottleBacks +
         //                        " times for file " + codec.getOutputFileName());
         // }
-        codec.writeBytes(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+        //codec.writeBytes(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
         codec.close();
         // Can't re-open something that is not a regular file, e.g. a named pipe.
-        if (this.file == null || !this.file.isFile()) return;
-        if (BlockCompressedInputStream.checkTermination(this.file) !=
-                BlockCompressedInputStream.FileTermination.HAS_TERMINATOR_BLOCK) {
-            throw new IOException("Terminator block not found after closing BGZF file " + this.file);
-        }
+        //if (this.file == null || !this.file.isFile()) return;
+        //if (BlockCompressedInputStream.checkTermination(this.file) !=
+        //        BlockCompressedInputStream.FileTermination.HAS_TERMINATOR_BLOCK) {
+        //    throw new IOException("Terminator block not found after closing BGZF file " + this.file);
+        //}
     }
 
     /**

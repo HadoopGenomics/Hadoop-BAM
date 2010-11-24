@@ -72,10 +72,11 @@ public final class BAMSort extends Configured implements Tool {
 
 				"Sorts the alignments in each input file according to their "+
 				"leftmost position.\nThe output is in BAM file format, but does "+
-				"not include the BAM header. (This\nis because, in distributed "+
-				"usage, the output is split into multiple parts, and\nit's "+
-				"easier to add the header afterwards than to remove it from all "+
-				"of them.)");
+				"not include the BAM header at the\nstart nor the proper BGZF "+
+				"terminator block at the end. (This is because, in\ndistributed "+
+				"usage, the output is split into multiple parts, and it's easier "+
+				"to\nadd the header and terminator afterwards than to remove it "+
+				"from all of them but\nthe first and last, respectively.)");
 			return 2;
 		}
 

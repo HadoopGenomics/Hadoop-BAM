@@ -26,7 +26,8 @@ import java.io.File;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.BAMFileWriter;
+
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
 
 public final class GetSortedBAMHeader {
 	public static void main(String[] args) {
@@ -35,8 +36,9 @@ public final class GetSortedBAMHeader {
 				"Usage: GetSortedBAMHeader input output\n\n"+
 
 				"Reads the BAM header from input (a standard BGZF-compressed BAM "+
-				"file), and\nwrites it (BGZF-compressed) to output. Sets the "+
-				"sort order indicated in the SAM\nheader to 'coordinate'.");
+				"file), and\nwrites it (BGZF-compressed, no terminator block) to "+
+				"output. Sets the sort order\nindicated in the SAM header to "+
+				"'coordinate'.");
 			System.exit(1);
 		}
 

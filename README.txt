@@ -87,5 +87,7 @@ Again, run without arguments for a brief help message.
 
 In distributed usage, in order to compose a final result file from multiple
 parts, you may simply concatenate the files together, along with a header
-retrieved using GetSortedBAMHeader. Using 'hadoop fs -getmerge' when retrieving
-the files out of HDFS is likely the most efficient way of doing this.
+retrieved using GetSortedBAMHeader at the beginning, and the BGZF terminator
+block, provided as bgzf-terminator.bin, at the end. Using 'hadoop fs -getmerge'
+when retrieving the files out of HDFS is likely the most efficient way of doing
+this.

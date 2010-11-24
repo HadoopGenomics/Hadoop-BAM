@@ -1,6 +1,6 @@
 // Copied because we have a different SAMRecord.
 //
-// Required because of SAMRecord.
+// Required because of SAMRecord and BAMFileWriter.
 
 /*
  * The MIT License
