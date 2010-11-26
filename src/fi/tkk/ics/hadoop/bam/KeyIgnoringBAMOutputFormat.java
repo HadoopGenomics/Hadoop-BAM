@@ -31,8 +31,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 
 /** Writes only the BAM records, not the key.
  *

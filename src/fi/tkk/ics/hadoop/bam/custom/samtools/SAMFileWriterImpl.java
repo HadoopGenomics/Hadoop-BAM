@@ -28,9 +28,6 @@
  */
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMTextHeaderCodec;
-
 import net.sf.samtools.util.SortingCollection;
 
 import java.io.StringWriter;

@@ -29,9 +29,8 @@ package fi.tkk.ics.hadoop.bam.custom.samtools;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMBinaryTagAndValue;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.StringUtil;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -245,7 +244,7 @@ public class BAMRecord
             byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
             super.initializeCigar(BinaryCigarCodec.getSingleton().decode(byteBuffer));
             mCigarDecoded = true;
-            if (getValidationStringency() != SAMFileReader.ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
+            if (getValidationStringency() != ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
                 // Don't know line number, and don't want to force read name to be decoded.
                 SAMUtils.processValidationErrors(validateCigar(-1L), -1, getValidationStringency());
             }

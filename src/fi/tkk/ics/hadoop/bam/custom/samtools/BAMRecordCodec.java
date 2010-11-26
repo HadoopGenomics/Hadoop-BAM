@@ -28,7 +28,6 @@
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
 import net.sf.samtools.SAMBinaryTagAndValue;
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.RuntimeEOFException;

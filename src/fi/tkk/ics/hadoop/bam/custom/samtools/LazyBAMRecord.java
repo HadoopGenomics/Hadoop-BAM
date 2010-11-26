@@ -32,8 +32,6 @@
  */
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
-import net.sf.samtools.SAMFileHeader;
-
 public class LazyBAMRecord extends BAMRecord {
 	private boolean decodedRefIdx     = false;
 	private boolean decodedMateRefIdx = false;

@@ -1,10 +1,10 @@
-// This is copied here because it makes the get/set/computeIndexingBin
-// package-private methods public.
+// Copied because get/set/computeIndexingBin (for BAMRecord) and eagerDecode
+// (for BAMFileReader) weren't public.
 //
 // As an additional bonus, to make LazyBAMRecord simpler,
 // m[Mate]Reference{Index,Name} are made protected.
 //
-// Required because of BAMRecord.
+// Required because of BAMRecord and BAMFileReader.
 
 /*
  * The MIT License
@@ -36,14 +36,10 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMBinaryTagAndValue;
 import net.sf.samtools.SAMException;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileSource;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.TextCigarCodec;
 import net.sf.samtools.util.StringUtil;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 
 import java.util.*;
 
@@ -179,7 +175,7 @@ public class SAMRecord implements Cloneable
     /**
      * Some attributes (e.g. CIGAR) are not decoded immediately.  Use this to decide how to validate when decoded.
      */
-    private SAMFileReader.ValidationStringency mValidationStringency = SAMFileReader.ValidationStringency.SILENT;
+    private ValidationStringency mValidationStringency = ValidationStringency.SILENT;
 
     private SAMFileSource mFileSource;
     private SAMFileHeader mHeader = null;
@@ -558,7 +554,7 @@ public class SAMRecord implements Cloneable
     public Cigar getCigar() {
         if (mCigar == null && mCigarString != null) {
             mCigar = TextCigarCodec.getSingleton().decode(mCigarString);
-            if (getValidationStringency() != SAMFileReader.ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
+            if (getValidationStringency() != ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
                 // Don't know line number, and don't want to force read name to be decoded.
                 SAMUtils.processValidationErrors(validateCigar(-1L), -1L, getValidationStringency());
             }
@@ -825,14 +821,14 @@ public class SAMRecord implements Cloneable
         }
     }
 
-    public SAMFileReader.ValidationStringency getValidationStringency() {
+    public ValidationStringency getValidationStringency() {
         return mValidationStringency;
     }
 
     /**
      * Control validation of lazily-decoded elements.
      */
-    public void setValidationStringency(final SAMFileReader.ValidationStringency validationStringency) {
+    public void setValidationStringency(final ValidationStringency validationStringency) {
         this.mValidationStringency = validationStringency;
     }
 
@@ -1241,7 +1237,7 @@ public class SAMRecord implements Cloneable
     public List<SAMValidationError> validateCigar(final long recordNumber) {
         List<SAMValidationError> ret = null;
 
-        if (getValidationStringency() != SAMFileReader.ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
+        if (getValidationStringency() != ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
             // Don't know line number, and don't want to force read name to be decoded.
             ret = getCigar().isValid(getReadName(), recordNumber);
             if (getReferenceIndex() != NO_ALIGNMENT_REFERENCE_INDEX) {

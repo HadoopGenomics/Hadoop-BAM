@@ -1,6 +1,6 @@
-// Copied because we have a different SAMRecord.
+// Copied because we have a custom SAMRecord.
 //
-// Required because of BAMFileWriter.
+// Required for SAMFileReader.
 
 /*
  * The MIT License
@@ -27,17 +27,18 @@
  */
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
-/**
- * Interface for SAMText and BAM file writers.  Clients need not care which they write to,
- * once the object is constructed.
- */
-public interface SAMFileWriter {
-    void addAlignment(SAMRecord alignment);
+import java.util.Comparator;
 
-    SAMFileHeader getFileHeader();
+/**
+ * Interface for comparators that define the various SAM sort orders.
+ */
+public interface SAMRecordComparator extends Comparator<SAMRecord> {
 
     /**
-     * Must be called to flush or file will likely be defective. 
+     * Less stringent compare method than the regular compare.  If the two records
+     * are equal enough that their ordering in a sorted SAM file would be arbitrary,
+     * this method returns 0.
+     * @return negative if samRecord1 < samRecord2,  0 if equal, else positive
      */
-    void close();
+    public int fileOrderCompare(SAMRecord samRecord1, SAMRecord samRecord2);
 }

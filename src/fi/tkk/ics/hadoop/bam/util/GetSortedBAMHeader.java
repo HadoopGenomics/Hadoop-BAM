@@ -24,10 +24,9 @@ package fi.tkk.ics.hadoop.bam.util;
 
 import java.io.File;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 
 public final class GetSortedBAMHeader {
 	public static void main(String[] args) {

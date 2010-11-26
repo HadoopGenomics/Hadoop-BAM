@@ -28,10 +28,7 @@
  */
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
-import net.sf.samtools.BAMIndex;
 import net.sf.samtools.SAMException;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceRecord;
 
 import net.sf.samtools.util.BinaryCodec;
 

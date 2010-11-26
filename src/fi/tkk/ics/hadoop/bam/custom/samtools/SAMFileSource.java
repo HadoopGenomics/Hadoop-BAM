@@ -1,11 +1,11 @@
-// Copied because we have a different SAMRecord.
+// Copied because we had to copy SAMFileReader and SAMFileSpan.
 //
-// Required because of BAMFileWriter.
+// Required for BAMFileReader.
 
 /*
  * The MIT License
  *
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2010 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,16 +28,45 @@
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
 /**
- * Interface for SAMText and BAM file writers.  Clients need not care which they write to,
- * once the object is constructed.
+ * Represents the origin of a SAM record.
+ *
+ * @author mhanna
+ * @version 0.1
  */
-public interface SAMFileWriter {
-    void addAlignment(SAMRecord alignment);
-
-    SAMFileHeader getFileHeader();
+public class SAMFileSource {
+    /**
+     * The reader originating this SAM record.
+     */
+    private SAMFileReader mReader;
 
     /**
-     * Must be called to flush or file will likely be defective. 
+     * The point on disk from which a record originates.
      */
-    void close();
+    private SAMFileSpan mFilePointer;
+
+    /**
+     * Create a new SAMFileSource with the given reader and file pointer.
+     * @param reader reader.
+     * @param filePointer File pointer.
+     */
+    public SAMFileSource(final SAMFileReader reader, final SAMFileSpan filePointer) {
+        this.mReader = reader;
+        this.mFilePointer = filePointer;
+    }
+
+    /**
+     * Retrieves the reader from which this read was initially retrieved.
+     * @return The reader.
+     */
+    public SAMFileReader getReader() {
+        return mReader;
+    }
+
+    /**
+     * A pointer to the region on disk from which the read originated.
+     * @return A pointer within the file.
+     */
+    public SAMFileSpan getFilePointer() {
+        return mFilePointer;
+    }
 }
