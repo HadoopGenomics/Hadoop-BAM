@@ -43,8 +43,8 @@ information.
 Program usage
 -------------
 
-Five utility programs are included. They can be invoked as follows, with
-hadoop-bam.jar in the CLASSPATH environment variable:
+Five non-distributed utility programs are included. They can be invoked as
+follows, with hadoop-bam.jar in the CLASSPATH environment variable:
 
 	java fi.tkk.ics.hadoop.bam.SplittingBAMIndexer
 	java fi.tkk.ics.hadoop.bam.SplittingBAMIndex
@@ -77,17 +77,20 @@ This is meant to be used with the BAM sorter.
 
 ........
 
-Another included program is the BAM sorter:
-fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort. This program is meant to be run
-under Hadoop via a command such as:
+There are also two utilities that are meant for usage from within Hadoop, via
+commands such as:
 
+	hadoop jar hadoop-bam.jar fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader
 	hadoop jar hadoop-bam.jar fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort
 
 Again, run without arguments for a brief help message.
 
-In distributed usage, in order to compose a final result file from multiple
-parts, you may simply concatenate the files together, along with a header
-retrieved using GetSortedBAMHeader at the beginning, and the BGZF terminator
-block, provided as bgzf-terminator.bin, at the end. Using 'hadoop fs -getmerge'
-when retrieving the files out of HDFS is likely the most efficient way of doing
-this.
+BAMReader is a simple proof-of-concept-style tool for reading BAM files from
+HDFS directly, without having to transfer them out to a local disk.
+
+BAMSort is a MapReduce-using application that sorts a BAM file. In distributed
+usage, in order to compose the final result file from multiple parts, you may
+simply concatenate the files together, along with a header retrieved using
+GetSortedBAMHeader at the beginning, and the BGZF terminator block, provided as
+bgzf-terminator.bin, at the end. Using 'hadoop fs -getmerge' when retrieving
+the files out of HDFS is likely the most efficient way of doing this.

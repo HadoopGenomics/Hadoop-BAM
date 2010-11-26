@@ -25,6 +25,8 @@ package fi.tkk.ics.hadoop.bam.util;
 import java.io.InputStream;
 import java.io.IOException;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
 
@@ -47,6 +49,14 @@ public class WrapSeekable<S extends InputStream & Seekable>
 		stm  = s;
 		len  = length;
 		path = p;
+	}
+
+	/** A helper for the common use case. */
+	public static WrapSeekable<FSDataInputStream> openPath(
+		FileSystem fs, Path p) throws IOException
+	{
+		return new WrapSeekable<FSDataInputStream>(
+			fs.open(p), fs.getFileStatus(p).getLen(), p);
 	}
 
 	@Override public String getSource() { return path.toString(); }
