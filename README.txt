@@ -37,4 +37,8 @@ into that single range. Note that it may not exactly match any of the 'level'
 arguments passed to Summarize, due to Hadoop splitting the file at a boundary
 which is not an even multiple of the requested level.
 
-Note that the output files are BGZF-compressed.
+Note that the output files are BGZF-compressed, but do not include the empty
+terminating block which would make them valid BGZF files. This is to avoid
+having to remove it from the end of each output file in distributed usage: it's
+much simpler to concatenate the bgzf-terminator.bin file provided with
+hadoop-bam to the end of the output.
