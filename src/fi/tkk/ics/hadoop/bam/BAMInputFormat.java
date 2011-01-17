@@ -24,9 +24,9 @@ package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,10 +49,18 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
-	private final Map<Path, SplittingBAMIndex> indices =
-		new HashMap<Path, SplittingBAMIndex>();
-
 	private Path getIdxPath(Path path) { return path.suffix(".splitting-bai"); }
+
+	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
+	@Override public RecordReader<LongWritable,SAMRecordWritable>
+		createRecordReader(InputSplit split, TaskAttemptContext ctx)
+			throws InterruptedException, IOException
+	{
+		final RecordReader<LongWritable,SAMRecordWritable> rr =
+			new BAMRecordReader();
+		rr.initialize(split, ctx);
+		return rr;
+	}
 
 	@Override public boolean isSplitable(JobContext job, Path path) {
 		FileSystem fs;
@@ -70,32 +78,62 @@ public class BAMInputFormat
 	{
 		final List<InputSplit> splits = super.getSplits(job);
 
-		// Align the splits so that they don't cross blocks
+		// Align the splits so that they don't cross blocks.
 
-		final List<InputSplit> newSplits = new ArrayList<InputSplit>();
+		// addIndexedSplits() requires the given splits to be sorted by file
+		// path, so do so. Although FileInputFormat.getSplits() does, at the time
+		// of writing this, generate them in that order, we shouldn't rely on it.
+		Collections.sort(splits, new Comparator<InputSplit>() {
+			public int compare(InputSplit a, InputSplit b) {
+				FileSplit fa = (FileSplit)a, fb = (FileSplit)b;
+				return fa.getPath().compareTo(fb.getPath());
+			}
+		});
+
+		final List<InputSplit> newSplits =
+			new ArrayList<InputSplit>(splits.size());
 
 		final Configuration cfg = job.getConfiguration();
 
-		for (int i = 0; i < splits.size(); ++i) {
-			final FileSplit fileSplit = (FileSplit)splits.get(i);
-			final Path file = fileSplit.getPath();
-
-			final SplittingBAMIndex idx;
+		for (int i = 0; i < splits.size();) {
 			try {
-				idx = getIndex(file, file.getFileSystem(cfg));
+				i = addIndexedSplits(splits, i, newSplits, cfg);
 			} catch (IOException e) {
 				throw new IOException("No index, couldn't split", e);
 			}
+		}
+		return newSplits;
+	}
+
+	// Handles all the splits that share the Path of the one at index i,
+	// returning the next index to be used.
+	private int addIndexedSplits(
+			List<InputSplit> splits, int i, List<InputSplit> newSplits,
+			Configuration cfg)
+		throws IOException
+	{
+		final Path file = ((FileSplit)splits.get(i)).getPath();
+
+		final SplittingBAMIndex idx =
+			getIndex(file, file.getFileSystem(cfg));
+
+		int splitsEnd = splits.size();
+		for (int j = i; j < splitsEnd; ++j)
+			if (!file.equals(((FileSplit)splits.get(j)).getPath()))
+				splitsEnd = j;
+
+		for (int j = i; j < splitsEnd; ++j) {
+			final FileSplit fileSplit = (FileSplit)splits.get(j);
 
 			final long start =         fileSplit.getStart();
 			final long end   = start + fileSplit.getLength();
 
 			final Long blockStart =
-				i == 0 ? idx.nextAlignment(0)
+				j == i ? idx.nextAlignment(0)
 				       : idx.prevAlignment(start);
 			final Long blockEnd =
-				i == splits.size()-1 ? idx.prevAlignment(end)
-				                     : idx.nextAlignment(end);
+				j == splitsEnd-1 ? idx.prevAlignment(end)
+				                 : idx.nextAlignment(end);
 
 			if (blockStart == null)
 				throw new RuntimeException(
@@ -108,28 +146,12 @@ public class BAMInputFormat
 			newSplits.add(new FileVirtualSplit(
 				file, blockStart, blockEnd, fileSplit.getLocations()));
 		}
-		return newSplits;
-	}
-
-	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
-	@Override public RecordReader<LongWritable,SAMRecordWritable>
-		createRecordReader(InputSplit split, TaskAttemptContext ctx)
-			throws InterruptedException, IOException
-	{
-		final RecordReader<LongWritable,SAMRecordWritable> rr =
-			new BAMRecordReader();
-		rr.initialize(split, ctx);
-		return rr;
+		return splitsEnd;
 	}
 
 	private SplittingBAMIndex getIndex(final Path path, final FileSystem fs)
 		throws IOException
 	{
-		SplittingBAMIndex idx = indices.get(path);
-		if (idx == null) {
-			idx = new SplittingBAMIndex(fs.open(getIdxPath(path)));
-			indices.put(path, idx);
-		}
-		return idx;
+		return new SplittingBAMIndex(fs.open(getIdxPath(path)));
 	}
 }
