@@ -39,6 +39,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import net.sf.samtools.util.SeekableStream;
+
+import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for BAM files. Values
  * are the individual records; see {@link BAMRecordReader} for the meaning of
  * the key.
@@ -60,16 +64,6 @@ public class BAMInputFormat
 			new BAMRecordReader();
 		rr.initialize(split, ctx);
 		return rr;
-	}
-
-	@Override public boolean isSplitable(JobContext job, Path path) {
-		FileSystem fs;
-		try {
-			fs = FileSystem.get(job.getConfiguration());
-			return getIndex(path, fs) != null;
-		} catch (IOException e) {
-			return false;
-		}
 	}
 
 	/** The splits returned are FileVirtualSplits. */
@@ -99,7 +93,9 @@ public class BAMInputFormat
 			try {
 				i = addIndexedSplits(splits, i, newSplits, cfg);
 			} catch (IOException e) {
-				throw new IOException("No index, couldn't split", e);
+				newSplits.add(
+					getProbabilisticSplit((FileSplit)splits.get(i), cfg));
+				++i;
 			}
 		}
 		return newSplits;
@@ -114,8 +110,8 @@ public class BAMInputFormat
 	{
 		final Path file = ((FileSplit)splits.get(i)).getPath();
 
-		final SplittingBAMIndex idx =
-			getIndex(file, file.getFileSystem(cfg));
+		final SplittingBAMIndex idx = new SplittingBAMIndex(
+			file.getFileSystem(cfg).open(getIdxPath(file)));
 
 		int splitsEnd = splits.size();
 		for (int j = i; j < splitsEnd; ++j)
@@ -149,9 +145,20 @@ public class BAMInputFormat
 		return splitsEnd;
 	}
 
-	private SplittingBAMIndex getIndex(final Path path, final FileSystem fs)
+	private FileVirtualSplit getProbabilisticSplit(
+			FileSplit split, Configuration cfg)
 		throws IOException
 	{
-		return new SplittingBAMIndex(fs.open(getIdxPath(path)));
+		Path           path = split.getPath();
+		SeekableStream sin  =
+			WrapSeekable.openPath(path.getFileSystem(cfg), path);
+
+		long beg =       split.getStart();
+		long end = beg + split.getLength();
+
+		long alignedBeg = BAMSplitGuesser.guessNextBAMRecordStart(sin, beg, end);
+
+		return new FileVirtualSplit(
+			path, alignedBeg, end << 16, split.getLocations());
 	}
 }
