@@ -93,9 +93,16 @@ public class BAMInputFormat
 			try {
 				i = addIndexedSplits(splits, i, newSplits, cfg);
 			} catch (IOException e) {
-				newSplits.add(
-					getProbabilisticSplit((FileSplit)splits.get(i), cfg));
-				++i;
+
+				// Handle all the splits for this path, no need to retry looking
+				// for the same index.
+				final Path path = ((FileSplit)splits.get(i)).getPath();
+				FileSplit fspl;
+				do {
+					fspl = (FileSplit)splits.get(i);
+					newSplits.add(getProbabilisticSplit(fspl, cfg));
+					++i;
+				} while (i < splits.size() && fspl.getPath().equals(path));
 			}
 		}
 		return newSplits;
