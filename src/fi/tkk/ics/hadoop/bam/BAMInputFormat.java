@@ -91,18 +91,9 @@ public class BAMInputFormat
 
 		for (int i = 0; i < splits.size();) {
 			try {
-				i = addIndexedSplits(splits, i, newSplits, cfg);
+				i = addIndexedSplits      (splits, i, newSplits, cfg);
 			} catch (IOException e) {
-
-				// Handle all the splits for this path, no need to retry looking
-				// for the same index.
-				final Path path = ((FileSplit)splits.get(i)).getPath();
-				FileSplit fspl;
-				do {
-					fspl = (FileSplit)splits.get(i);
-					newSplits.add(getProbabilisticSplit(fspl, cfg));
-					++i;
-				} while (i < splits.size() && fspl.getPath().equals(path));
+				i = addProbabilisticSplits(splits, i, newSplits, cfg);
 			}
 		}
 		return newSplits;
@@ -152,20 +143,35 @@ public class BAMInputFormat
 		return splitsEnd;
 	}
 
-	private FileVirtualSplit getProbabilisticSplit(
-			FileSplit split, Configuration cfg)
+	// Works the same way as addIndexedSplits, to avoid having to reopen the
+	// file repeatedly and checking addIndexedSplits for an index repeatedly.
+	private int addProbabilisticSplits(
+			List<InputSplit> splits, int i, List<InputSplit> newSplits,
+			Configuration cfg)
 		throws IOException
 	{
-		Path           path = split.getPath();
-		SeekableStream sin  =
+		final Path path = ((FileSplit)splits.get(i)).getPath();
+		final SeekableStream sin =
 			WrapSeekable.openPath(path.getFileSystem(cfg), path);
 
-		long beg =       split.getStart();
-		long end = beg + split.getLength();
+		final BAMSplitGuesser guesser = new BAMSplitGuesser(sin);
 
-		long alignedBeg = BAMSplitGuesser.guessNextBAMRecordStart(sin, beg, end);
+		FileSplit fspl;
+		do {
+			fspl = (FileSplit)splits.get(i);
 
-		return new FileVirtualSplit(
-			path, alignedBeg, end << 16, split.getLocations());
+			long beg =       fspl.getStart();
+			long end = beg + fspl.getLength();
+
+			long alignedBeg = guesser.guessNextBAMRecordStart(beg, end);
+
+			newSplits.add(new FileVirtualSplit(
+				path, alignedBeg, end << 16, fspl.getLocations()));
+
+			++i;
+		} while (i < splits.size() && fspl.getPath().equals(path));
+
+		sin.close();
+		return i;
 	}
 }

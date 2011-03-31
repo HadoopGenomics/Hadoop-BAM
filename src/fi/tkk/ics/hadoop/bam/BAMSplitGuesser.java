@@ -52,7 +52,7 @@ public class BAMSplitGuesser {
 
 	private final static int SHORTEST_POSSIBLE_BAM_RECORD = 4*9 + 1 + 1 + 1;
 
-	private BAMSplitGuesser(SeekableStream ss) {
+	public BAMSplitGuesser(SeekableStream ss) {
 		in = ss;
 
 		buf = ByteBuffer.allocate(8);
@@ -69,15 +69,9 @@ public class BAMSplitGuesser {
 	}
 
 	/// Looks in the range [beg,end). Returns end if no BAM record was found.
-	public static long guessNextBAMRecordStart(
-			SeekableStream in, long beg, long end)
+	public long guessNextBAMRecordStart(long beg, long end)
 		throws IOException
 	{
-		return new BAMSplitGuesser(in).go(beg, end);
-	}
-
-	private long go(long beg, long end) throws IOException {
-
 		// 64K is the max size of a BGZF block (since the BSIZE data in the BGZF
 		// subfield is an unsigned 16-bit integer), so there's no need to look
 		// further than that.
