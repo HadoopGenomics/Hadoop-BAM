@@ -174,4 +174,8 @@ public class BAMInputFormat
 		sin.close();
 		return i;
 	}
+
+	@Override public boolean isSplitable(JobContext job, Path path) {
+		return true;
+	}
 }
