@@ -311,7 +311,9 @@ final class Range implements Writable {
 		end.set(record.getAlignmentEnd());
 	}
 
-	public int getCentreOfMass() { return (beg.get() + end.get()) / 2; }
+	public int getCentreOfMass() {
+		return (int)(((long)beg.get() + end.get()) / 2);
+	}
 
 	@Override public void write(DataOutput out) throws IOException {
 		beg.write(out);
