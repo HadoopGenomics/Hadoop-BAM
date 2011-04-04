@@ -225,10 +225,10 @@ final class SummarizeReducer
 
 	private MultipleOutputs<NullWritable,RangeCount> mos;
 
-	// Each list is paired with the number of ranges it uses to compute a single
-	// summary output.
-	private final List<Triple<Integer, String, List<Range>>> summaryLists =
-		new ArrayList<Triple<Integer, String, List<Range>>>();
+	private final List<SummaryGroup> summaryGroups =
+		new ArrayList<SummaryGroup>();
+
+	private final RangeCount summary = new RangeCount();
 
 	// This is a safe initial choice: it doesn't matter whether the first actual
 	// reference ID we get matches this or not, since all summaryLists are empty
@@ -236,23 +236,19 @@ final class SummarizeReducer
 	private int currentReferenceID = 0;
 
 	@Override public void setup(
-			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context
-				ctx)
+			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context ctx)
 	{
 		mos = new MultipleOutputs<NullWritable,RangeCount>(ctx);
 
 		for (String s : ctx.getConfiguration().getStrings(SUMMARY_LEVELS_PROP)) {
 			int level = Integer.parseInt(s);
-			summaryLists.add(
-				new Triple<Integer, String, List<Range>>(
-					level, "summary" + level, new ArrayList<Range>()));
+			summaryGroups.add(new SummaryGroup(level, "summary" + level));
 		}
 	}
 
 	@Override protected void reduce(
 			LongWritable key, Iterable<Range> ranges,
-			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context
-				context)
+			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context context)
 		throws IOException, InterruptedException
 	{
 		final int referenceID = (int)(key.get() >>> 32);
@@ -264,21 +260,21 @@ final class SummarizeReducer
 			doAllSummaries();
 		}
 
-		for (Range range : ranges)
-		for (Triple<Integer, String, List<Range>> tuple : summaryLists) {
-			int level = tuple.fst;
-			String outName = tuple.snd;
-			List<Range> rangeList = tuple.thd;
+		for (final Range range : ranges) {
+			final int beg = range.beg.get(),
+			          end = range.end.get();
 
-			rangeList.add(range);
-			if (rangeList.size() == level)
-				doSummary(rangeList, outName);
+			for (SummaryGroup group : summaryGroups) {
+				group.sumBeg += beg;
+				group.sumEnd += end;
+				if (++group.count == group.level)
+					doSummary(group);
+			}
 		}
 	}
 
 	@Override protected void cleanup(
-			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context
-				context)
+			Reducer<LongWritable,Range, NullWritable,RangeCount>.Context context)
 		throws IOException, InterruptedException
 	{
 		// Don't lose any remaining ones at the end.
@@ -288,40 +284,21 @@ final class SummarizeReducer
 	}
 
 	private void doAllSummaries() throws IOException, InterruptedException {
-		for (Triple<Integer, String, List<Range>> tuple : summaryLists)
-			if (!tuple.thd.isEmpty())
-				doSummary(tuple.thd, tuple.snd);
+		for (SummaryGroup group : summaryGroups)
+			if (group.count > 0)
+				doSummary(group);
 	}
 
-	private void doSummary(Collection<Range> group, String outName)
+	private void doSummary(SummaryGroup group)
 		throws IOException, InterruptedException
 	{
-		RangeCount summary = computeSummary(group);
-		group.clear();
-		mos.write(NullWritable.get(), summary, outName);
-	}
+		summary.rid.      set(currentReferenceID);
+		summary.range.beg.set((int)(group.sumBeg / group.count));
+		summary.range.end.set((int)(group.sumEnd / group.count));
+		summary.count.    set(group.count);
+		mos.write(NullWritable.get(), summary, group.outName);
 
-	private RangeCount computeSummary(Collection<Range> group) {
-		RangeCount rc = new RangeCount(currentReferenceID);
-
-		// Calculate mean centre of mass and length. Use long to avoid overflow.
-		long com = 0;
-		long len = 0;
-		for (Range r : group) {
-			com += r.getCentreOfMass();
-			len += r.getLength();
-		}
-		com /= group.size();
-		len /= group.size();
-
-		int beg = (int)com - (int)len/2;
-		int end = (int)com + (int)len/2;
-
-		rc.range.beg.set(beg);
-		rc.range.end.set(end);
-		rc.count.    set(group.size());
-
-		return rc;
+		group.reset();
 	}
 }
 
@@ -335,7 +312,6 @@ final class Range implements Writable {
 	}
 
 	public int getCentreOfMass() { return (beg.get() + end.get()) / 2; }
-	public int getLength()       { return  end.get() - beg.get();      }
 
 	@Override public void write(DataOutput out) throws IOException {
 		beg.write(out);
@@ -348,11 +324,9 @@ final class Range implements Writable {
 }
 
 final class RangeCount implements Comparable<RangeCount>, Writable {
-	public  final Range       range = new Range();
-	public  final IntWritable count = new IntWritable();
-	private final IntWritable rid;
-
-	public RangeCount(int id) { rid = new IntWritable(id); }
+	public final Range       range = new Range();
+	public final IntWritable count = new IntWritable();
+	public final IntWritable rid   = new IntWritable();
 
 	// This is what the TextOutputFormat will write. The format is
 	// tabix-compatible; see http://samtools.sourceforge.net/tabix.shtml.
@@ -496,13 +470,20 @@ final class SummarizeOutputFormat
 	{}
 }
 
-final class Triple<A,B,C> {
-	public A fst;
-	public B snd;
-	public C thd;
-	public Triple(A a, B b, C c) {
-		fst = a;
-		snd = b;
-		thd = c;
+final class SummaryGroup {
+	public       int    count;
+	public final int    level;
+	public       long   sumBeg, sumEnd;
+	public final String outName;
+
+	public SummaryGroup(int lvl, String name) {
+		level   = lvl;
+		outName = name;
+		reset();
+	}
+
+	public void reset() {
+		sumBeg = sumEnd = 0;
+		count  = 0;
 	}
 }
