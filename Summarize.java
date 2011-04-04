@@ -407,10 +407,14 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 	@Override public Range        getCurrentValue() { return range; }
 
 	@Override public boolean nextKeyValue() {
-		if (!bamRR.nextKeyValue())
-			return false;
+		SAMRecord rec;
 
-		final SAMRecord rec = bamRR.getCurrentValue().get();
+		do {
+			if (!bamRR.nextKeyValue())
+				return false;
+
+			rec = bamRR.getCurrentValue().get();
+		} while (rec.getReadUnmappedFlag());
 
 		range.setFrom(rec);
 		key.set((long)rec.getReferenceIndex() << 32 | range.getCentreOfMass());
