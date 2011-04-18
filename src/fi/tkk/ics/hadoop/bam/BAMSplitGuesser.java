@@ -25,6 +25,7 @@ package fi.tkk.ics.hadoop.bam;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFormatException;
@@ -34,10 +35,11 @@ import net.sf.samtools.util.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.LazyBAMRecordCodec;
+import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
 
 public class BAMSplitGuesser {
-	private final SeekableStream             in;
-	private final BlockCompressedInputStream bgzf;
+	private       SeekableStream             inFile, in;
+	private       BlockCompressedInputStream bgzf;
 	private final BAMRecordCodec             bamCodec;
 	private final ByteBuffer                 buf;
 	private final int                        referenceSequenceCount;
@@ -53,38 +55,49 @@ public class BAMSplitGuesser {
 	private final static int SHORTEST_POSSIBLE_BAM_RECORD = 4*9 + 1 + 1 + 1;
 
 	public BAMSplitGuesser(SeekableStream ss) {
-		in = ss;
+		inFile = ss;
 
 		buf = ByteBuffer.allocate(8);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 
 		referenceSequenceCount =
-			new SAMFileReader(in).getFileHeader().getSequenceDictionary().size();
-
-		bgzf = new BlockCompressedInputStream(in);
-		bgzf.setCheckCrcs(true);
+			new SAMFileReader(ss).getFileHeader().getSequenceDictionary().size();
 
 		bamCodec = new LazyBAMRecordCodec();
-		bamCodec.setInputStream(bgzf);
 	}
 
 	/// Looks in the range [beg,end). Returns end if no BAM record was found.
 	public long guessNextBAMRecordStart(long beg, long end)
 		throws IOException
 	{
-		// 64K is the max size of a BGZF block (since the BSIZE data in the BGZF
-		// subfield is an unsigned 16-bit integer), so there's no need to look
-		// further than that.
-		final long firstBGZFEnd = Math.min(end, beg + 0xffff);
+		// Buffer what we need to go through. Since the max size of a BGZF block
+		// is 0xffff (64K), and we might be just one byte off from the start of
+		// the previous one, we need 0xfffe bytes for the start, and then 0xffff
+		// times the number of blocks we want to go through.
+
+		byte[] arr = new byte[(BLOCKS_NEEDED_FOR_GUESS + 1) * 0xffff - 1];
+
+		this.inFile.seek(beg);
+		arr = Arrays.copyOf(arr, inFile.read(arr, 0, Math.min((int)(end - beg),
+		                                                      arr.length)));
+
+		this.in = new SeekableArrayStream(arr);
+
+		this.bgzf = new BlockCompressedInputStream(this.in);
+		this.bgzf.setCheckCrcs(true);
+
+		this.bamCodec.setInputStream(bgzf);
+
+		final int firstBGZFEnd = Math.min((int)(end - beg), 0xffff);
 
 		// cp: Compressed Position, indexes the entire BGZF input.
-		for (long cp = beg;; ++cp) {
+		for (int cp = 0;; ++cp) {
 			final PosSize psz = guessNextBGZFPos(cp, firstBGZFEnd);
 			if (psz == null)
 				return end;
 
-			final long cp0     = cp = psz.pos;
-			final long cp0Virt = cp0 << 16;
+			final int cp0      = cp = psz.pos;
+			final long cp0Virt = (long)cp0 << 16;
 			try {
 				bgzf.seek(cp0Virt);
 
@@ -108,9 +121,10 @@ public class BAMSplitGuesser {
 				bgzf.seek(cp0Virt | up);
 				cp = cp0;
 				try {
-					for (byte b = 0; cp < end && b < BLOCKS_NEEDED_FOR_GUESS;) {
+					for (byte b = 0; cp < arr.length & b < BLOCKS_NEEDED_FOR_GUESS;)
+					{
 						bamCodec.decode();
-						final long cp2 = bgzf.getFilePointer() >>> 16;
+						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
 						if (cp2 != cp) {
 							assert cp2 > cp;
 							cp = cp2;
@@ -122,20 +136,20 @@ public class BAMSplitGuesser {
 				} catch (RuntimeEOFException e) {
 					continue;
 				}
-				return cp0 << 16 | up0;
+				return beg+cp0 << 16 | up0;
 			}
 		}
 	}
 
 	private static class PosSize {
-		public long pos;
+		public int pos;
 		public int size;
-		public PosSize(long p, int s) { pos = p; size = s; }
+		public PosSize(int p, int s) { pos = p; size = s; }
 	}
 
 	// Gives the compressed size on the side. Returns null if it doesn't find
 	// anything.
-	private PosSize guessNextBGZFPos(long p, long end)
+	private PosSize guessNextBGZFPos(int p, int end)
 		throws IOException
 	{
 		for (;;) {
@@ -160,13 +174,13 @@ public class BAMSplitGuesser {
 			}
 			// Found what looks like a gzip block header: now get XLEN and
 			// search for the BGZF subfield.
-			final long p0 = p;
+			final int p0 = p;
 			p += 10;
 			in.seek(p);
 			in.read(buf.array(), 0, 2);
 			p += 2;
-			final int xlen    = getUShort(0);
-			final long subEnd = p + xlen;
+			final int xlen   = getUShort(0);
+			final int subEnd = p + xlen;
 
 			while (p < subEnd) {
 				in.read(buf.array(), 0, 4);
