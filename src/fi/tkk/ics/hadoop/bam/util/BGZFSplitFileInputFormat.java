@@ -22,12 +22,13 @@ package fi.tkk.ics.hadoop.bam.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -43,20 +44,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 public abstract class BGZFSplitFileInputFormat<K,V>
 	extends FileInputFormat<K,V>
 {
-	private final Map<Path, BGZFBlockIndex> indices =
-		new HashMap<Path, BGZFBlockIndex>();
-
 	private Path getIdxPath(Path path) { return path.suffix(".bgzfi"); }
-
-	@Override public boolean isSplitable(JobContext job, Path path) {
-		FileSystem fs;
-		try {
-			fs = FileSystem.get(job.getConfiguration());
-			return getIndex(path, fs) != null;
-		} catch (IOException e) {
-			return false;
-		}
-	}
 
 	/** The splits returned are FileSplits. */
 	@Override public List<InputSplit> getSplits(JobContext job)
@@ -66,28 +54,57 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 
 		// Align the splits so that they don't cross blocks
 
-		final List<InputSplit> newSplits = new ArrayList<InputSplit>();
+		// addIndexedSplits() requires the given splits to be sorted by file
+		// path, so do so. Although FileInputFormat.getSplits() does, at the time
+		// of writing this, generate them in that order, we shouldn't rely on it.
+		Collections.sort(splits, new Comparator<InputSplit>() {
+			public int compare(InputSplit a, InputSplit b) {
+				FileSplit fa = (FileSplit)a, fb = (FileSplit)b;
+				return fa.getPath().compareTo(fb.getPath());
+			}
+		});
+
+		final List<InputSplit> newSplits =
+			new ArrayList<InputSplit>(splits.size());
 
 		final Configuration cfg = job.getConfiguration();
 
-		for (int i = 0; i < splits.size(); ++i) {
-			final FileSplit fileSplit = (FileSplit)splits.get(i);
-			final Path file = fileSplit.getPath();
-
-			final BGZFBlockIndex idx;
+		for (int i = 0; i < splits.size();) {
 			try {
-				idx = getIndex(file, file.getFileSystem(cfg));
+				i = addIndexedSplits      (splits, i, newSplits, cfg);
 			} catch (IOException e) {
-				throw new IOException("No index, couldn't split", e);
+				i = addProbabilisticSplits(splits, i, newSplits, cfg);
 			}
+		}
+		return newSplits;
+	}
+
+	// Handles all the splits that share the Path of the one at index i,
+	// returning the next index to be used.
+	private int addIndexedSplits(
+			List<InputSplit> splits, int i, List<InputSplit> newSplits,
+			Configuration cfg)
+		throws IOException
+	{
+		final Path file = ((FileSplit)splits.get(i)).getPath();
+
+		final BGZFBlockIndex idx = new BGZFBlockIndex(
+			file.getFileSystem(cfg).open(getIdxPath(file)));
+
+		int splitsEnd = splits.size();
+		for (int j = i; j < splitsEnd; ++j)
+			if (!file.equals(((FileSplit)splits.get(j)).getPath()))
+				splitsEnd = j;
+
+		for (int j = i; j < splitsEnd; ++j) {
+			final FileSplit fileSplit = (FileSplit)splits.get(j);
 
 			final long start =         fileSplit.getStart();
 			final long end   = start + fileSplit.getLength();
 
 			final Long blockStart = idx.prevBlock(start);
-			final Long blockEnd =
-				i == splits.size()-1 ? idx.prevBlock(end)
-				                     : idx.nextBlock(end);
+			final Long blockEnd   = j == splitsEnd-1 ? idx.prevBlock(end)
+			                                         : idx.nextBlock(end);
 
 			if (blockStart == null)
 				throw new RuntimeException(
@@ -101,17 +118,41 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 				file, blockStart, blockEnd - blockStart,
 				fileSplit.getLocations()));
 		}
-		return newSplits;
+		return splitsEnd;
 	}
 
-	private BGZFBlockIndex getIndex(final Path path, final FileSystem fs)
+	// Works the same way as addIndexedSplits, to avoid having to reopen the
+	// file repeatedly and checking addIndexedSplits for an index repeatedly.
+	private int addProbabilisticSplits(
+			List<InputSplit> splits, int i, List<InputSplit> newSplits,
+			Configuration cfg)
 		throws IOException
 	{
-		BGZFBlockIndex idx = indices.get(path);
-		if (idx == null && !indices.containsKey(path)) {
-			idx = new BGZFBlockIndex(fs.open(getIdxPath(path)));
-			indices.put(path, idx);
-		}
-		return idx;
+		final Path path = ((FileSplit)splits.get(i)).getPath();
+		final FSDataInputStream in = path.getFileSystem(cfg).open(path);
+
+		final BGZFSplitGuesser guesser = new BGZFSplitGuesser(in);
+
+		FileSplit fspl;
+		do {
+			fspl = (FileSplit)splits.get(i);
+
+			final long beg =       fspl.getStart();
+			final long end = beg + fspl.getLength();
+
+			final long alignedBeg = guesser.guessNextBGZFBlockStart(beg, end);
+
+			newSplits.add(new FileSplit(
+				path, alignedBeg, end - alignedBeg, fspl.getLocations()));
+
+			++i;
+		} while (i < splits.size() && fspl.getPath().equals(path));
+
+		in.close();
+		return i;
+	}
+
+	@Override public boolean isSplitable(JobContext job, Path path) {
+		return true;
 	}
 }
