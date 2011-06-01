@@ -1,4 +1,4 @@
-<project default="compile">
+<project default="jar">
 	<property name="targetdir" value="bin"/>
 	<property name="srcdir"    value="src"/>
 
