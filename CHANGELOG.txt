@@ -1,2 +1,5 @@
+2011-06-01 --- 2.0:
+	- Heuristic splitting of BAM and BGZF files: indexing is no longer required.
+
 2010-12-10 --- 1.0:
 	- Initial release.
