@@ -212,7 +212,7 @@ public final class Summarize extends Configured implements Tool {
 		throws ClassNotFoundException, IOException, InterruptedException
 	{
 		InputSampler.Sampler<LongWritable,Range> sampler =
-			new InputSampler.IntervalSampler<LongWritable,Range>(0.01, 100);
+			new InputSampler.SplitSampler<LongWritable,Range>(1 << 16, 10);
 
 		InputSampler.<LongWritable,Range>writePartitionFile(job, sampler);
 	}
