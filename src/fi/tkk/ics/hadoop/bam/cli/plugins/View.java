@@ -33,7 +33,7 @@ public class View extends CLIPlugin {
 	private static final NavigableMap<String, String> paramDescs =
 		new TreeMap<String, String>();
 
-	public View() { super("view", "BAM viewing", "", paramDescs); }
+	public View() { super("view", "BAM viewing", "1.0", "", paramDescs); }
 	static {
 		paramDescs.put("-H", "print header only");
 	}

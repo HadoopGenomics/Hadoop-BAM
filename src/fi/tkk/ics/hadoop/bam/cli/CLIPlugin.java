@@ -28,24 +28,25 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 public abstract class CLIPlugin {
-	protected final String command, desc, usageTail;
-
+	protected final String command, desc, usageTail, version;
 	protected final NavigableMap<String, String> paramDescs;
 
 	protected CLIPlugin(
-		String commandName, String description, String usageParams,
-		NavigableMap<String, String> paramDescriptions)
+		String commandName, String description, String version,
+		String usageParams, NavigableMap<String, String> paramDescriptions)
 	{
-		command    = commandName;
-		desc       = description;
-		usageTail  = usageParams;
-		paramDescs = paramDescriptions;
+		this.command    = commandName;
+		this.desc       = description;
+		this.version    = version;
+		this.usageTail  = usageParams;
+		this.paramDescs = paramDescriptions;
 	}
 
 	public final String getCommandName() { return command; }
 	public final String getDescription() { return desc;    }
 
 	public void printUsage(PrintStream out) {
+		out.printf("hadoop-bam command line: %s version %s\n", command, version);
 		out.printf("Usage: %s %s ", Utils.getArgv0(), command);
 
 		if (!paramDescs.isEmpty())
