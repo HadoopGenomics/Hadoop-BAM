@@ -28,18 +28,20 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 public abstract class CLIPlugin {
-	protected final String command, desc, usageTail, version;
+	protected final String command, desc, usageTail, version, longDesc;
 	protected final NavigableMap<String, String> paramDescs;
 
 	protected CLIPlugin(
 		String commandName, String description, String version,
-		String usageParams, NavigableMap<String, String> paramDescriptions)
+		String usageParams, NavigableMap<String, String> paramDescriptions,
+		String longDescription)
 	{
 		this.command    = commandName;
 		this.desc       = description;
 		this.version    = version;
 		this.usageTail  = usageParams;
 		this.paramDescs = paramDescriptions;
+		this.longDesc   = longDescription;
 	}
 
 	public final String getCommandName() { return command; }
@@ -53,6 +55,11 @@ public abstract class CLIPlugin {
 			out.print("[options] ");
 
 		out.println(usageTail);
+
+		if (!longDesc.isEmpty()) {
+			out.print('\n');
+			Utils.printWrapped(out, longDesc);
+		}
 
 		if (paramDescs.isEmpty())
 			return;

@@ -28,6 +28,9 @@ import java.security.CodeSource;
 import java.util.Scanner;
 
 public final class Utils {
+	public static void printWrapped(PrintStream out, String str) {
+		printWrapped(out, str, 0);
+	}
 	public static void printWrapped(PrintStream out, String str, int indent) {
 		printWrapped(out, str, indent, 80);
 	}

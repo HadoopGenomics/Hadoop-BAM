@@ -33,7 +33,16 @@ public class View extends CLIPlugin {
 	private static final NavigableMap<String, String> paramDescs =
 		new TreeMap<String, String>();
 
-	public View() { super("view", "BAM viewing", "1.0", "", paramDescs); }
+	public View() {
+		super("view", "BAM viewing", "1.0", "PATH [regions...]", paramDescs,
+			"Reads the BAM file in PATH and, by default, outputs it in SAM "+
+			"format. If any number of regions is given, only the alignments "+
+			"overlapping with those regions are output. Then an index is also "+
+			"required, expected at PATH.bai by default.\n"+
+			"\n"+
+			"Regions can be given as only reference sequence names or indices "+
+			"like 'chr1', or with position ranges as well like 'chr1:100-200'.");
+	}
 	static {
 		paramDescs.put("-H", "print header only");
 	}
