@@ -19,7 +19,16 @@
 		</javac>
 	</target>
 	<target name="jar" depends="compile">
-		<jar destfile="hadoop-bam.jar" basedir="${targetdir}" includes="**/*.class"/>
+		<jar destfile="hadoop-bam.jar" basedir="${targetdir}">
+			<include name="**/*.class"/>
+			<manifest>
+				<attribute name="Main-Class"
+					value="fi.tkk.ics.hadoop.bam.cli.Frontend"/>
+			</manifest>
+			<service type="fi.tkk.ics.hadoop.bam.cli.CLIPlugin">
+				<provider classname="fi.tkk.ics.hadoop.bam.cli.plugins.View"/>
+			</service>
+		</jar>
 	</target>
 	<target name="clean">
 		<delete>
