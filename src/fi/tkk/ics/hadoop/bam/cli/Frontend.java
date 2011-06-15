@@ -64,6 +64,8 @@ public final class Frontend {
 			System.exit(1);
 		}
 
+		Utils.setArgv0Class(Frontend.class);
+
 		if (args.length == 0) {
 			usage(System.err, plugins);
 			System.exit(1);
@@ -86,7 +88,7 @@ public final class Frontend {
 	public static void usage(PrintStream out, Map<String, CLIPlugin> plugins) {
 		out.printf("hadoop-bam version %d.%d command line frontend\n",
 		           VERSION_MAJOR, VERSION_MINOR);
-		out.println("Usage: Frontend <command> [options]");
+		out.printf("Usage: %s <command> [options]\n", Utils.getArgv0());
 
 		int cmdLen = 0;
 		for (final String cmd : plugins.keySet())

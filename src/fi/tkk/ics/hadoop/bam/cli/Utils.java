@@ -22,7 +22,9 @@
 
 package fi.tkk.ics.hadoop.bam.cli;
 
+import java.io.File;
 import java.io.PrintStream;
+import java.security.CodeSource;
 import java.util.Scanner;
 
 public final class Utils {
@@ -57,5 +59,36 @@ public final class Utils {
 			out.printf(" %s", word);
 		}
 		out.print('\n');
+	}
+
+	private static String argv0 = null;
+	private static Class  argv0Class = null;
+
+	// For printing something intelligent in "Usage: argv0 <args>" messages.
+	public static String getArgv0() {
+		if (argv0 != null)
+			return argv0;
+		if (argv0Class == null)
+			return null;
+
+		final CodeSource cs =
+			argv0Class.getProtectionDomain().getCodeSource();
+		if (cs == null)
+			return null;
+
+		final String path = cs.getLocation().getPath();
+		if (path.endsWith("/")) {
+			// Typically (always?) a .class file loaded from the directory in path.
+			argv0 = argv0Class.getSimpleName();
+		} else {
+			// Typically (always?) a .jar file.
+			argv0 = new File(path).getName();
+		}
+
+		return argv0;
+	}
+	public static void setArgv0Class(Class cl) {
+		argv0Class = cl;
+		argv0 = null;
 	}
 }

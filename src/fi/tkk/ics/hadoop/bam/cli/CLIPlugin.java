@@ -46,7 +46,7 @@ public abstract class CLIPlugin {
 	public final String getDescription() { return desc;    }
 
 	public void printUsage(PrintStream out) {
-		out.printf("Usage: Frontend %s ", command);
+		out.printf("Usage: %s %s ", Utils.getArgv0(), command);
 
 		if (!paramDescs.isEmpty())
 			out.print("[options] ");
