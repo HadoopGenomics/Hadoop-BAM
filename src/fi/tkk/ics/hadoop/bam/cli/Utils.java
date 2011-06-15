@@ -42,24 +42,40 @@ public final class Utils {
 		final Scanner words = new Scanner(str);
 
 		// Print the first word out here to avoid a spurious line break if it
-		// would wrap, and to allow printing a space before every later word
-		// unconditionally.
+		// would wrap.
 		if (words.hasNext()) {
 			final String word = words.next();
 			out.print(word);
 			pos += word.length();
 		}
+		boolean addSpace = true;
 		while (words.hasNext()) {
 			final String word = words.next();
+			final int    wend = words.match().end();
 
 			pos += word.length();
+			if (addSpace)
+				++pos;
 
-			if (pos >= wrapAt) {
+			if (pos < wrapAt) {
+				if (addSpace)
+					out.print(' ');
+				out.print(word);
+			} else {
 				pos = indent + word.length();
 				out.printf("\n%s", word);
-				continue;
 			}
-			out.printf(" %s", word);
+
+			if (wend < str.length() && str.charAt(wend) == '\n') {
+				pos = indent;
+				addSpace = false;
+
+				int i = wend;
+				do
+					out.print('\n');
+				while (++i < str.length() && str.charAt(i) == '\n');
+			} else
+				addSpace = true;
 		}
 		out.print('\n');
 	}
