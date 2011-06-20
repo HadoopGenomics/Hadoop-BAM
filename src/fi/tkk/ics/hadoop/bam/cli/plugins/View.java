@@ -23,18 +23,26 @@
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.util.Pair;
+
+import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 public class View extends CLIPlugin {
-	private static final NavigableMap<String, String> paramDescs =
-		new TreeMap<String, String>();
+	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
+		= new ArrayList<Pair<CmdLineParser.Option, String>>();
+
+	private static final CmdLineParser.Option
+		localFilesystemOpt = new BooleanOption('L', "--local-filesystem"),
+		headerOnlyOpt      = new BooleanOption('H', "--header-only");
 
 	public View() {
-		super("view", "BAM viewing", "1.0", "PATH [regions...]", paramDescs,
+		super("view", "BAM viewing", "1.0", "PATH [regions...]", optionDescs,
 			"Reads the BAM file in PATH and, by default, outputs it in SAM "+
 			"format. If any number of regions is given, only the alignments "+
 			"overlapping with those regions are output. Then an index is also "+
@@ -44,7 +52,10 @@ public class View extends CLIPlugin {
 			"like 'chr1', or with position ranges as well like 'chr1:100-200'.");
 	}
 	static {
-		paramDescs.put("-H", "print header only");
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			localFilesystemOpt, "force use of the local FS instead of HDFS"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			headerOnlyOpt, "print header only"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
