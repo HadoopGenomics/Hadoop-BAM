@@ -23,6 +23,8 @@
 package fi.tkk.ics.hadoop.bam.cli;
 
 import java.io.PrintStream;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configured;
@@ -69,6 +71,38 @@ public abstract class CLIPlugin extends Configured {
 
 		if (optionDescs.isEmpty())
 			return;
+
+		Collections.sort(optionDescs,
+			new Comparator<Pair<CmdLineParser.Option, String>>() {
+				public int compare(
+					Pair<CmdLineParser.Option, String> ap,
+					Pair<CmdLineParser.Option, String> bp)
+				{
+					// Sort lexicographically, preferring the short form if it is
+					// available, with case-insensitivity when comparing short and
+					// long forms.
+
+					final CmdLineParser.Option a = ap.fst,
+					                           b = bp.fst;
+
+					final String as = a.shortForm(), al = a.longForm().substring(2),
+					             bs = b.shortForm(), bl = b.longForm().substring(2);
+
+					if (as != null && bs != null)
+						return as.compareTo(bs);
+
+					if (as == null) {
+						if (bs != null)
+							return al.compareToIgnoreCase(bs);
+						return al.compareTo(bl);
+					}
+
+					assert as != null;
+					assert bs == null;
+
+					return as.compareToIgnoreCase(bl);
+				}
+			});
 
 		int optLen = 0;
 		boolean anyShortForms = false;
