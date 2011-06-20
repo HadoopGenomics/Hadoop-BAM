@@ -31,6 +31,8 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
 
+import org.apache.hadoop.util.GenericOptionsParser;
+
 public final class Frontend {
 	public static final int
 		VERSION_MAJOR = 2,
@@ -64,6 +66,20 @@ public final class Frontend {
 			System.exit(1);
 		}
 
+		GenericOptionsParser parser;
+		try {
+			parser = new GenericOptionsParser(args);
+
+		// This should be IOException but Hadoop 0.20.2 doesn't throw it...
+		} catch (Exception e) {
+			System.err.printf("Error in Hadoop arguments: %s\n", e.getMessage());
+			System.exit(1);
+
+			// Hooray for javac
+			return;
+		}
+		args = parser.getRemainingArgs();
+
 		Utils.setArgv0Class(Frontend.class);
 
 		if (args.length == 0) {
@@ -78,11 +94,13 @@ public final class Frontend {
 		}
 
 		final CLIPlugin p = plugins.get(command);
-		if (p != null)
-			System.exit(p.main(Arrays.asList(args).subList(1, args.length)));
+		if (p == null) {
+			System.err.printf("Unknown command '%s'\n", command);
+			System.exit(1);
+		}
 
-		System.err.printf("Unknown command '%s'\n", command);
-		System.exit(1);
+		p.setConf(parser.getConfiguration());
+		System.exit(p.main(Arrays.asList(args).subList(1, args.length)));
 	}
 
 	public static void usage(PrintStream out, Map<String, CLIPlugin> plugins) {
