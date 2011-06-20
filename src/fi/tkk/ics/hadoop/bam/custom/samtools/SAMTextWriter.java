@@ -3,7 +3,7 @@
 //
 // Also makes writeAlignment public for convenience.
 //
-// Required for HDFSBAMReader.
+// Required for BAMReader / cli.plugins.View.
 
 /*
  * The MIT License

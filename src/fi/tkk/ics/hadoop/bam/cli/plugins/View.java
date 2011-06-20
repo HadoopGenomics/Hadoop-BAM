@@ -22,14 +22,32 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
+
+import org.apache.hadoop.fs.Path;
+
+import net.sf.samtools.SAMFormatException;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.util.RuntimeIOException;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMIndex;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileSpan;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriter;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
@@ -46,8 +64,11 @@ public class View extends CLIPlugin {
 			"Reads the BAM file in PATH and, by default, outputs it in SAM "+
 			"format. If any number of regions is given, only the alignments "+
 			"overlapping with those regions are output. Then an index is also "+
-			"required, expected at PATH.bai by default.\n"+
-			"\n"+
+			"required, expected at PATH.bai by default."+
+			"\n\n"+
+			"By default, PATH is treated as a local file path if run outside "+
+			"Hadoop and an HDFS path if run within it."+
+			"\n\n"+
 			"Regions can be given as only reference sequence names or indices "+
 			"like 'chr1', or with position ranges as well like 'chr1:100-200'.");
 	}
@@ -59,6 +80,139 @@ public class View extends CLIPlugin {
 	}
 
 	@Override protected int run(CmdLineParser parser) {
-		return 0;
+
+		final List<String> args = parser.getRemainingArgs();
+		if (args.isEmpty()) {
+			System.err.println("view :: PATH not given.");
+			return 3;
+		}
+		final String       path    = args.get(0);
+		final List<String> regions = args.subList(1, args.size());
+
+		final boolean
+			localFilesystem = parser.getBoolean(localFilesystemOpt),
+			headerOnly      = parser.getBoolean(headerOnlyOpt);
+
+		final SAMFileReader reader;
+
+		try {
+			if (localFilesystem)
+				reader = new SAMFileReader(
+					new File(path), new File(path + ".bai"), false);
+			else {
+				final Path p = new Path(path);
+				reader = new SAMFileReader(
+					WrapSeekable.openPath(getConf(), p),
+					WrapSeekable.openPath(getConf(), p.suffix(".bai")),
+					false);
+			}
+		} catch (Exception e) {
+			System.err.printf("view :: Could not open '%s': %s\n",
+			                  path, e.getMessage());
+			return 4;
+		}
+
+		// We'd rather get an exception than have Picard barf all the errors it
+		// finds without us knowing about it.
+		reader.setValidationStringency(ValidationStringency.STRICT);
+
+		final SAMTextWriter writer = new SAMTextWriter(System.out);
+		final SAMFileHeader header;
+
+		try {
+			header = reader.getFileHeader();
+		} catch (SAMFormatException e) {
+			System.err.printf("view :: Could not parse '%s': %s\n",
+			                  path, e.getMessage());
+			return 4;
+		}
+
+		if (regions.isEmpty() || headerOnly) {
+			writer.setSortOrder(header.getSortOrder(), true);
+			writer.setHeader(header);
+
+			if (!headerOnly)
+				if (!writeIterator(writer, reader.iterator(), path))
+					return 4;
+
+			writer.close();
+			return 0;
+		}
+
+		if (!reader.hasIndex()) {
+			System.err.println(
+				"view :: Cannot output regions from BAM file lacking an index");
+			return 4;
+		}
+
+		reader.enableIndexCaching(true);
+		final BAMIndex index = reader.getIndex();
+
+		boolean errors = false;
+
+		for (final String region : regions) {
+			final StringTokenizer st = new StringTokenizer(region, ":-");
+			final String refStr = st.nextToken();
+			final int beg, end;
+
+			if (st.hasMoreTokens()) {
+				beg = parseCoordinate(st.nextToken());
+				end = st.hasMoreTokens() ? parseCoordinate(st.nextToken()) : -1;
+
+				if (beg < 0 || end < 0) {
+					errors = true;
+					continue;
+				}
+			} else {
+				beg = 0;
+				end = SAMRecord.MAX_INSERT_SIZE;
+			}
+
+			int ref = header.getSequenceIndex(refStr);
+			if (ref == -1) try {
+				ref = Integer.parseInt(refStr);
+			} catch (NumberFormatException e) {
+				System.err.printf(
+					"view :: Not a valid sequence name or index: '%s'\n", refStr);
+				errors = true;
+				continue;
+			}
+
+			final SAMFileSpan span = index.getSpanOverlapping(ref, beg, end);
+			if (span == null)
+				continue;
+
+			if (!writeIterator(writer, reader.iterator(span), path))
+			   return 4;
+		}
+		writer.close();
+		return errors ? 5 : 0;
+	}
+
+	private boolean writeIterator(
+		SAMTextWriter writer, SAMRecordIterator it, String path)
+	{
+		try {
+			while (it.hasNext())
+				writer.writeAlignment(it.next());
+			return true;
+		} catch (SAMFormatException e) {
+			writer.close();
+			System.err.printf("view :: Could not parse '%s': %s\n",
+			                  path, e.getMessage());
+			return false;
+		}
+	}
+
+	private int parseCoordinate(String s) {
+		int c;
+		try {
+			c = Integer.parseInt(s);
+		} catch (NumberFormatException e) {
+			c = -1;
+		}
+		if (c < 0)
+			System.err.printf("view :: Not a valid coordinate: '%s'\n", s);
+		return c;
 	}
 }
