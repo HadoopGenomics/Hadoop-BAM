@@ -63,7 +63,7 @@ public class SAMTextWriter extends SAMFileWriterImpl {
 
     /**
      * Constructs a SAMTextWriter for outputting to a stream instead of to a file.
-     * @param stream Need not be buffered because this class provides buffering.
+     * @param stream Need not be buffered because this class provides buffering. 
      */
     public SAMTextWriter(final OutputStream stream) {
         this.file = null;
@@ -106,11 +106,11 @@ public class SAMTextWriter extends SAMFileWriterImpl {
             out.write(alignment.getReadString());
             out.write(FIELD_SEPARATOR);
             out.write(alignment.getBaseQualityString());
-            if (alignment.getBinaryAttributes() != null) {
-                for (final SAMBinaryTagAndValue attribute : alignment.getBinaryAttributes()) {
-                    out.write(FIELD_SEPARATOR);
-                    out.write(tagCodec.encode(tagUtil.makeStringTag(attribute.tag), attribute.value));
-                }
+            SAMBinaryTagAndValue attribute = alignment.getBinaryAttributes();
+            while (attribute != null) {
+                out.write(FIELD_SEPARATOR);
+                out.write(tagCodec.encode(tagUtil.makeStringTag(attribute.tag), attribute.value));
+                attribute = attribute.getNext();
             }
             out.write("\n");
 

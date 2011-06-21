@@ -40,18 +40,15 @@ class CachingBAMFileIndex extends AbstractBAMFileIndex implements BrowseableBAMI
     private Integer mLastReferenceRetrieved = null;
     private WeakHashMap<Integer,BAMIndexContent> mQueriesByReference = new WeakHashMap<Integer,BAMIndexContent>();
 
-    public CachingBAMFileIndex(final File file) {
-        super(file);
+    public CachingBAMFileIndex(final File file, SAMSequenceDictionary dictionary) {
+        super(file, dictionary);
     }
-    public CachingBAMFileIndex(final SeekableStream stream) {
-        super(stream);
+    public CachingBAMFileIndex(final SeekableStream stream, SAMSequenceDictionary dictionary) {
+        super(stream, dictionary);
     }
 
-    @Override
-    public void close() {
-        super.close();
-        mLastReferenceRetrieved = null;
-        if (mQueriesByReference != null) mQueriesByReference.clear();  // can be null if exception thrown
+    public CachingBAMFileIndex(final File file, SAMSequenceDictionary dictionary, boolean useMemoryMapping) {
+        super(file, dictionary, useMemoryMapping);
     }
 
     /**
@@ -83,7 +80,7 @@ class CachingBAMFileIndex extends AbstractBAMFileIndex implements BrowseableBAMI
 
         List<Chunk> chunkList = new ArrayList<Chunk>();
         for(Bin bin: bins) {
-            for(Chunk chunk: queryResults.getChunksForBin(bin))
+            for(Chunk chunk: bin.getChunkList())
                 chunkList.add(chunk.clone());
         }
 
@@ -131,21 +128,21 @@ class CachingBAMFileIndex extends AbstractBAMFileIndex implements BrowseableBAMI
         // Add the specified bin to the tree if it exists.
         List<Bin> binTree = new ArrayList<Bin>();
         if(indexQuery.containsBin(bin))
-            binTree.add(bin);
+            binTree.add(indexQuery.getBins().getBin(bin.getBinNumber()));
 
         int currentBinLevel = binLevel;
         while(--currentBinLevel >= 0) {
             final int binStart = getFirstBinInLevel(currentBinLevel);
             final int binWidth = getMaxAddressibleGenomicLocation()/getLevelSize(currentBinLevel);
             final int binNumber = firstLocusInBin/binWidth + binStart;
-            Bin parentBin = new Bin(bin.getReferenceSequence(),binNumber);
-            if(indexQuery.containsBin(parentBin))
+            Bin parentBin = indexQuery.getBins().getBin(binNumber);
+            if(parentBin != null && indexQuery.containsBin(parentBin))
                 binTree.add(parentBin);
         }
 
         List<Chunk> chunkList = new ArrayList<Chunk>();
         for(Bin coveringBin: binTree) {
-            for(Chunk chunk: indexQuery.getChunksForBin(coveringBin))
+            for(Chunk chunk: coveringBin.getChunkList())
                 chunkList.add(chunk.clone());
         }
 

@@ -27,6 +27,8 @@
  */
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -51,7 +53,10 @@ public class Bin implements Comparable<Bin> {
      */
     private List<Chunk> chunkList;
 
-    /** The last chunk in the chunkList */
+    /**
+     * The last chunk in the chunkList. Only maintained during index building,
+     * not when reading existing index
+     */
     private Chunk lastChunk;
 
     public Bin(final int referenceSequence, final int binNumber) {
@@ -92,6 +97,14 @@ public class Bin implements Comparable<Bin> {
     }
 
     /**
+     * Returns whether the bin currently contains chunks.
+     * @return True if the bin has chunks, false otherwise.
+     */
+    public boolean containsChunks() {
+        return chunkList != null;
+    }
+
+    /**
      * Compare two bins to see what ordering they should appear in.
      * @param other Other bin to which this bin should be compared.
      * @return -1 if this < other, 0 if this == other, 1 if this > other.
@@ -109,6 +122,16 @@ public class Bin implements Comparable<Bin> {
     }
 
     /**
+     * Adds the first chunk to the bin
+     */
+    public void addInitialChunk(Chunk newChunk){
+        List<Chunk> oldChunks = new ArrayList<Chunk>();
+        setChunkList(oldChunks);
+        setLastChunk(newChunk);
+        oldChunks.add(newChunk);
+    }
+
+    /**
      * Sets the chunks associated with this bin
      */
     public void setChunkList(List<Chunk> list){
@@ -116,9 +139,12 @@ public class Bin implements Comparable<Bin> {
     }
 
     /**
-     * @return  the chunks associated with this bin
+     * Gets the list of chunks associated with this bin.
+     * @return the chunks in this bin.  If no chunks are associated, an empty list will be returned.
      */
     public List<Chunk> getChunkList(){
+        if(chunkList == null)
+            return Collections.<Chunk>emptyList();
         return chunkList;
     }
 
@@ -130,6 +156,8 @@ public class Bin implements Comparable<Bin> {
     }
 
     /**
+     * Warning:  Currently only valid during index building, not when reading existing index,
+     * (AbstractBAMFileIndex.optimizeChunkList doesn't maintain this)
      * @return  the last Chunk of the chunkList
      */
     public Chunk getLastChunk(){

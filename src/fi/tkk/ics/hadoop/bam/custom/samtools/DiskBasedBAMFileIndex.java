@@ -37,11 +37,15 @@ import net.sf.samtools.util.SeekableStream;
  */
 class DiskBasedBAMFileIndex extends AbstractBAMFileIndex
 {
-    DiskBasedBAMFileIndex(final File file) {
-        super(file);
+    DiskBasedBAMFileIndex(final File file, SAMSequenceDictionary dictionary) {
+        super(file, dictionary);
     }
-    DiskBasedBAMFileIndex(final SeekableStream stream) {
-        super(stream);
+    DiskBasedBAMFileIndex(final SeekableStream stream, SAMSequenceDictionary dictionary) {
+        super(stream, dictionary);
+    }
+
+    DiskBasedBAMFileIndex(final File file, SAMSequenceDictionary dictionary, boolean useMemoryMapping) {
+        super(file, dictionary, useMemoryMapping);
     }
 
     /**
@@ -70,8 +74,8 @@ class DiskBasedBAMFileIndex extends AbstractBAMFileIndex
      protected BAMIndexContent getQueryResults(int reference){
          throw new UnsupportedOperationException();
          // todo: there ought to be a way to support this using the first startPos for the reference and the last
-         // todo: return query(reference, 1, BIN_SPAN);
-         // If this were implemented, BAMIndexTextWriter could extend DiskBasedBAMFileIndex -or- CachingBAMFileIndex
+         // return query(reference, 1, -1);
+         // If this were implemented, BAMIndexer.createAndWriteIndex could extend DiskBasedBAMFileIndex -or- CachingBAMFileIndex
     }
 }
 

@@ -52,7 +52,7 @@ public class SAMProgramRecord extends AbstractSAMHeaderRecord {
 
     public SAMProgramRecord(final String id, SAMProgramRecord srcProgramRecord) {
         mProgramGroupId = id;
-        for (final Map.Entry<String, Object> entry : srcProgramRecord.getAttributes()) {
+        for (final Map.Entry<String, String> entry : srcProgramRecord.getAttributes()) {
             setAttribute(entry.getKey(), entry.getValue());
         }
     }

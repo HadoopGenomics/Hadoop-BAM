@@ -1,10 +1,10 @@
-// Added an OutputStream constructor and made close() not write the empty
+// Added an OutputStream constructor (for convenience, now that an
+// OutputStream+File constructor exists) and made close() not write the empty
 // block.
 //
-// The constructor is required since Hadoop can't provide a File, and the
-// close() change allows us to concatenate partial Hadoop outputs with 'cat' or
-// 'hadoop fs -getmerge' without BlockCompressedInputStream thinking it's found
-// EOF prematurely when it's reading the concatenated result.
+// The close() change allows us to concatenate partial Hadoop outputs with
+// 'cat' or 'hadoop fs -getmerge' without BlockCompressedInputStream thinking
+// it's found EOF prematurely when it's reading the concatenated result.
 //
 // Note that this is an actual FUNCTIONALITY CHANGE. This is not just a drop-in
 // replacement with some additions like the other classes here tend to be. The
@@ -78,6 +78,10 @@ public class BlockCompressedOutputStream
         defaultCompressionLevel = compressionLevel;
     }
 
+    public static int getDefaultCompressionLevel() {
+        return defaultCompressionLevel;
+    }
+
     private final BinaryCodec codec;
     private final byte[] uncompressedBuffer = new byte[BlockCompressedStreamConstants.DEFAULT_UNCOMPRESSED_BLOCK_SIZE];
     private int numUncompressedBytes = 0;
@@ -98,7 +102,7 @@ public class BlockCompressedOutputStream
     // getFilePointer might return an inaccurate value.
     private final Deflater noCompressionDeflater = new Deflater(Deflater.NO_COMPRESSION, true);
     private final CRC32 crc32 = new CRC32();
-    private final File file;
+    private File file = null;
     private long mBlockAddress = 0;
 
 
@@ -137,10 +141,27 @@ public class BlockCompressedOutputStream
         deflater = new Deflater(compressionLevel, true);
     }
 
+    /**
+     * Constructors that take output streams
+     * file may be null
+     */
+    public BlockCompressedOutputStream(final OutputStream os, File file) {
+        this(os, file, defaultCompressionLevel);
+    }
+
+    public BlockCompressedOutputStream(final OutputStream os, final File file, final int compressionLevel) {
+        this.file = file;
+        codec = new BinaryCodec(os);
+        if (file != null) {
+            codec.setOutputFileName(file.getAbsolutePath());
+        }
+        deflater = new Deflater(compressionLevel, true);
+    }
+
     public BlockCompressedOutputStream(final OutputStream out) {
-    	 file = null;
-    	 codec = new BinaryCodec(out);
-    	 deflater = new Deflater(defaultCompressionLevel, true);
+        file = null;
+        codec = new BinaryCodec(out);
+        deflater = new Deflater(defaultCompressionLevel, true);
     }
 
     /**
@@ -205,14 +226,14 @@ public class BlockCompressedOutputStream
         //     System.err.println("In BlockCompressedOutputStream, had to throttle back " + numberOfThrottleBacks +
         //                        " times for file " + codec.getOutputFileName());
         // }
-        //codec.writeBytes(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+        codec.writeBytes(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
         codec.close();
-        // Can't re-open something that is not a regular file, e.g. a named pipe.
-        //if (this.file == null || !this.file.isFile()) return;
-        //if (BlockCompressedInputStream.checkTermination(this.file) !=
-        //        BlockCompressedInputStream.FileTermination.HAS_TERMINATOR_BLOCK) {
-        //    throw new IOException("Terminator block not found after closing BGZF file " + this.file);
-        //}
+        // Can't re-open something that is not a regular file, e.g. a named pipe or an output stream
+        if (this.file == null || !this.file.isFile()) return;
+        if (BlockCompressedInputStream.checkTermination(this.file) !=
+                BlockCompressedInputStream.FileTermination.HAS_TERMINATOR_BLOCK) {
+            throw new IOException("Terminator block not found after closing BGZF file " + this.file);
+        }
     }
 
     /**

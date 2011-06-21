@@ -38,8 +38,9 @@ import net.sf.samtools.SAMBinaryTagAndValue;
 import net.sf.samtools.SAMException;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.TextCigarCodec;
+import net.sf.samtools.util.CoordMath;
 import net.sf.samtools.util.StringUtil;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMFileReader;
 
 import java.util.*;
 
@@ -87,7 +88,7 @@ import java.util.*;
 public class SAMRecord implements Cloneable
 {
     /**
-     * Alignment score for a good alignment, but where computing a Phred-score is not feasible.
+     * Alignment score for a good alignment, but where computing a Phred-score is not feasible. 
      */
     public static final int UNKNOWN_MAPPING_QUALITY = 255;
 
@@ -167,15 +168,15 @@ public class SAMRecord implements Cloneable
     protected String mMateReferenceName = NO_ALIGNMENT_REFERENCE_NAME;
     private int mMateAlignmentStart = 0;
     private int mInferredInsertSize = 0;
-    private List<SAMBinaryTagAndValue> mAttributes = null;
+    private SAMBinaryTagAndValue mAttributes = null;
     protected Integer mReferenceIndex = null;
     protected Integer mMateReferenceIndex = null;
-    private Integer mIndexingBin = null;
+    protected Integer mIndexingBin = null;
 
     /**
      * Some attributes (e.g. CIGAR) are not decoded immediately.  Use this to decide how to validate when decoded.
      */
-    private ValidationStringency mValidationStringency = ValidationStringency.SILENT;
+    private SAMFileReader.ValidationStringency mValidationStringency = SAMFileReader.ValidationStringency.SILENT;
 
     private SAMFileSource mFileSource;
     private SAMFileHeader mHeader = null;
@@ -485,11 +486,38 @@ public class SAMRecord implements Cloneable
             }
         }
 
-        return pos;
+        return pos;               
     }
 
     /**
-     * Unsupported.  This property is derived from alignment start and CIGAR.
+     * @return 1-based inclusive reference position of the unclippped sequence at a given offset,
+     *         or 0 if there is no position.
+     *         For example, given the sequence NNNAAACCCGGG, cigar 3S9M, and an alignment start of 1,
+     *         and a (1-based)offset 10 (start of GGG) it returns 7 (1-based offset starting after the soft clip.
+     *         For example: given the sequence AAACCCGGGTTT, cigar 4M1D6M, an alignment start of 1,
+     *         an offset of 4 returns reference position 4, an offset of 5 returns reference position 6.
+     *         Another example: given the sequence AAACCCGGGTTT, cigar 4M1I6M, an alignment start of 1,
+     *         an offset of 4 returns reference position 4, an offset of 5 returns 0.
+     * @offset 1-based location within the unclipped sequence
+     */
+    public int getReferencePositionAtReadPosition(final int offset) {
+
+        if (offset == 0) return 0;
+
+        for (final AlignmentBlock alignmentBlock : getAlignmentBlocks()) {
+            if (CoordMath.getEnd(alignmentBlock.getReadStart(), alignmentBlock.getLength()) < offset) {
+                continue;
+            } else if (offset < alignmentBlock.getReadStart()) {
+                return 0;
+            } else {
+                return alignmentBlock.getReferenceStart() + offset - alignmentBlock.getReadStart();
+            }
+        }
+        return 0; // offset not located in an alignment block
+    }
+
+    /**
+     * Unsupported.  This property is derived from alignment start and CIGAR. 
      */
     public void setAlignmentEnd(final int value) {
         throw new UnsupportedOperationException("Not supported: setAlignmentEnd");
@@ -554,7 +582,7 @@ public class SAMRecord implements Cloneable
     public Cigar getCigar() {
         if (mCigar == null && mCigarString != null) {
             mCigar = TextCigarCodec.getSingleton().decode(mCigarString);
-            if (getValidationStringency() != ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
+            if (getValidationStringency() != SAMFileReader.ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
                 // Don't know line number, and don't want to force read name to be decoded.
                 SAMUtils.processValidationErrors(validateCigar(-1L), -1L, getValidationStringency());
             }
@@ -821,14 +849,14 @@ public class SAMRecord implements Cloneable
         }
     }
 
-    public ValidationStringency getValidationStringency() {
+    public SAMFileReader.ValidationStringency getValidationStringency() {
         return mValidationStringency;
     }
 
     /**
      * Control validation of lazily-decoded elements.
      */
-    public void setValidationStringency(final ValidationStringency validationStringency) {
+    public void setValidationStringency(final SAMFileReader.ValidationStringency validationStringency) {
         this.mValidationStringency = validationStringency;
     }
 
@@ -948,15 +976,12 @@ public class SAMRecord implements Cloneable
     }
 
     protected Object getAttribute(final short tag) {
-        if (mAttributes == null) {
-            return null;
+        if (this.mAttributes == null) return null;
+        else {
+            final SAMBinaryTagAndValue tmp = this.mAttributes.find(tag);
+            if (tmp != null) return tmp.value;
+            else return null;
         }
-        for (final SAMBinaryTagAndValue tagAndValue : mAttributes) {
-            if (tagAndValue.tag == tag) {
-                return tagAndValue.value;
-            }
-        }
-        return null;
     }
 
     /**
@@ -983,23 +1008,14 @@ public class SAMRecord implements Cloneable
             throw new SAMException("Attribute type " + value.getClass() + " not supported. Tag: " +
                     SAMTagUtil.getSingleton().makeStringTag(tag));
         }
-        if (mAttributes == null) {
-            mAttributes = new ArrayList<SAMBinaryTagAndValue>();
+        // It's a new tag
+        if (value == null) {
+            if (this.mAttributes != null) this.mAttributes = this.mAttributes.remove(tag);
         }
-        int i;
-        for (i = 0; i < mAttributes.size(); ++i) {
-            if (mAttributes.get(i).tag == tag) {
-                break;
-            }
-        }
-        if (i < mAttributes.size()) {
-            if (value != null) {
-                mAttributes.set(i, new SAMBinaryTagAndValue(tag, value));
-            } else {
-                mAttributes.remove(i);
-            }
-        } else if (value != null) {
-            mAttributes.add(new SAMBinaryTagAndValue(tag, value));
+        else {
+            final SAMBinaryTagAndValue tmp = new SAMBinaryTagAndValue(tag, value);
+            if (this.mAttributes == null) this.mAttributes = tmp;
+            else this.mAttributes = this.mAttributes.insert(tmp);
         }
     }
 
@@ -1007,24 +1023,21 @@ public class SAMRecord implements Cloneable
      * Removes all attributes.
      */
     public void clearAttributes() {
-        mAttributes.clear();
+        mAttributes = null;
     }
 
     /**
-     * Replace any existing attributes with the given list.  Does not copy the list
-     * but installs it directly.
+     * Replace any existing attributes with the given linked item.
      */
-    protected void setAttributes(final List<SAMBinaryTagAndValue> attributes) {
+    protected void setAttributes(final SAMBinaryTagAndValue attributes) {
         mAttributes = attributes;
     }
+
     /**
-     * @return List of all tags on this record.  Returns null if there are no tags.
+     * @return Pointer to the first of the tags.  Returns null if there are no tags.
      */
-    protected List<SAMBinaryTagAndValue> getBinaryAttributes() {
-        if (mAttributes == null || mAttributes.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return Collections.unmodifiableList(mAttributes);
+    protected SAMBinaryTagAndValue getBinaryAttributes() {
+        return mAttributes;
     }
 
     /**
@@ -1044,11 +1057,12 @@ public class SAMRecord implements Cloneable
      * @return list of {tag, value} tuples
      */
     public List<SAMTagAndValue> getAttributes() {
-        final List<SAMBinaryTagAndValue> binaryAttributes = getBinaryAttributes();
-        final List<SAMTagAndValue> ret = new ArrayList<SAMTagAndValue>(binaryAttributes.size());
-        for (final SAMBinaryTagAndValue tagAndValue : binaryAttributes) {
-            ret.add(new SAMTagAndValue(SAMTagUtil.getSingleton().makeStringTag(tagAndValue.tag),
-                    tagAndValue.value));
+        SAMBinaryTagAndValue binaryAttributes = getBinaryAttributes();
+        final List<SAMTagAndValue> ret = new ArrayList<SAMTagAndValue>();
+        while (binaryAttributes != null) {
+            ret.add(new SAMTagAndValue(SAMTagUtil.getSingleton().makeStringTag(binaryAttributes.tag),
+                    binaryAttributes.value));
+            binaryAttributes = binaryAttributes.getNext();
         }
         return ret;
     }
@@ -1126,8 +1140,10 @@ public class SAMRecord implements Cloneable
         addField(buffer, getReadString(), null, "*");
         addField(buffer, getBaseQualityString(), null, "*");
         if (mAttributes != null) {
-            for (final SAMBinaryTagAndValue entry : getBinaryAttributes()) {
+            SAMBinaryTagAndValue entry = getBinaryAttributes();
+            while (entry != null) {
                 addField(buffer, formatTagValue(entry.tag, entry.value));
+                entry = entry.getNext();
             }
         }
         return buffer.toString();
@@ -1237,7 +1253,7 @@ public class SAMRecord implements Cloneable
     public List<SAMValidationError> validateCigar(final long recordNumber) {
         List<SAMValidationError> ret = null;
 
-        if (getValidationStringency() != ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
+        if (getValidationStringency() != SAMFileReader.ValidationStringency.SILENT && !this.getReadUnmappedFlag()) {
             // Don't know line number, and don't want to force read name to be decoded.
             ret = getCigar().isValid(getReadName(), recordNumber);
             if (getReferenceIndex() != NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -1279,6 +1295,7 @@ public class SAMRecord implements Cloneable
         eagerDecode();
         samRecord.eagerDecode();
 
+        if (mReadName != null ? !mReadName.equals(samRecord.mReadName) : samRecord.mReadName != null) return false;
         if (mAttributes != null ? !mAttributes.equals(samRecord.mAttributes) : samRecord.mAttributes != null)
             return false;
         if (!Arrays.equals(mBaseQualities, samRecord.mBaseQualities)) return false;
@@ -1287,7 +1304,6 @@ public class SAMRecord implements Cloneable
         if (mMateReferenceName != null ? !mMateReferenceName.equals(samRecord.mMateReferenceName) : samRecord.mMateReferenceName != null)
             return false;
         if (!Arrays.equals(mReadBases, samRecord.mReadBases)) return false;
-        if (mReadName != null ? !mReadName.equals(samRecord.mReadName) : samRecord.mReadName != null) return false;
         if (mReferenceName != null ? !mReferenceName.equals(samRecord.mReferenceName) : samRecord.mReferenceName != null)
             return false;
 
@@ -1408,6 +1424,11 @@ public class SAMRecord implements Cloneable
             if (getCigarLength() == 0) {
                 if (ret == null) ret = new ArrayList<SAMValidationError>();
                 ret.add(new SAMValidationError(SAMValidationError.Type.INVALID_CIGAR, "CIGAR should have > zero elements for mapped read.", getReadName()));
+            /* todo - will uncomment once unit tests are added
+            } else if (getCigar().getReadLength() != getReadLength()) {
+                if (ret == null) ret = new ArrayList<SAMValidationError>();
+                ret.add(new SAMValidationError(SAMValidationError.Type.INVALID_CIGAR, "CIGAR read length " + getCigar().getReadLength() + " doesn't match read length " + getReadLength(), getReadName()));
+            */
             }
             if (getHeader().getSequenceDictionary().size() == 0) {
                 if (ret == null) ret = new ArrayList<SAMValidationError>();
@@ -1440,7 +1461,7 @@ public class SAMRecord implements Cloneable
             if (ret == null) ret = new ArrayList<SAMValidationError>();
             ret.addAll(errors);
         }
-        if (this.getReadLength() == 0) {
+        if (this.getReadLength() == 0 && !this.getNotPrimaryAlignmentFlag()) {
             String cq = (String)getAttribute(SAMTagUtil.getSingleton().CQ);
             String cs = (String)getAttribute(SAMTagUtil.getSingleton().CS);
             if (cq == null || cq.length() == 0 || cs == null || cs.length() == 0) {
@@ -1476,7 +1497,7 @@ public class SAMRecord implements Cloneable
 
     /**
      * Gets the source of this SAM record -- both the reader that retrieved the record and the position on disk from
-     * whence it came.
+     * whence it came. 
      * @return The file source.  Note that the reader will be null if not activated using SAMFileReader.enableFileSource().
      */
     public SAMFileSource getFileSource() {
@@ -1526,7 +1547,7 @@ public class SAMRecord implements Cloneable
         }
         return ret;
     }
-
+    
     private String buildMessage(final String baseMessage, final boolean isMate) {
         return isMate ? "Mate " + baseMessage : baseMessage;
     }
@@ -1537,12 +1558,12 @@ public class SAMRecord implements Cloneable
      * never modify a mutable value returned by any of the get() methods anyway.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public Object clone() throws CloneNotSupportedException {
         final SAMRecord newRecord = (SAMRecord)super.clone();
         if (mAttributes != null) {
-            newRecord.mAttributes = (ArrayList<SAMBinaryTagAndValue>)((ArrayList)mAttributes).clone();
+            newRecord.mAttributes = this.mAttributes.copy();
         }
+
         return newRecord;
     }
 

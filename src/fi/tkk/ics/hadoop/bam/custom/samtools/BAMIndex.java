@@ -38,21 +38,6 @@ public interface BAMIndex {
     public static final String BAMIndexSuffix = ".bai";
 
     /**
-     * Reports the maximum number of bins that can appear in a BAM file.
-     */
-    public static final int MAX_BINS = 37450;   // =(8^6-1)/7+1
-
-    /**
-     * Open the BAM file index.
-     */
-    public void open();
-
-    /**
-     * Close the BAM file index.
-     */
-    public void close();
-
-    /**
      * Gets the compressed chunks which should be searched for the contents of records contained by the span
      * referenceIndex:startPos-endPos, inclusive.  See the BAM spec for more information on how a chunk is
      * represented.
@@ -68,5 +53,17 @@ public interface BAMIndex {
      * Gets the start of the last linear bin in the index.
      * @return The chunk indicating the start of the last bin in the linear index.
      */
-    long getStartOfLastLinearBin();    
+    long getStartOfLastLinearBin();
+
+    /**
+     * Gets meta data for the given reference including information about number of aligned, unaligned, and noCoordinate records
+     * @param reference the reference of interest
+     * @return meta data for the reference
+     */
+    public BAMIndexMetaData getMetaData(int reference);
+
+    /**
+     * Close the index and release any associated resources.
+     */
+    void close();
 }

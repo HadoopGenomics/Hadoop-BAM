@@ -69,6 +69,11 @@ class BAMFileReader extends SAMFileReader.ReaderImplementation {
     private boolean mEnableIndexCaching = false;
 
     /**
+     * Use the traditional memory-mapped implementation for BAM file indexes rather than regular I/O.
+     */
+    private boolean mEnableIndexMemoryMapping = true;
+
+    /**
      * Add information about the origin (reader and position) to SAM records.
      */
     private SAMFileReader mFileReader = null;
@@ -99,8 +104,8 @@ class BAMFileReader extends SAMFileReader.ReaderImplementation {
     BAMFileReader(final File file, final File indexFile, final boolean eagerDecode, final ValidationStringency validationStringency)
         throws IOException {
         this(new BlockCompressedInputStream(file), indexFile!=null ? indexFile : findIndexFile(file), eagerDecode, file.getAbsolutePath(), validationStringency);
-        if (indexFile != null && indexFile.lastModified() < file.lastModified()) {
-            System.err.println("WARNING: BAM index file " + indexFile.getAbsolutePath() +
+        if (mIndexFile != null && mIndexFile.lastModified() < file.lastModified()) {
+            System.err.println("WARNING: BAM index file " + mIndexFile.getAbsolutePath() +
                     " is older than BAM " + file.getAbsolutePath());
         }
     }
@@ -158,6 +163,18 @@ class BAMFileReader extends SAMFileReader.ReaderImplementation {
         this.mEnableIndexCaching = enabled;
     }
 
+    /**
+     * If false, disable the use of memory mapping for accessing index files (default behavior is to use memory mapping).
+     * This is slower but more scalable when accessing large numbers of BAM files sequentially.
+     * @param enabled True to use memory mapping, false to use regular I/O.
+     */
+    public void enableIndexMemoryMapping(final boolean enabled) {
+        if (mIndex != null) {
+            throw new SAMException("Unable to change index memory mapping; index file has already been loaded.");
+        }
+        this.mEnableIndexMemoryMapping = enabled;
+    }
+
     @Override
     void enableCrcChecking(boolean enabled) {
         this.mCompressedInputStream.setCheckCrcs(enabled);
@@ -179,9 +196,11 @@ class BAMFileReader extends SAMFileReader.ReaderImplementation {
             throw new SAMException("No index is available for this BAM file.");
         if(mIndex == null) {
             if (mIndexFile != null)
-                mIndex = mEnableIndexCaching ? new CachingBAMFileIndex(mIndexFile) : new DiskBasedBAMFileIndex(mIndexFile);
+                mIndex = mEnableIndexCaching ? new CachingBAMFileIndex(mIndexFile, getFileHeader().getSequenceDictionary(), mEnableIndexMemoryMapping)
+                                             : new DiskBasedBAMFileIndex(mIndexFile, getFileHeader().getSequenceDictionary(), mEnableIndexMemoryMapping);
             else
-                mIndex = mEnableIndexCaching ? new CachingBAMFileIndex(mIndexStream) : new DiskBasedBAMFileIndex(mIndexStream);
+                mIndex = mEnableIndexCaching ? new CachingBAMFileIndex(mIndexStream, getFileHeader().getSequenceDictionary())
+                                             : new DiskBasedBAMFileIndex(mIndexStream, getFileHeader().getSequenceDictionary());
         }
         return mIndex;
     }
@@ -189,6 +208,9 @@ class BAMFileReader extends SAMFileReader.ReaderImplementation {
     void close() {
         if (mStream != null) {
             mStream.close();
+        }
+        if (mIndex != null) {
+            mIndex.close();
         }
         mStream = null;
         mFileHeader = null;

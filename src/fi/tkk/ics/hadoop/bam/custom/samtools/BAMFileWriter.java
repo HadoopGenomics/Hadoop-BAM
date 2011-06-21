@@ -40,6 +40,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.OutputStream;
 
 /**
  * Concrete implementation of SAMFileWriter for writing gzipped BAM files.
@@ -62,6 +63,18 @@ public class BAMFileWriter extends SAMFileWriterImpl {
         outputBinaryCodec.setOutputFileName(path.toString());
     }
 
+    public BAMFileWriter(final OutputStream os, final File file) {
+        blockCompressedOutputStream = new BlockCompressedOutputStream(os, file);
+        outputBinaryCodec = new BinaryCodec(new DataOutputStream(blockCompressedOutputStream));
+        outputBinaryCodec.setOutputFileName(file.getAbsolutePath());
+    }
+
+    public BAMFileWriter(final OutputStream os, final File file, int compressionLevel) {
+        blockCompressedOutputStream = new BlockCompressedOutputStream(os, file, compressionLevel);
+        outputBinaryCodec = new BinaryCodec(new DataOutputStream(blockCompressedOutputStream));
+        outputBinaryCodec.setOutputFileName(file.getAbsolutePath());
+    }
+
     private void prepareToWriteAlignments() {
         if (bamRecordCodec == null) {
             bamRecordCodec = new BAMRecordCodec(getFileHeader());
@@ -71,7 +84,8 @@ public class BAMFileWriter extends SAMFileWriterImpl {
 
     protected void writeAlignment(final SAMRecord alignment) {
         prepareToWriteAlignments();
-        bamRecordCodec.encode(alignment);
+
+            bamRecordCodec.encode(alignment);
     }
 
     protected void writeHeader(final String textHeader) {

@@ -33,8 +33,7 @@ import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.util.*;
 
 import java.io.*;
-import java.lang.reflect.Constructor;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 import java.net.URL;
 
@@ -52,6 +51,10 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
     /**
      * Set validation stringency for all subsequently-created SAMFileReaders.  This is the only way to
      * change the validation stringency for SAM header.
+     * NOTE: Programs that change this should make sure to have a try/finally clause wrapping the work that
+     * they do, so that the original stringency can be restored after the program's work is done.  This facilitates
+     * calling a program that is usually run stand-alone from another program, without messing up the original
+     * validation stringency.
      */
     public static void setDefaultValidationStringency(final ValidationStringency defaultValidationStringency) {
         SAMFileReader.defaultValidationStringency = defaultValidationStringency;
@@ -90,6 +93,7 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
     static abstract class ReaderImplementation {
         abstract void enableFileSource(final SAMFileReader reader, final boolean enabled);
         abstract void enableIndexCaching(final boolean enabled);
+        abstract void enableIndexMemoryMapping(final boolean enabled);
         abstract void enableCrcChecking(final boolean enabled);
         abstract boolean hasIndex();
         abstract BAMIndex getIndex();
@@ -141,7 +145,7 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
      * @param eagerDecode if true, decode SAM record entirely when reading it.
      */
     public SAMFileReader(final InputStream stream, final boolean eagerDecode) {
-        init(stream, eagerDecode, defaultValidationStringency);
+        init(stream, null, null, eagerDecode, defaultValidationStringency);
     }
 
     /**
@@ -152,7 +156,7 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
      * @param eagerDecode if true, decode SAM record entirely when reading it.
      */
     public SAMFileReader(final File file, final boolean eagerDecode) {
-        init(file, null, eagerDecode, defaultValidationStringency);
+        this(file, null, eagerDecode);
     }
 
     /**
@@ -164,7 +168,7 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
      * @param eagerDecode eagerDecode if true, decode SAM record entirely when reading it.
      */
     public SAMFileReader(final File file, final File indexFile, final boolean eagerDecode){
-        init(file, indexFile, eagerDecode, defaultValidationStringency);
+        init(null, file, indexFile, eagerDecode, defaultValidationStringency);
     }
 
     /**
@@ -200,9 +204,6 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
         if (mReader != null) {
             mReader.close();
         }
-        if (mIndex != null) {
-            mIndex.close();
-        }
         mReader = null;
         mIndex = null;
     }
@@ -223,6 +224,18 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
         if(mIndex != null)
             throw new SAMException("Unable to turn on index caching; index file has already been loaded.");
         mReader.enableIndexCaching(enabled);
+    }
+
+    /**
+     * If false, disable the use of memory mapping for accessing index files (default behavior is to use memory mapping).
+     * This is slower but more scalable when accessing large numbers of BAM files sequentially.
+     * @param enabled True to use memory mapping, false to use regular I/O.
+     */
+    public void enableIndexMemoryMapping(final boolean enabled) {
+        if (mIndex != null) {
+            throw new SAMException("Unable to change index memory mapping; index file has already been loaded.");
+        }
+        mReader.enableIndexMemoryMapping(enabled);
     }
 
     /**
@@ -461,27 +474,6 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
         }
     }
 
-    private void init(final InputStream stream, final boolean eagerDecode, final ValidationStringency validationStringency) {
-
-        try {
-            final BufferedInputStream bufferedStream = IOUtil.toBufferedStream(stream);
-            if (isBAMFile(bufferedStream)) {
-                mIsBinary = true;
-                mReader = new BAMFileReader(bufferedStream, null, eagerDecode, validationStringency);
-            } else if (isGzippedSAMFile(bufferedStream)) {
-                mIsBinary = false;
-                mReader = new SAMTextReader(new GZIPInputStream(bufferedStream), validationStringency);
-            } else if (isSAMFile(bufferedStream)) {
-                mIsBinary = false;
-                mReader = new SAMTextReader(bufferedStream, validationStringency);
-            } else {
-                throw new SAMFormatException("Unrecognized file format");
-            }
-            setValidationStringency(validationStringency);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
 
 
     private void init(final SeekableStream strm, final File indexFile, final boolean eagerDecode,
@@ -522,21 +514,26 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
     }
 
 
-    private void init(final File file, File indexFile, final boolean eagerDecode, final ValidationStringency validationStringency) {
+    private void init(final InputStream stream, final File file, File indexFile, final boolean eagerDecode, final ValidationStringency validationStringency) {
+        if (stream != null && file != null) throw new IllegalArgumentException("stream and file are mutually exclusive");
         this.samFile = file;
 
         try {
-            final BufferedInputStream bufferedStream = new BufferedInputStream(new FileInputStream(file));
+            final BufferedInputStream bufferedStream;
+            if (file != null) bufferedStream = new BufferedInputStream(new FileInputStream(file), IOUtil.STANDARD_BUFFER_SIZE);
+            else bufferedStream = IOUtil.toBufferedStream(stream);
             if (isBAMFile(bufferedStream)) {
                 mIsBinary = true;
-                if (!file.isFile()) {
+                if (file == null || !file.isFile()) {
                     // Handle case in which file is a named pipe, e.g. /dev/stdin or created by mkfifo
                     mReader = new BAMFileReader(bufferedStream, indexFile, eagerDecode, validationStringency);
                 } else {
                     bufferedStream.close();
-                    final BAMFileReader reader = new BAMFileReader(file, indexFile, eagerDecode, validationStringency);
-                    mReader = reader;
+                    mReader = new BAMFileReader(file, indexFile, eagerDecode, validationStringency);
                 }
+            } else if (BlockCompressedInputStream.isValidFile(bufferedStream)) {
+                mIsBinary = false;
+                mReader = new SAMTextReader(new BlockCompressedInputStream(bufferedStream), validationStringency);
             } else if (isGzippedSAMFile(bufferedStream)) {
                 mIsBinary = false;
                 mReader = new SAMTextReader(new GZIPInputStream(bufferedStream), validationStringency);
@@ -564,7 +561,30 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
      */
     private boolean isBAMFile(final InputStream stream)
             throws IOException {
-        return BlockCompressedInputStream.isValidFile(stream);
+        if (!BlockCompressedInputStream.isValidFile(stream)) {
+          return false;
+        }
+        final int buffSize = BlockCompressedStreamConstants.MAX_COMPRESSED_BLOCK_SIZE;
+        stream.mark(buffSize);
+        final byte[] buffer = new byte[buffSize];
+        readBytes(stream, buffer, 0, buffSize);
+        stream.reset();
+        final byte[] magicBuf = new byte[4];
+        final int magicLength = readBytes(new BlockCompressedInputStream(new ByteArrayInputStream(buffer)), magicBuf, 0, 4);
+        return magicLength == BAMFileConstants.BAM_MAGIC.length && Arrays.equals(BAMFileConstants.BAM_MAGIC, magicBuf);
+    }
+
+    private static int readBytes(final InputStream stream, final byte[] buffer, final int offset, final int length)
+        throws IOException {
+        int bytesRead = 0;
+        while (bytesRead < length) {
+            final int count = stream.read(buffer, offset + bytesRead, length - bytesRead);
+            if (count <= 0) {
+                break;
+            }
+            bytesRead += count;
+        }
+        return bytesRead;
     }
 
     /**

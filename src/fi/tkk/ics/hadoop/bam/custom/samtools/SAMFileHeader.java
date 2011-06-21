@@ -46,6 +46,8 @@ public class SAMFileHeader extends AbstractSAMHeaderRecord
     public static final String SORT_ORDER_TAG = "SO";
     public static final String GROUP_ORDER_TAG = "GO";
     public static final String CURRENT_VERSION = "1.0";
+    private static final String NEXT_VERSION = "1.3";
+    public static final Set<String> ACCEPTABLE_VERSIONS = new HashSet<String>(Arrays.asList(CURRENT_VERSION, NEXT_VERSION));
 
     /**
      * These tags are of known type, so don't need a type field in the text representation.
@@ -117,11 +119,11 @@ public class SAMFileHeader extends AbstractSAMHeaderRecord
     }
 
     public String getVersion() {
-        return (String) getAttribute("VN");
+        return getAttribute("VN");
     }
 
     public String getCreator() {
-        return (String) getAttribute("CR");
+        return getAttribute("CR");
     }
 
     public SAMSequenceDictionary getSequenceDictionary() {
@@ -185,6 +187,10 @@ public class SAMFileHeader extends AbstractSAMHeaderRecord
     }
 
     public void addReadGroup(final SAMReadGroupRecord readGroup) {
+        if (mReadGroupMap.containsKey(readGroup.getReadGroupId())) {
+            throw new IllegalArgumentException("Read group with group id " +
+                readGroup.getReadGroupId() + " already exists in SAMFileHeader!");
+        }
         mReadGroups.add(readGroup);
         mReadGroupMap.put(readGroup.getReadGroupId(), readGroup);
     }
@@ -194,6 +200,10 @@ public class SAMFileHeader extends AbstractSAMHeaderRecord
     }
 
     public void addProgramRecord(final SAMProgramRecord programRecord) {
+        if (mProgramRecordMap.containsKey(programRecord.getProgramGroupId())) {
+            throw new IllegalArgumentException("Program record with group id " +
+                programRecord.getProgramGroupId() + " already exists in SAMFileHeader!");
+        }
         this.mProgramRecords.add(programRecord);
         this.mProgramRecordMap.put(programRecord.getProgramGroupId(), programRecord);
     }
@@ -233,7 +243,7 @@ public class SAMFileHeader extends AbstractSAMHeaderRecord
         if (getAttribute("SO") == null) {
             return SortOrder.unsorted;
         }
-        return SortOrder.valueOf((String)getAttribute("SO"));
+        return SortOrder.valueOf(getAttribute("SO"));
     }
 
     public void setSortOrder(final SortOrder so) {
@@ -244,7 +254,7 @@ public class SAMFileHeader extends AbstractSAMHeaderRecord
         if (getAttribute("GO") == null) {
             return GroupOrder.none;
         }
-        return GroupOrder.valueOf((String)getAttribute("GO"));
+        return GroupOrder.valueOf(getAttribute("GO"));
     }
 
     public void setGroupOrder(final GroupOrder go) {

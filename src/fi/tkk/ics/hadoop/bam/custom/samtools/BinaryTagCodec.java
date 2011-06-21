@@ -211,22 +211,28 @@ public class BinaryTagCodec {
 
     /**
      * Convert tags from little-endian disk representation to in-memory representation.
-     * @param tagCollection Append converted tags to this collection.
      * @param binaryRep Byte buffer containing file representation of tags.
      * @param offset Where in binaryRep tags start.
      * @param length How many bytes in binaryRep are tag storage.
      */
-    static void readTags(final List<SAMBinaryTagAndValue> tagCollection, final byte[] binaryRep, final int offset,
-                         final int length, final SAMFileReader.ValidationStringency validationStringency) {
+    static SAMBinaryTagAndValue readTags(final byte[] binaryRep, final int offset,
+                                         final int length, final SAMFileReader.ValidationStringency validationStringency) {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(binaryRep, offset, length);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        
+
+        SAMBinaryTagAndValue head = null;
+
         while (byteBuffer.hasRemaining()) {
             final short tag = byteBuffer.getShort();
             final byte tagType = byteBuffer.get();
             final Object value = readValue(tagType, byteBuffer, validationStringency);
-            tagCollection.add(new SAMBinaryTagAndValue(tag, value));
+
+            final SAMBinaryTagAndValue tmp = new SAMBinaryTagAndValue(tag, value);
+            if (head == null) head = tmp;
+            else head = head.insert(tmp);
         }
+
+        return head;
     }
 
     /**
