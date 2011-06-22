@@ -131,9 +131,16 @@ public class View extends CLIPlugin {
 			writer.setSortOrder(header.getSortOrder(), true);
 			writer.setHeader(header);
 
-			if (!headerOnly)
-				if (!writeIterator(writer, reader.iterator(), path))
-					return 4;
+			if (!headerOnly) try {
+				final SAMRecordIterator it = reader.iterator();
+				while (it.hasNext())
+					writer.writeAlignment(it.next());
+			} catch (SAMFormatException e) {
+				writer.close();
+				System.err.printf("view :: Could not parse '%s': %s\n",
+				                  path, e.getMessage());
+				return 4;
+			}
 
 			writer.close();
 			return 0;
@@ -182,26 +189,28 @@ public class View extends CLIPlugin {
 			if (span == null)
 				continue;
 
-			if (!writeIterator(writer, reader.iterator(span), path))
-			   return 4;
+			try {
+				final SAMRecordIterator it = reader.iterator(span);
+				while (it.hasNext()) {
+					final SAMRecord rec = it.next();
+
+					// This containment check seems like something that should be
+					// handled by the SAMFileSpan, but no such luck...
+					if (rec.getAlignmentStart() <= end &&
+					    rec.getAlignmentEnd  () >= beg)
+					{
+						writer.writeAlignment(rec);
+					}
+				}
+			} catch (SAMFormatException e) {
+				writer.close();
+				System.err.printf("view :: Could not parse '%s': %s\n",
+				                  path, e.getMessage());
+				return 4;
+			}
 		}
 		writer.close();
 		return errors ? 5 : 0;
-	}
-
-	private boolean writeIterator(
-		SAMTextWriter writer, SAMRecordIterator it, String path)
-	{
-		try {
-			while (it.hasNext())
-				writer.writeAlignment(it.next());
-			return true;
-		} catch (SAMFormatException e) {
-			writer.close();
-			System.err.printf("view :: Could not parse '%s': %s\n",
-			                  path, e.getMessage());
-			return false;
-		}
 	}
 
 	private int parseCoordinate(String s) {
