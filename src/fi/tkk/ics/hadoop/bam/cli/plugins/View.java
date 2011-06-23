@@ -191,16 +191,29 @@ public class View extends CLIPlugin {
 
 			try {
 				final SAMRecordIterator it = reader.iterator(span);
+
+				// This containment checking seems like something that should be
+				// handled by the SAMFileSpan, but no such luck...
+				//
+				// Because they're in order, we can get by without doing the full
+				// two-comparison containment check on each record: loop until a
+				// record in range is found and then loop until one out of range is
+				// found.
+
 				while (it.hasNext()) {
 					final SAMRecord rec = it.next();
-
-					// This containment check seems like something that should be
-					// handled by the SAMFileSpan, but no such luck...
-					if (rec.getAlignmentStart() <= end &&
-					    rec.getAlignmentEnd  () >= beg)
-					{
-						writer.writeAlignment(rec);
+					if (rec.getAlignmentEnd() >= beg) {
+						if (rec.getAlignmentStart() <= end)
+							writer.writeAlignment(rec);
+						break;
 					}
+				}
+				while (it.hasNext()) {
+					final SAMRecord rec = it.next();
+					if (rec.getAlignmentStart() <= end)
+						writer.writeAlignment(rec);
+					else
+						break;
 				}
 			} catch (SAMFormatException e) {
 				writer.close();
