@@ -51,7 +51,7 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-public class View extends CLIPlugin {
+public final class View extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
