@@ -170,6 +170,13 @@ public class View extends CLIPlugin {
 					errors = true;
 					continue;
 				}
+				if (end < beg) {
+					System.err.printf(
+						"view :: Invalid range, cannot end before start: '%d-%d'\n",
+						beg, end);
+					errors = true;
+					continue;
+				}
 			} else {
 				beg = 0;
 				end = SAMRecord.MAX_INSERT_SIZE;
