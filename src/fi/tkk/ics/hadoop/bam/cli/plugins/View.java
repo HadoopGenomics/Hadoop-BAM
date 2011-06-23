@@ -23,8 +23,6 @@
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -33,14 +31,12 @@ import org.apache.hadoop.fs.Path;
 
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.util.RuntimeIOException;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMIndex;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileSpan;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
