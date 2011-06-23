@@ -117,14 +117,16 @@ public abstract class CLIPlugin extends Configured {
 		final String optFmt = "%-" + optLen + "s  ";
 
 		out.print("\nOptions: ");
-		final int descPos = "Options: ".length();
+		final int  optPos = "Options: ".length(),
+		          descPos = optPos + optLen + 2
+		                  + (anyShortForms ? "-x, ".length() : 0);
 
 		boolean first = true;
 		for (final Pair<CmdLineParser.Option, String> pair : optionDescs) {
 			if (first)
 				first = false;
 			else
-				for (int i = descPos; i-- > 0;)
+				for (int i = optPos; i-- > 0;)
 					out.print(' ');
 
 			final CmdLineParser.Option opt = pair.fst;

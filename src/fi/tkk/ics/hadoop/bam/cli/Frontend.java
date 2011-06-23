@@ -115,14 +115,15 @@ public final class Frontend {
 		final String cmdFmt = "%-" + cmdLen + "s  ";
 
 		out.print("\nCommand: ");
-		final int descPos = "Command: ".length() + 2;
+		final int  cmdPos = "Command: ".length(),
+		          descPos = cmdPos + cmdLen + 2;
 
 		boolean first = true;
 		for (Map.Entry<String, CLIPlugin> entry : plugins.entrySet()) {
 			if (first)
 				first = false;
 			else
-				for (int i = descPos; i-- > 0;)
+				for (int i = cmdPos; i-- > 0;)
 					out.print(' ');
 
 			out.printf(cmdFmt, entry.getKey());
