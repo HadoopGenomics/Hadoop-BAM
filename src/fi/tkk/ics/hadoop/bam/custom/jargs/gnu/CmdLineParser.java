@@ -5,6 +5,7 @@
 //   they aren't that only for backwards compatibility reasons.
 // - Cleared warnings due to lack of generics and redundant casts.
 // - Added getBoolean() convenience method.
+// - Added Option.setLongForm().
 
 package fi.tkk.ics.hadoop.bam.custom.jargs.gnu;
 
@@ -156,6 +157,8 @@ public class CmdLineParser {
         public String shortForm() { return this.shortForm; }
 
         public String longForm() { return this.longForm; }
+
+        public void setLongForm(String longForm) { this.longForm = longForm; }
 
         /**
          * Tells whether or not this option wants a value
