@@ -22,7 +22,10 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
+import java.io.File;
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -30,8 +33,10 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
@@ -46,9 +51,14 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import net.sf.samtools.util.BlockCompressedStreamConstants;
+
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
@@ -91,16 +101,9 @@ public final class Sort extends CLIPlugin {
 		             in     = args.get(1),
 		             out    = (String)parser.getOptionValue(outputFileOpt);
 
-		final Path   inPath = new Path(in);
-		final String inFile = inPath.getName();
-
-		final boolean combineOutputs = out != null;
-
-		if (combineOutputs) {
-			// FIXME
-			System.err.println("sort :: combining (-o) not yet implemented!");
-			return 3;
-		}
+		final Path   inPath     = new Path(in),
+		             wrkDirPath = new Path(wrkDir);
+		final String inFile     = inPath.getName();
 
 		final Configuration conf = getConf();
 
@@ -135,7 +138,7 @@ public final class Sort extends CLIPlugin {
 			job.setOutputFormatClass(SortOutputFormat.class);
 
 			FileInputFormat .setInputPaths(job, inPath);
-			FileOutputFormat.setOutputPath(job, new Path(wrkDir));
+			FileOutputFormat.setOutputPath(job, wrkDirPath);
 
 			job.setPartitionerClass(TotalOrderPartitioner.class);
 
@@ -150,12 +153,59 @@ public final class Sort extends CLIPlugin {
 
 			job.submit();
 
-			return job.waitForCompletion(true) ? 0 : 5;
+			if (!job.waitForCompletion(true))
+				return 5;
 		} catch (IOException e) {
 			System.err.printf("sort :: Hadoop error: %s\n", e);
 			return 5;
 		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
+
+		if (out != null) try {
+			final Path outPath = new Path(out);
+
+			final FileSystem srcFS = wrkDirPath.getFileSystem(conf),
+			                 dstFS =    outPath.getFileSystem(conf);
+
+			// First, place the BAM header.
+
+			final BAMFileWriter w =
+				new BAMFileWriter(dstFS.create(outPath), new File(""));
+
+			w.setSortOrder(SAMFileHeader.SortOrder.coordinate, true);
+
+			final SAMFileReader r =
+				new SAMFileReader(inPath.getFileSystem(conf).open(inPath));
+
+			w.setHeader(r.getFileHeader());
+			r.close();
+			w.close();
+
+			// Then, the BAM contents.
+
+			final OutputStream outs = dstFS.append(outPath);
+
+			final FileStatus[] parts = srcFS.globStatus(new Path(
+				wrkDir + "/" + conf.get(SortOutputFormat.OUTPUT_NAME_PROP) +
+				"-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
+
+			for (final FileStatus part : parts) {
+				final InputStream ins = srcFS.open(part.getPath());
+				IOUtils.copyBytes(ins, outs, conf, false);
+				ins.close();
+			}
+			for (final FileStatus part : parts)
+				srcFS.delete(part.getPath(), false);
+
+			// Finally, the BGZF terminator.
+
+			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+			outs.close();
+		} catch (IOException e) {
+			System.err.printf("sort :: output combining failed: %s\n", e);
+			return 5;
+		}
+		return 0;
 	}
 
 	private void setSamplingConf(
