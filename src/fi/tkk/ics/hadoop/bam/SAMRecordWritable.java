@@ -25,20 +25,15 @@ package fi.tkk.ics.hadoop.bam;
 import java.io.DataOutput;
 import java.io.DataInput;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 import org.apache.hadoop.io.Writable;
-
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.BinaryCodec;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.LazyBAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
+
+import fi.tkk.ics.hadoop.bam.util.DataInputWrapper;
+import fi.tkk.ics.hadoop.bam.util.DataOutputWrapper;
 
 /** A {@link Writable} {@link SAMRecord}.
  *
@@ -75,40 +70,5 @@ public class SAMRecordWritable implements Writable {
 		final LazyBAMRecordCodec codec = new LazyBAMRecordCodec();
 		codec.setInputStream(new DataInputWrapper(in));
 		record = codec.decode();
-	}
-}
-
-class DataOutputWrapper extends OutputStream {
-	private final DataOutput out;
-
-	public DataOutputWrapper(DataOutput o) { out = o; }
-
-	@Override public void write(int b) throws IOException {
-		out.writeByte(b);
-	}
-	@Override public void write(byte[] b, int off, int len) throws IOException {
-		out.write(b, off, len);
-	}
-}
-
-class DataInputWrapper extends InputStream {
-	private final DataInput in;
-
-	public DataInputWrapper(DataInput i) { in = i; }
-
-	@Override public long skip(long n) throws IOException {
-		for (; n > Integer.MAX_VALUE; n -= Integer.MAX_VALUE) {
-			final int skipped = in.skipBytes(Integer.MAX_VALUE);
-			if (skipped < Integer.MAX_VALUE)
-				return skipped;
-		}
-		return in.skipBytes((int)n);
-	}
-	@Override public int read(byte[] b, int off, int len) throws IOException {
-		in.readFully(b, off, len);
-		return len;
-	}
-	@Override public int read() throws IOException {
-		return in.readByte();
 	}
 }
