@@ -35,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
@@ -73,7 +74,8 @@ public final class Sort extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		outputFileOpt = new StringOption('o', "output-file=PATH");
+		outputFileOpt      = new StringOption('o', "output-file=PATH"),
+		outputLocalFileOpt = new StringOption('O', "output-local-file=PATH");
 
 	public Sort() {
 		super("sort", "BAM sorting", "1.0", "WORKDIR INPATH", optionDescs,
@@ -82,8 +84,11 @@ public final class Sort extends CLIPlugin {
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputFileOpt, "output a complete BAM file to local file PATH, "+
+			outputFileOpt, "output a complete BAM file to the file PATH, "+
 			               "removing the parts from WORKDIR"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			outputLocalFileOpt, "like -o, but treat PATH as referring to the "+
+			                    "local FS"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -99,7 +104,18 @@ public final class Sort extends CLIPlugin {
 
 		final String wrkDir = args.get(0),
 		             in     = args.get(1),
-		             out    = (String)parser.getOptionValue(outputFileOpt);
+		             outAny = (String)parser.getOptionValue(outputFileOpt),
+		             outLoc = (String)parser.getOptionValue(outputLocalFileOpt),
+		             out;
+
+		if (outAny != null) {
+			if (outLoc != null) {
+				System.err.println("sort :: cannot accept both -o and -O!");
+				return 3;
+			}
+			out = outAny;
+		} else
+			out = outLoc;
 
 		final Path   inPath     = new Path(in),
 		             wrkDirPath = new Path(wrkDir);
@@ -164,8 +180,11 @@ public final class Sort extends CLIPlugin {
 		if (out != null) try {
 			final Path outPath = new Path(out);
 
-			final FileSystem srcFS = wrkDirPath.getFileSystem(conf),
-			                 dstFS =    outPath.getFileSystem(conf);
+			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
+			      FileSystem dstFS =    outPath.getFileSystem(conf);
+
+			if (out == outLoc)
+				dstFS = FileSystem.getLocal(conf).getRaw();
 
 			// First, place the BAM header.
 
