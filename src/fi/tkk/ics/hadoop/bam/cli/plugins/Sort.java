@@ -170,10 +170,10 @@ public final class Sort extends CLIPlugin {
 			job.submit();
 
 			if (!job.waitForCompletion(true))
-				return 5;
+				return 4;
 		} catch (IOException e) {
 			System.err.printf("sort :: Hadoop error: %s\n", e);
-			return 5;
+			return 4;
 		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
