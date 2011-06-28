@@ -18,24 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+package fi.tkk.ics.hadoop.bam.cli.plugins.chipster;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
@@ -53,168 +55,217 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
 
-import hadooptrunk.InputSampler;
 import hadooptrunk.MultipleOutputs;
-import hadooptrunk.TotalOrderPartitioner;
 
-import fi.tkk.ics.hadoop.bam.BAMInputFormat;
-import fi.tkk.ics.hadoop.bam.BAMRecordReader;
+import net.sf.samtools.util.BlockCompressedStreamConstants;
+
+import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
+import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
-public final class Summarize extends Configured implements Tool {
-	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new Configuration(), new Summarize(), args));
+import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
+
+import fi.tkk.ics.hadoop.bam.BAMInputFormat;
+import fi.tkk.ics.hadoop.bam.BAMRecordReader;
+import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.util.Pair;
+
+public final class Summarize extends CLIPlugin {
+	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
+		= new ArrayList<Pair<CmdLineParser.Option, String>>();
+
+	private static final CmdLineParser.Option
+		outputDirOpt      = new  StringOption('o', "output-dir=PATH"),
+		outputLocalDirOpt = new  StringOption('O', "output-local-dir=PATH");
+
+	public Summarize() {
+		super("summarize", "summarize BAM for zooming", "1.0",
+			"WORKDIR LEVELS PATH", optionDescs,
+			"Outputs, for each level in LEVELS, a summary file describing the "+
+			"average number of alignments at various positions in the BAM file "+
+			"in PATH. The summary files are placed in parts in WORKDIR."+
+			"\n\n"+
+			"LEVELS should be a comma-separated list of positive integers. "+
+			"Each level is the number of alignments that are summarized into "+
+			"one group.");
+	}
+	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			outputDirOpt, "output complete summary files to the file PATH, "+
+			              "removing the parts from WORKDIR"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			outputLocalDirOpt, "like -o, but treat PATH as referring to the "+
+			                   "local FS"));
 	}
 
-	private final List<Job> jobs = new ArrayList<Job>();
+	private int missingArg(String s) {
+		System.err.printf("summarize :: %s not given.\n", s);
+		return 3;
+	}
 
-	@Override public int run(String[] args)
-		throws ClassNotFoundException, IOException, InterruptedException
-	{
-		if (args.length < 3) {
-			System.err.println(
-				"Usage: Summarize <output directory> <levels> "+
-				"file [file...]\n\n"+
+	@Override protected int run(CmdLineParser parser) {
 
-				"Levels should be a comma-separated list of positive integers. "+
-				"For each level,\noutputs a summary file describing the average "+
-				"number of alignments at various\npositions in the file. The "+
-				"level is the number of alignments that are\nsummarized into "+
-				"one.");
-			return 2;
+		final List<String> args = parser.getRemainingArgs();
+		switch (args.size()) {
+			case 0: return missingArg("WORKDIR");
+			case 1: return missingArg("LEVELS");
+			case 2: return missingArg("PATH");
+			default: break;
 		}
 
-		FileSystem fs = FileSystem.get(getConf());
+		final String wrkDir  = args.get(0),
+		             bam     = args.get(2),
+		             outAny  = (String)parser.getOptionValue(outputDirOpt),
+		             outLoc  = (String)parser.getOptionValue(outputLocalDirOpt),
+		             out;
 
-		Path outputDir = new Path(args[0]);
-		if (fs.exists(outputDir) && !fs.getFileStatus(outputDir).isDir()) {
-			System.err.printf(
-				"ERROR: specified output directory '%s' is not a directory!\n",
-				outputDir);
-			return 2;
-		}
+		if (outAny != null) {
+			if (outLoc != null) {
+				System.err.println("summarize :: cannot accept both -o and -O!");
+				return 3;
+			}
+			out = outAny;
+		} else
+			out = outLoc;
 
-		String[] levels = args[1].split(",");
+		final String[] levels = args.get(1).split(",");
 		for (String l : levels) {
 			try {
 				int lvl = Integer.parseInt(l);
 				if (lvl > 0)
 					continue;
 				System.err.printf(
-					"ERROR: specified summary level '%d' is not positive!\n",
-					lvl);
+					"summarize :: summary level '%d' is not positive!\n", lvl);
 			} catch (NumberFormatException e) {
 				System.err.printf(
-					"ERROR: specified summary level '%s' is not an integer!\n", l);
+					"summarize :: summary level '%s' is not an integer!\n", l);
 			}
-			return 2;
+			return 3;
 		}
 
-		List<Path> files = new ArrayList<Path>(args.length - 2);
-		for (String file : Arrays.asList(args).subList(2, args.length))
-			files.add(new Path(file));
+		final Path   bamPath    = new Path(bam),
+		             wrkDirPath = new Path(wrkDir);
+		final String bamFile    = bamPath.getName();
 
-		if (new HashSet<Path>(files).size() < files.size()) {
-			System.err.println("ERROR: duplicate file names specified!");
-			return 2;
-		}
+		final Configuration conf = getConf();
 
-		for (Path file : files) if (!fs.isFile(file)) {
-			System.err.printf("ERROR: file '%s' is not a file!\n", file);
-			return 2;
-		}
+		// Used by SummarizeOutputFormat to name the output files.
+		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bamFile);
 
-		for (Path file : files)
-			submitJob(file, outputDir, levels);
+		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, levels);
 
-		int ret = 0;
-		for (Job job : jobs)
+		try {
+			setSamplingConf(bamPath.getParent(), bamFile, conf);
+
+			// As far as I can tell there's no non-deprecated way of getting this
+			// info. We can silence this warning but not the import.
+			@SuppressWarnings("deprecation")
+			int maxReduceTasks =
+				new JobClient(new JobConf(conf)).getClusterStatus()
+				.getMaxReduceTasks();
+
+			conf.setInt("mapred.reduce.tasks", Math.max(1, maxReduceTasks*9/10));
+
+			final Job job = new Job(conf);
+
+			job.setJarByClass  (Summarize.class);
+			job.setMapperClass (Mapper.class);
+			job.setReducerClass(SummarizeReducer.class);
+
+			job.setMapOutputKeyClass  (LongWritable.class);
+			job.setMapOutputValueClass(Range.class);
+			job.setOutputKeyClass     (NullWritable.class);
+			job.setOutputValueClass   (RangeCount.class);
+
+			job.setInputFormatClass (SummarizeInputFormat.class);
+			job.setOutputFormatClass(SummarizeOutputFormat.class);
+
+			FileInputFormat .setInputPaths(job, bamPath);
+			FileOutputFormat.setOutputPath(job, wrkDirPath);
+
+			job.setPartitionerClass(TotalOrderPartitioner.class);
+
+			System.out.println("summarize :: Sampling...");
+
+			InputSampler.<LongWritable,Range>writePartitionFile(
+				job,
+				new InputSampler.SplitSampler<LongWritable,Range>(
+					1 << 16, 10));
+
+			System.out.println("summarize :: Sampling complete.");
+
+			for (String lvl : levels)
+				MultipleOutputs.addNamedOutput(
+					job, "summary" + lvl, SummarizeOutputFormat.class,
+					NullWritable.class, Range.class);
+
+			job.submit();
+
 			if (!job.waitForCompletion(true))
-				ret = 1;
-		return ret;
+				return 4;
+		} catch (IOException e) {
+			System.err.printf("summarize :: Hadoop error: %s\n", e);
+			return 4;
+		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
+		  catch   (InterruptedException e) { throw new RuntimeException(e); }
+
+		if (out != null) try {
+			final Path outPath = new Path(out);
+
+			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
+			      FileSystem dstFS =    outPath.getFileSystem(conf);
+
+			if (out == outLoc)
+				dstFS = FileSystem.getLocal(conf).getRaw();
+
+			final String baseName =
+				conf.get(SummarizeOutputFormat.OUTPUT_NAME_PROP);
+
+			for (String lvl : levels) {
+				final String lvlName = baseName + "-summary" + lvl;
+
+				final OutputStream outs = dstFS.create(new Path(out, lvlName));
+
+				final FileStatus[] parts = srcFS.globStatus(new Path(
+					wrkDir, lvlName + "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
+
+				for (final FileStatus part : parts) {
+					final InputStream ins = srcFS.open(part.getPath());
+					IOUtils.copyBytes(ins, outs, conf, false);
+					ins.close();
+				}
+				for (final FileStatus part : parts)
+					srcFS.delete(part.getPath(), false);
+
+				// Don't forget the BGZF terminator.
+				outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+				outs.close();
+			}
+		} catch (IOException e) {
+			System.err.printf("summarize :: output combining failed: %s\n", e);
+			return 5;
+		}
+		return 0;
 	}
 
-	private void submitJob(
-			Path inputFile, Path outputDir, String[] summaryLvls)
-		throws ClassNotFoundException, IOException, InterruptedException
-	{
-		Configuration conf = new Configuration(getConf());
-
-		// Used by SummarizeOutputFormat to construct the output filename
-		conf.set(SummarizeOutputFormat.INPUT_FILENAME_PROP, inputFile.getName());
-
-		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, summaryLvls);
-
-		setSamplingConf(inputFile, conf);
-
-		// As far as I can tell there's no non-deprecated way of getting this
-		// info.
-		int maxReduceTasks =
-			new JobClient(new JobConf(conf)).getClusterStatus()
-			.getMaxReduceTasks();
-
-		conf.setInt("mapred.reduce.tasks", Math.max(1, maxReduceTasks * 9 / 10));
-
-		Job job = new Job(conf);
-
-		job.setJarByClass  (Summarize.class);
-		job.setMapperClass (Mapper.class);
-		job.setReducerClass(SummarizeReducer.class);
-
-		job.setMapOutputKeyClass  (LongWritable.class);
-		job.setMapOutputValueClass(Range.class);
-		job.setOutputKeyClass     (NullWritable.class);
-		job.setOutputValueClass   (RangeCount.class);
-
-		job.setInputFormatClass (SummarizeInputFormat.class);
-		job.setOutputFormatClass(SummarizeOutputFormat.class);
-
-		FileInputFormat .setInputPaths(job, inputFile);
-		FileOutputFormat.setOutputPath(job, outputDir);
-
-		job.setPartitionerClass(TotalOrderPartitioner.class);
-
-		sample(inputFile, job);
-
-		for (String s : summaryLvls)
-			MultipleOutputs.addNamedOutput(
-				job, "summary" + s, SummarizeOutputFormat.class,
-				NullWritable.class, Range.class);
-
-		job.submit();
-		jobs.add(job);
-	}
-
-	private void setSamplingConf(Path inputFile, Configuration conf)
+	private void setSamplingConf(
+			Path inputDir, String inputName, Configuration conf)
 		throws IOException
 	{
-		Path inputDir = inputFile.getParent();
 		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
 
-		String name = inputFile.getName();
-
-		Path partition = new Path(inputDir, "_partitioning" + name);
+		Path partition = new Path(inputDir, "_partitioning" + inputName);
 		TotalOrderPartitioner.setPartitionFile(conf, partition);
 
 		try {
 			URI partitionURI = new URI(
-				partition.toString() + "#_partitioning" + name);
+				partition.toString() + "#_partitioning" + inputName);
 			DistributedCache.addCacheFile(partitionURI, conf);
 			DistributedCache.createSymlink(conf);
-		} catch (URISyntaxException e) { assert false; }
-	}
-
-	private void sample(Path inputFile, Job job)
-		throws ClassNotFoundException, IOException, InterruptedException
-	{
-		InputSampler.Sampler<LongWritable,Range> sampler =
-			new InputSampler.SplitSampler<LongWritable,Range>(1 << 16, 10);
-
-		InputSampler.<LongWritable,Range>writePartitionFile(job, sampler);
+		} catch (URISyntaxException e) { throw new RuntimeException(e); }
 	}
 }
 
@@ -425,7 +476,8 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 final class SummarizeOutputFormat
 	extends TextOutputFormat<NullWritable,RangeCount>
 {
-	public static final String INPUT_FILENAME_PROP = "summarize.input.filename";
+	public static final String OUTPUT_NAME_PROP =
+		"hadoopbam.summarize.output.name";
 
 	@Override public RecordWriter<NullWritable,RangeCount> getRecordWriter(
 			TaskAttemptContext ctx)
@@ -457,20 +509,19 @@ final class SummarizeOutputFormat
 		//
 		// We can't use a filename we'd use later, because TextOutputFormat would
 		// throw later on, as the file would already exist.
-		String inputName = summaryName == null ? ".unused_" : "";
+		String baseName = summaryName == null ? ".unused_" : "";
 
-		inputName        += conf.get(INPUT_FILENAME_PROP);
+		baseName         += conf.get(OUTPUT_NAME_PROP);
 		String extension  = ext.isEmpty() ? ext : "." + ext;
 		int    part       = context.getTaskAttemptID().getTaskID().getId();
 		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
-			  inputName   + "-"
+			  baseName    + "-"
 			+ summaryName + "-"
 			+ String.format("%06d", part)
 			+ extension);
 	}
 
-	// Allow the output directory to exist, so that we can make multiple jobs
-	// that write into it.
+	// Allow the output directory to exist.
 	@Override public void checkOutputSpecs(JobContext job)
 		throws FileAlreadyExistsException, IOException
 	{}
