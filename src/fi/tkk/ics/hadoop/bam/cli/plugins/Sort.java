@@ -205,8 +205,8 @@ public final class Sort extends CLIPlugin {
 			final OutputStream outs = dstFS.append(outPath);
 
 			final FileStatus[] parts = srcFS.globStatus(new Path(
-				wrkDir + "/" + conf.get(SortOutputFormat.OUTPUT_NAME_PROP) +
-				"-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
+				wrkDir, conf.get(SortOutputFormat.OUTPUT_NAME_PROP) +
+				        "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
 
 			for (final FileStatus part : parts) {
 				final InputStream ins = srcFS.open(part.getPath());
