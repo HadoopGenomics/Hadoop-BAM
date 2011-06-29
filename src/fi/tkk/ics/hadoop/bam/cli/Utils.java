@@ -63,7 +63,10 @@ public final class Utils {
 				out.print(word);
 			} else {
 				pos = indent + word.length();
-				out.printf("\n%s", word);
+				out.print('\n');
+				for (int i = indent; i-- > 0;)
+					out.print(' ');
+				out.print(word);
 			}
 
 			if (wend < str.length() && str.charAt(wend) == '\n') {
@@ -74,6 +77,9 @@ public final class Utils {
 				do
 					out.print('\n');
 				while (++i < str.length() && str.charAt(i) == '\n');
+
+				for (i = indent; i-- > 0;)
+					out.print(' ');
 			} else
 				addSpace = true;
 		}
