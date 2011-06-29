@@ -80,7 +80,8 @@ public abstract class CLIPlugin extends Configured {
 				{
 					// Sort lexicographically, preferring the short form if it is
 					// available, with case-insensitivity when comparing short and
-					// long forms.
+					// long forms, and preferring lower case to upper in short
+					// forms.
 
 					final CmdLineParser.Option a = ap.fst,
 					                           b = bp.fst;
@@ -88,8 +89,18 @@ public abstract class CLIPlugin extends Configured {
 					final String as = a.shortForm(), al = a.longForm().substring(2),
 					             bs = b.shortForm(), bl = b.longForm().substring(2);
 
-					if (as != null && bs != null)
+					if (as != null && bs != null) {
+						assert as.length() == 1;
+						assert bs.length() == 1;
+
+						final char ac = as.charAt(0),
+						           bc = bs.charAt(0);
+
+						if (Character.toLowerCase(ac) == Character.toLowerCase(bc))
+							return Character.isUpperCase(ac) ? 1 : -1;
+
 						return as.compareTo(bs);
+					}
 
 					if (as == null) {
 						if (bs != null)
