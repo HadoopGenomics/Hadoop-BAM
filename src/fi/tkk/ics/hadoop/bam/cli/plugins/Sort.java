@@ -68,6 +68,7 @@ import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class Sort extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
@@ -128,6 +129,7 @@ public final class Sort extends CLIPlugin {
 		conf.set(SortOutputFormat.INPUT_PATH_PROP,  in);
 		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, inFile);
 
+		final Timer t = new Timer();
 		try {
 			setSamplingConf(inPath.getParent(), inFile, conf);
 
@@ -159,18 +161,27 @@ public final class Sort extends CLIPlugin {
 			job.setPartitionerClass(TotalOrderPartitioner.class);
 
 			System.out.println("sort :: Sampling...");
+			t.start();
 
 			InputSampler.<LongWritable,SAMRecordWritable>writePartitionFile(
 				job,
 				new InputSampler.IntervalSampler<LongWritable,SAMRecordWritable>(
 					0.01, 100));
 
-			System.out.println("sort :: Sampling complete.");
+			System.out.printf("sort :: Sampling complete in %d.%03d s.\n",
+			                  t.stopS(), t.fms());
 
 			job.submit();
 
+			System.out.println("sort :: Waiting for job completion...");
+			t.start();
+
 			if (!job.waitForCompletion(true))
 				return 4;
+
+			System.out.printf("sort :: Job complete in %d.%03d s.\n",
+			                  t.stopS(), t.fms());
+
 		} catch (IOException e) {
 			System.err.printf("sort :: Hadoop error: %s\n", e);
 			return 4;
@@ -178,6 +189,9 @@ public final class Sort extends CLIPlugin {
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
 		if (out != null) try {
+			System.out.println("sort :: Merging output...");
+			t.start();
+
 			final Path outPath = new Path(out);
 
 			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
@@ -208,11 +222,18 @@ public final class Sort extends CLIPlugin {
 				wrkDir, conf.get(SortOutputFormat.OUTPUT_NAME_PROP) +
 				        "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
 
+			{int i = 0;
+			final Timer t2 = new Timer();
 			for (final FileStatus part : parts) {
+				t2.start();
+
 				final InputStream ins = srcFS.open(part.getPath());
 				IOUtils.copyBytes(ins, outs, conf, false);
 				ins.close();
-			}
+
+				System.out.printf("sort :: Merged part %d in %d.%03d s.\n",
+				                  ++i, t2.stopS(), t2.fms());
+			}}
 			for (final FileStatus part : parts)
 				srcFS.delete(part.getPath(), false);
 
@@ -220,8 +241,12 @@ public final class Sort extends CLIPlugin {
 
 			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
 			outs.close();
+
+			System.out.printf("sort :: Merging complete in %d.%03d s.\n",
+			                  t.stopS(), t.fms());
+
 		} catch (IOException e) {
-			System.err.printf("sort :: output combining failed: %s\n", e);
+			System.err.printf("sort :: Output merging failed: %s\n", e);
 			return 5;
 		}
 		return 0;
