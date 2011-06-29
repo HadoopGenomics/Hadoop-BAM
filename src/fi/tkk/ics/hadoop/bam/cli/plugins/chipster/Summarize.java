@@ -72,6 +72,7 @@ import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class Summarize extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
@@ -157,6 +158,7 @@ public final class Summarize extends CLIPlugin {
 
 		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, levels);
 
+		final Timer t = new Timer();
 		try {
 			setSamplingConf(bamPath.getParent(), bamFile, conf);
 
@@ -189,13 +191,15 @@ public final class Summarize extends CLIPlugin {
 			job.setPartitionerClass(TotalOrderPartitioner.class);
 
 			System.out.println("summarize :: Sampling...");
+			t.start();
 
 			InputSampler.<LongWritable,Range>writePartitionFile(
 				job,
 				new InputSampler.SplitSampler<LongWritable,Range>(
 					1 << 16, 10));
 
-			System.out.println("summarize :: Sampling complete.");
+			System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
+			                  t.stopS(), t.fms());
 
 			for (String lvl : levels)
 				MultipleOutputs.addNamedOutput(
@@ -204,8 +208,15 @@ public final class Summarize extends CLIPlugin {
 
 			job.submit();
 
+			System.out.println("summarize :: Waiting for job completion...");
+			t.start();
+
 			if (!job.waitForCompletion(true))
 				return 4;
+
+			System.out.printf("summarize :: Job complete in %d.%03d s.\n",
+			                  t.stopS(), t.fms());
+
 		} catch (IOException e) {
 			System.err.printf("summarize :: Hadoop error: %s\n", e);
 			return 4;
@@ -213,6 +224,9 @@ public final class Summarize extends CLIPlugin {
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
 		if (out != null) try {
+			System.out.println("summarize :: Merging output...");
+			t.start();
+
 			final Path outPath = new Path(out);
 
 			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
@@ -224,7 +238,10 @@ public final class Summarize extends CLIPlugin {
 			final String baseName =
 				conf.get(SummarizeOutputFormat.OUTPUT_NAME_PROP);
 
+			final Timer tl = new Timer();
 			for (String lvl : levels) {
+				tl.start();
+
 				final String lvlName = baseName + "-summary" + lvl;
 
 				final OutputStream outs = dstFS.create(new Path(out, lvlName));
@@ -243,7 +260,13 @@ public final class Summarize extends CLIPlugin {
 				// Don't forget the BGZF terminator.
 				outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
 				outs.close();
+
+				System.out.printf("summarize :: Merged level %s in %d.%03d s.\n",
+				                  lvl, tl.stopS(), tl.fms());
 			}
+			System.out.printf("summarize :: Merging complete in %d.%03d s.\n",
+			                  t.stopS(), t.fms());
+
 		} catch (IOException e) {
 			System.err.printf("summarize :: output combining failed: %s\n", e);
 			return 5;
