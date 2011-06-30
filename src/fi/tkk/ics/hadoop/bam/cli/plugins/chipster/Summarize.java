@@ -359,6 +359,8 @@ public final class Summarize extends CLIPlugin {
 		final Configuration conf = getConf();
 		final Job[] jobs = new Job[levels.length];
 
+		boolean errors = false;
+
 		for (int i = 0; i < levels.length; ++i) {
 			final String l = levels[i];
 			try {
@@ -366,7 +368,10 @@ public final class Summarize extends CLIPlugin {
 			} catch (IOException e) {
 				System.err.printf(
 					"summarize :: Submitting sorting job %s failed: %s\n", l, e);
-				return false;
+				if (i == 0)
+					return false;
+				else
+					errors = true;
 			}
 		}
 
@@ -386,7 +391,8 @@ public final class Summarize extends CLIPlugin {
 			if (!success) {
 				System.err.printf(
 					"summarize :: Sorting job for level %s failed.\n", l);
-				return false;
+				errors = true;
+				continue;
 			}
 			System.out.printf(
 				"summarize :: Sorting job for level %s complete.\n", l);
@@ -399,6 +405,9 @@ public final class Summarize extends CLIPlugin {
 					"summarize :: Warning: couldn't delete '%s'\n", mergedTmp);
 			}
 		}
+		if (errors)
+			return false;
+
 		System.out.printf("summarize :: Jobs complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());
 		return true;
