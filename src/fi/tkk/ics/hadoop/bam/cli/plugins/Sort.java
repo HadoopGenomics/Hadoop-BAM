@@ -75,8 +75,9 @@ public final class Sort extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		outputFileOpt      = new StringOption('o', "output-file=PATH"),
-		outputLocalFileOpt = new StringOption('O', "output-local-file=PATH");
+		verboseOpt         = new BooleanOption('v', "verbose"),
+		outputFileOpt      = new  StringOption('o', "output-file=PATH"),
+		outputLocalFileOpt = new  StringOption('O', "output-local-file=PATH");
 
 	public Sort() {
 		super("sort", "BAM sorting", "1.0", "WORKDIR INPATH", optionDescs,
@@ -84,6 +85,8 @@ public final class Sort extends CLIPlugin {
 			"Hadoop. Output parts are placed in WORKDIR.");
 	}
 	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			verboseOpt, "tell the Hadoop job to be more verbose"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputFileOpt, "output a complete BAM file to the file PATH, "+
 			               "removing the parts from WORKDIR"));
@@ -117,6 +120,8 @@ public final class Sort extends CLIPlugin {
 			out = outAny;
 		} else
 			out = outLoc;
+
+		final boolean verbose = parser.getBoolean(verboseOpt);
 
 		final Path   inPath     = new Path(in),
 		             wrkDirPath = new Path(wrkDir);
@@ -176,7 +181,7 @@ public final class Sort extends CLIPlugin {
 			System.out.println("sort :: Waiting for job completion...");
 			t.start();
 
-			if (!job.waitForCompletion(true))
+			if (!job.waitForCompletion(verbose))
 				return 4;
 
 			System.out.printf("sort :: Job complete in %d.%03d s.\n",
