@@ -87,6 +87,7 @@ public final class Summarize extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
+		verboseOpt        = new BooleanOption('v', "verbose"),
 		sortOpt           = new BooleanOption('s', "sort"),
 		outputDirOpt      = new  StringOption('o', "output-dir=PATH"),
 		outputLocalDirOpt = new  StringOption('O', "output-local-dir=PATH");
@@ -104,6 +105,8 @@ public final class Summarize extends CLIPlugin {
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			verboseOpt, "tell Hadoop jobs to be more verbose"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputDirOpt, "output complete summary files to the file PATH, "+
 			              "removing the parts from WORKDIR"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
@@ -116,6 +119,7 @@ public final class Summarize extends CLIPlugin {
 	private final Timer    t = new Timer();
 	private       String[] levels;
 	private       Path     wrkDirPath;
+	private       boolean  verbose;
 
 	private int missingArg(String s) {
 		System.err.printf("summarize :: %s not given.\n", s);
@@ -139,6 +143,8 @@ public final class Summarize extends CLIPlugin {
 		             out;
 
 		final boolean sort = parser.getBoolean(sortOpt);
+
+		verbose = parser.getBoolean(verboseOpt);
 
 		if (outAny != null) {
 			if (outLoc != null) {
@@ -293,7 +299,7 @@ public final class Summarize extends CLIPlugin {
 		System.out.println("summarize :: Waiting for job completion...");
 		t.start();
 
-		if (!job.waitForCompletion(true)) {
+		if (!job.waitForCompletion(verbose)) {
 			System.err.println("summarize :: Job failed.");
 			return false;
 		}
@@ -370,7 +376,7 @@ public final class Summarize extends CLIPlugin {
 		// sooner.
 		for (int i = levels.length; i-- > 0;) {
 			boolean success;
-			try { success = jobs[i].waitForCompletion(true); }
+			try { success = jobs[i].waitForCompletion(verbose); }
 			catch (IOException e) { success = false; }
 
 			final String l = levels[i];
