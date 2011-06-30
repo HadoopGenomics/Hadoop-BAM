@@ -364,12 +364,14 @@ public final class Summarize extends CLIPlugin {
 			try {
 				jobs[i] = sortMerged(l, new Path(sortedTmpDir, getSummaryName(l)));
 			} catch (IOException e) {
-				System.err.printf("summarize :: Sorting %s failed: %s\n", l, e);
+				System.err.printf(
+					"summarize :: Submitting sorting job %s failed: %s\n", l, e);
 				return false;
 			}
 		}
 
-		System.out.println("summarize :: Waiting for jobs' completion...");
+		System.out.println(
+			"summarize :: Waiting for sorting jobs' completion...");
 		t.start();
 
 		// Wait for the smaller files first, as they're likely to complete
@@ -382,10 +384,12 @@ public final class Summarize extends CLIPlugin {
 			final String l = levels[i];
 
 			if (!success) {
-				System.err.printf("summarize :: Job for level %s failed.\n", l);
+				System.err.printf(
+					"summarize :: Sorting job for level %s failed.\n", l);
 				return false;
 			}
-			System.out.printf("summarize :: Job for level %s complete.\n", l);
+			System.out.printf(
+				"summarize :: Sorting job for level %s complete.\n", l);
 
 			final Path mergedTmp = FileInputFormat.getInputPaths(jobs[i])[0];
 			try {
