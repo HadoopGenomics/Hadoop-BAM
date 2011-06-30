@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,11 +36,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobClient;
@@ -53,11 +56,14 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.LineReader;
 
 import hadooptrunk.MultipleOutputs;
 
+import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
@@ -71,14 +77,17 @@ import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.util.BGZFSplitFileInputFormat;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
+import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 public final class Summarize extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
+		sortOpt           = new BooleanOption('s', "sort"),
 		outputDirOpt      = new  StringOption('o', "output-dir=PATH"),
 		outputLocalDirOpt = new  StringOption('O', "output-local-dir=PATH");
 
@@ -100,7 +109,13 @@ public final class Summarize extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputLocalDirOpt, "like -o, but treat PATH as referring to the "+
 			                   "local FS"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			sortOpt, "sort created summaries by position"));
 	}
+
+	private final Timer    t = new Timer();
+	private       String[] levels;
+	private       Path     wrkDirPath;
 
 	private int missingArg(String s) {
 		System.err.printf("summarize :: %s not given.\n", s);
@@ -123,6 +138,8 @@ public final class Summarize extends CLIPlugin {
 		             outLoc  = (String)parser.getOptionValue(outputLocalDirOpt),
 		             out;
 
+		final boolean sort = parser.getBoolean(sortOpt);
+
 		if (outAny != null) {
 			if (outLoc != null) {
 				System.err.println("summarize :: cannot accept both -o and -O!");
@@ -132,7 +149,7 @@ public final class Summarize extends CLIPlugin {
 		} else
 			out = outLoc;
 
-		final String[] levels = args.get(1).split(",");
+		levels = args.get(1).split(",");
 		for (String l : levels) {
 			try {
 				int lvl = Integer.parseInt(l);
@@ -147,148 +164,271 @@ public final class Summarize extends CLIPlugin {
 			return 3;
 		}
 
-		final Path   bamPath    = new Path(bam),
-		             wrkDirPath = new Path(wrkDir);
-		final String bamFile    = bamPath.getName();
-
-		final Configuration conf = getConf();
+		wrkDirPath = new Path(wrkDir);
+		final Path    bamPath    = new Path(bam);
+		final boolean forceLocal = out == outLoc;
 
 		// Used by SummarizeOutputFormat to name the output files.
-		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bamFile);
+		final Configuration conf = getConf();
+
+		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bamPath.getName());
 
 		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, levels);
 
-		final Timer t = new Timer();
 		try {
-			setSamplingConf(bamPath.getParent(), bamFile, conf);
+			try {
+				// As far as I can tell there's no non-deprecated way of getting
+				// this info. We can silence this warning but not the import.
+				@SuppressWarnings("deprecation")
+				final int maxReduceTasks =
+					new JobClient(new JobConf(conf)).getClusterStatus()
+					.getMaxReduceTasks();
 
-			// As far as I can tell there's no non-deprecated way of getting this
-			// info. We can silence this warning but not the import.
-			@SuppressWarnings("deprecation")
-			int maxReduceTasks =
-				new JobClient(new JobConf(conf)).getClusterStatus()
-				.getMaxReduceTasks();
+				conf.setInt("mapred.reduce.tasks",
+				            Math.max(1, maxReduceTasks*9/10));
 
-			conf.setInt("mapred.reduce.tasks", Math.max(1, maxReduceTasks*9/10));
-
-			final Job job = new Job(conf);
-
-			job.setJarByClass  (Summarize.class);
-			job.setMapperClass (Mapper.class);
-			job.setReducerClass(SummarizeReducer.class);
-
-			job.setMapOutputKeyClass  (LongWritable.class);
-			job.setMapOutputValueClass(Range.class);
-			job.setOutputKeyClass     (NullWritable.class);
-			job.setOutputValueClass   (RangeCount.class);
-
-			job.setInputFormatClass (SummarizeInputFormat.class);
-			job.setOutputFormatClass(SummarizeOutputFormat.class);
-
-			FileInputFormat .setInputPaths(job, bamPath);
-			FileOutputFormat.setOutputPath(job, wrkDirPath);
-
-			job.setPartitionerClass(TotalOrderPartitioner.class);
-
-			System.out.println("summarize :: Sampling...");
-			t.start();
-
-			InputSampler.<LongWritable,Range>writePartitionFile(
-				job,
-				new InputSampler.SplitSampler<LongWritable,Range>(
-					1 << 16, 10));
-
-			System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
-			                  t.stopS(), t.fms());
-
-			for (String lvl : levels)
-				MultipleOutputs.addNamedOutput(
-					job, "summary" + lvl, SummarizeOutputFormat.class,
-					NullWritable.class, Range.class);
-
-			job.submit();
-
-			System.out.println("summarize :: Waiting for job completion...");
-			t.start();
-
-			if (!job.waitForCompletion(true))
+				if (!runSummary(bamPath))
+					return 4;
+			} catch (IOException e) {
+				System.err.printf("summarize :: Summarizing failed: %s\n", e);
 				return 4;
+			}
 
-			System.out.printf("summarize :: Job complete in %d.%03d s.\n",
-			                  t.stopS(), t.fms());
+			Path sortedTmpDir = null;
+			try {
+				if (sort) {
+					sortedTmpDir = new Path(wrkDirPath, "sort.tmp");
+					mergeOutputs(sortedTmpDir, false);
 
-		} catch (IOException e) {
-			System.err.printf("summarize :: Hadoop error: %s\n", e);
-			return 4;
+				} else if (out != null)
+					mergeOutputs(new Path(out), forceLocal);
+
+			} catch (IOException e) {
+				System.err.printf("summarize :: Merging failed: %s\n", e);
+				return 5;
+			}
+
+			if (sort) {
+				if (!doSorting(sortedTmpDir))
+					return 6;
+
+				if (out != null) try {
+					mergeOutputs(new Path(out), forceLocal);
+				} catch (IOException e) {
+					System.err.printf(
+						"summarize :: Merging sorted output failed: %s\n", e);
+					return 7;
+				}
+			}
 		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
-		if (out != null) try {
-			System.out.println("summarize :: Merging output...");
-			t.start();
-
-			final Path outPath = new Path(out);
-
-			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
-			      FileSystem dstFS =    outPath.getFileSystem(conf);
-
-			if (out == outLoc)
-				dstFS = FileSystem.getLocal(conf).getRaw();
-
-			final String baseName =
-				conf.get(SummarizeOutputFormat.OUTPUT_NAME_PROP);
-
-			final Timer tl = new Timer();
-			for (String lvl : levels) {
-				tl.start();
-
-				final String lvlName = baseName + "-summary" + lvl;
-
-				final OutputStream outs = dstFS.create(new Path(out, lvlName));
-
-				final FileStatus[] parts = srcFS.globStatus(new Path(
-					wrkDir, lvlName + "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
-
-				for (final FileStatus part : parts) {
-					final InputStream ins = srcFS.open(part.getPath());
-					IOUtils.copyBytes(ins, outs, conf, false);
-					ins.close();
-				}
-				for (final FileStatus part : parts)
-					srcFS.delete(part.getPath(), false);
-
-				// Don't forget the BGZF terminator.
-				outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
-				outs.close();
-
-				System.out.printf("summarize :: Merged level %s in %d.%03d s.\n",
-				                  lvl, tl.stopS(), tl.fms());
-			}
-			System.out.printf("summarize :: Merging complete in %d.%03d s.\n",
-			                  t.stopS(), t.fms());
-
-		} catch (IOException e) {
-			System.err.printf("summarize :: output combining failed: %s\n", e);
-			return 5;
-		}
 		return 0;
 	}
 
-	private void setSamplingConf(
-			Path inputDir, String inputName, Configuration conf)
+	private String getSummaryName(String lvl) {
+		return getConf().get(SummarizeOutputFormat.OUTPUT_NAME_PROP)
+			+ "-summary" + lvl;
+	}
+
+	private void setSamplingConf(Path input, Configuration conf)
 		throws IOException
 	{
-		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
+		final Path inputDir =
+			input.getParent().makeQualified(input.getFileSystem(conf));
 
-		Path partition = new Path(inputDir, "_partitioning" + inputName);
+		final String inputName = input.getName();
+
+		final Path partition = new Path(inputDir, "_partitioning" + inputName);
 		TotalOrderPartitioner.setPartitionFile(conf, partition);
 
 		try {
-			URI partitionURI = new URI(
+			final URI partitionURI = new URI(
 				partition.toString() + "#_partitioning" + inputName);
 			DistributedCache.addCacheFile(partitionURI, conf);
 			DistributedCache.createSymlink(conf);
 		} catch (URISyntaxException e) { throw new RuntimeException(e); }
+	}
+
+	private boolean runSummary(Path bamPath)
+		throws IOException, ClassNotFoundException, InterruptedException
+	{
+		final Configuration conf = getConf();
+		setSamplingConf(bamPath, conf);
+		final Job job = new Job(conf);
+
+		job.setJarByClass  (Summarize.class);
+		job.setMapperClass (Mapper.class);
+		job.setReducerClass(SummarizeReducer.class);
+
+		job.setMapOutputKeyClass  (LongWritable.class);
+		job.setMapOutputValueClass(Range.class);
+		job.setOutputKeyClass     (NullWritable.class);
+		job.setOutputValueClass   (RangeCount.class);
+
+		job.setInputFormatClass (SummarizeInputFormat.class);
+		job.setOutputFormatClass(SummarizeOutputFormat.class);
+
+		FileInputFormat .setInputPaths(job, bamPath);
+		FileOutputFormat.setOutputPath(job, wrkDirPath);
+
+		job.setPartitionerClass(TotalOrderPartitioner.class);
+
+		System.out.println("summarize :: Sampling...");
+		t.start();
+
+		InputSampler.<LongWritable,Range>writePartitionFile(
+			job, new InputSampler.SplitSampler<LongWritable,Range>(1 << 16, 10));
+
+		System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
+			               t.stopS(), t.fms());
+
+		for (String lvl : levels)
+			MultipleOutputs.addNamedOutput(
+				job, "summary" + lvl, SummarizeOutputFormat.class,
+				NullWritable.class, Range.class);
+
+		job.submit();
+
+		System.out.println("summarize :: Waiting for job completion...");
+		t.start();
+
+		if (!job.waitForCompletion(true)) {
+			System.err.println("summarize :: Job failed.");
+			return false;
+		}
+
+		System.out.printf("summarize :: Job complete in %d.%03d s.\n",
+			               t.stopS(), t.fms());
+		return true;
+	}
+
+	private void mergeOutputs(Path outPath, boolean forceLocal)
+		throws IOException
+	{
+		System.out.println("summarize :: Merging output...");
+		t.start();
+
+		final Configuration conf = getConf();
+
+		final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
+			   FileSystem dstFS =    outPath.getFileSystem(conf);
+
+		if (forceLocal)
+			dstFS = FileSystem.getLocal(conf).getRaw();
+
+		final Timer tl = new Timer();
+		for (String lvl : levels) {
+			tl.start();
+
+			final String lvlName = getSummaryName(lvl);
+
+			final OutputStream outs = dstFS.create(new Path(outPath, lvlName));
+
+			final FileStatus[] parts = srcFS.globStatus(new Path(
+				wrkDirPath, lvlName + "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
+
+			for (final FileStatus part : parts) {
+				final InputStream ins = srcFS.open(part.getPath());
+				IOUtils.copyBytes(ins, outs, conf, false);
+				ins.close();
+			}
+			for (final FileStatus part : parts)
+				srcFS.delete(part.getPath(), false);
+
+			// Don't forget the BGZF terminator.
+			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+			outs.close();
+
+			System.out.printf("summarize :: Merged level %s in %d.%03d s.\n",
+				               lvl, tl.stopS(), tl.fms());
+		}
+		System.out.printf("summarize :: Merging complete in %d.%03d s.\n",
+			               t.stopS(), t.fms());
+	}
+
+	private boolean doSorting(Path sortedTmpDir)
+		throws ClassNotFoundException, InterruptedException
+	{
+		final Configuration conf = getConf();
+		final Job[] jobs = new Job[levels.length];
+
+		for (int i = 0; i < levels.length; ++i) {
+			final String l = levels[i];
+			try {
+				jobs[i] = sortMerged(l, new Path(sortedTmpDir, getSummaryName(l)));
+			} catch (IOException e) {
+				System.err.printf("summarize :: Sorting %s failed: %s\n", l, e);
+				return false;
+			}
+		}
+
+		System.out.println("summarize :: Waiting for jobs' completion...");
+		t.start();
+
+		// Wait for the smaller files first, as they're likely to complete
+		// sooner.
+		for (int i = levels.length; i-- > 0;) {
+			boolean success;
+			try { success = jobs[i].waitForCompletion(true); }
+			catch (IOException e) { success = false; }
+
+			final String l = levels[i];
+
+			if (!success) {
+				System.err.printf("summarize :: Job for level %s failed.\n", l);
+				return false;
+			}
+			System.out.printf("summarize :: Job for level %s complete.\n", l);
+
+			final Path mergedTmp = FileInputFormat.getInputPaths(jobs[i])[0];
+			try {
+				mergedTmp.getFileSystem(conf).delete(mergedTmp, false);
+			} catch (IOException e) {
+				System.err.printf(
+					"summarize :: Warning: couldn't delete '%s'\n", mergedTmp);
+			}
+		}
+		System.out.printf("summarize :: Jobs complete in %d.%03d s.\n",
+			               t.stopS(), t.fms());
+		return true;
+	}
+
+	private Job sortMerged(String lvl, Path mergedTmp)
+		throws IOException, ClassNotFoundException, InterruptedException
+	{
+		final Configuration conf = getConf();
+		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, mergedTmp.getName());
+		setSamplingConf(mergedTmp, conf);
+		final Job job = new Job(conf);
+
+		job.setJarByClass  (Summarize.class);
+		job.setMapperClass (Mapper.class);
+		job.setReducerClass(SortReducer.class);
+
+		job.setMapOutputKeyClass(LongWritable.class);
+		job.setOutputKeyClass   (NullWritable.class);
+		job.setOutputValueClass (Text.class);
+
+		job.setInputFormatClass (SortInputFormat.class);
+		job.setOutputFormatClass(SortOutputFormat.class);
+
+		FileInputFormat .setInputPaths(job, mergedTmp);
+		FileOutputFormat.setOutputPath(job, wrkDirPath);
+
+		job.setPartitionerClass(TotalOrderPartitioner.class);
+
+		System.out.printf(
+			"summarize :: Sampling for sorting level %s...\n", lvl);
+		t.start();
+
+		InputSampler.<LongWritable,Text>writePartitionFile(
+			job, new InputSampler.SplitSampler<LongWritable,Text>(1 << 16, 10));
+
+		System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
+			               t.stopS(), t.fms());
+		job.submit();
+		return job;
 	}
 }
 
@@ -566,4 +706,177 @@ final class SummaryGroup {
 		sumBeg = sumEnd = 0;
 		count  = 0;
 	}
+}
+
+///////////////// Sorting
+
+final class SortReducer extends Reducer<LongWritable,Text, NullWritable,Text> {
+	@Override protected void reduce(
+			LongWritable ignored, Iterable<Text> records,
+			Reducer<LongWritable,Text, NullWritable,Text>.Context ctx)
+		throws IOException, InterruptedException
+	{
+		for (Text rec : records)
+			ctx.write(NullWritable.get(), rec);
+	}
+}
+
+final class SortInputFormat
+	extends BGZFSplitFileInputFormat<LongWritable,Text>
+{
+	@Override public RecordReader<LongWritable,Text>
+		createRecordReader(InputSplit split, TaskAttemptContext ctx)
+			throws InterruptedException, IOException
+	{
+		final RecordReader<LongWritable,Text> rr = new SortRecordReader();
+		rr.initialize(split, ctx);
+		return rr;
+	}
+}
+final class SortRecordReader extends RecordReader<LongWritable,Text> {
+
+	private final LongWritable key = new LongWritable();
+
+	private final BlockCompressedLineRecordReader lineRR =
+		new BlockCompressedLineRecordReader();
+
+	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
+		throws IOException
+	{
+		lineRR.initialize(spl, ctx);
+	}
+	@Override public void close() throws IOException { lineRR.close(); }
+
+	@Override public float getProgress() { return lineRR.getProgress(); }
+
+	@Override public LongWritable getCurrentKey  () { return key; }
+	@Override public Text         getCurrentValue() {
+		return lineRR.getCurrentValue();
+	}
+
+	@Override public boolean nextKeyValue()
+		throws IOException, CharacterCodingException
+	{
+		if (!lineRR.nextKeyValue())
+			return false;
+
+		Text line = getCurrentValue();
+		int tabOne = line.find("\t");
+
+		int rid = Integer.parseInt(line.decode(line.getBytes(), 0, tabOne));
+
+		int tabTwo = line.find("\t", tabOne + 1);
+		int posBeg = tabOne + 1;
+		int posEnd = tabTwo - 1;
+
+		int pos = Integer.parseInt(
+			line.decode(line.getBytes(), posBeg, posEnd - posBeg + 1));
+
+		key.set((long)rid << 32 | pos);
+		return true;
+	}
+}
+// LineRecordReader has only private fields so we have to copy the whole thing
+// over. Make the key a NullWritable while we're at it, we don't need it
+// anyway.
+final class BlockCompressedLineRecordReader
+	extends RecordReader<NullWritable,Text>
+{
+	private long start;
+	private long pos;
+	private long end;
+	private BlockCompressedInputStream bin;
+	private LineReader in;
+	private int maxLineLength;
+	private Text value = new Text();
+
+	public void initialize(InputSplit genericSplit,
+			TaskAttemptContext context) throws IOException {
+		Configuration conf = context.getConfiguration();
+		this.maxLineLength = conf.getInt("mapred.linerecordreader.maxlength",
+			Integer.MAX_VALUE);
+
+		FileSplit split = (FileSplit) genericSplit;
+		start = (        split.getStart ()) << 16;
+		end   = (start + split.getLength()) << 16;
+
+		final Path file = split.getPath();
+		FileSystem fs = file.getFileSystem(conf);
+
+		bin =
+			new BlockCompressedInputStream(
+				new WrapSeekable<FSDataInputStream>(
+					fs.open(file), fs.getFileStatus(file).getLen(), file));
+
+		in = new LineReader(bin, conf);
+
+		if (start != 0) {
+			bin.seek(start);
+
+			// Skip first line
+			in.readLine(new Text());
+			start = bin.getFilePointer();
+		}
+		this.pos = start;
+	}
+
+	public boolean nextKeyValue() throws IOException {
+		while (pos <= end) {
+			int newSize = in.readLine(value, maxLineLength);
+			if (newSize == 0)
+				return false;
+
+			pos = bin.getFilePointer();
+			if (newSize < maxLineLength)
+				return true;
+		}
+		return false;
+	}
+
+	@Override public NullWritable getCurrentKey() { return NullWritable.get(); }
+	@Override public Text getCurrentValue() { return value; }
+
+	@Override public float getProgress() {
+		if (start == end) {
+			return 0.0f;
+		} else {
+			return Math.min(1.0f, (pos - start) / (float)(end - start));
+		}
+	}
+
+	@Override public void close() throws IOException { in.close(); }
+}
+
+final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
+	public static final String OUTPUT_NAME_PROP =
+		"hadoopbam.summarysort.output.name";
+
+	@Override public RecordWriter<NullWritable,Text> getRecordWriter(
+			TaskAttemptContext ctx)
+		throws IOException
+	{
+		Path path = getDefaultWorkFile(ctx, "");
+		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
+
+		return new TextOutputFormat.LineRecordWriter<NullWritable,Text>(
+			new DataOutputStream(
+				new BlockCompressedOutputStream(fs.create(path))));
+	}
+
+	@Override public Path getDefaultWorkFile(
+			TaskAttemptContext context, String ext)
+		throws IOException
+	{
+		String filename  = context.getConfiguration().get(OUTPUT_NAME_PROP);
+		String extension = ext.isEmpty() ? ext : "." + ext;
+		int    part      = context.getTaskAttemptID().getTaskID().getId();
+		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
+			filename + "-" + String.format("%06d", part) + extension);
+	}
+
+	// Allow the output directory to exist, so that we can make multiple jobs
+	// that write into it.
+	@Override public void checkOutputSpecs(JobContext job)
+		throws FileAlreadyExistsException, IOException
+	{}
 }
