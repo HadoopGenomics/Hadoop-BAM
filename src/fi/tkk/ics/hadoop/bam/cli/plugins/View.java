@@ -33,12 +33,11 @@ import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMIndex;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileSpan;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
@@ -66,7 +65,9 @@ public final class View extends CLIPlugin {
 			"Hadoop and an HDFS path if run within it."+
 			"\n\n"+
 			"Regions can be given as only reference sequence names or indices "+
-			"like 'chr1', or with position ranges as well like 'chr1:100-200'.");
+			"like 'chr1', or with position ranges as well like 'chr1:100-200'. "+
+			"These coordinates are 1-based, with 0 representing the start or "+
+			"end of the sequence.");
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
@@ -127,16 +128,9 @@ public final class View extends CLIPlugin {
 			writer.setSortOrder(header.getSortOrder(), true);
 			writer.setHeader(header);
 
-			if (!headerOnly) try {
-				final SAMRecordIterator it = reader.iterator();
-				while (it.hasNext())
-					writer.writeAlignment(it.next());
-			} catch (SAMFormatException e) {
-				writer.close();
-				System.err.printf("view :: Could not parse '%s': %s\n",
-				                  path, e.getMessage());
-				return 4;
-			}
+			if (!headerOnly)
+				if (!writeIterator(writer, reader.iterator(), path))
+					return 4;
 
 			writer.close();
 			return 0;
@@ -149,7 +143,6 @@ public final class View extends CLIPlugin {
 		}
 
 		reader.enableIndexCaching(true);
-		final BAMIndex index = reader.getIndex();
 
 		boolean errors = false;
 
@@ -173,60 +166,44 @@ public final class View extends CLIPlugin {
 					errors = true;
 					continue;
 				}
-			} else {
-				beg = 0;
-				end = SAMRecord.MAX_INSERT_SIZE;
-			}
+			} else
+				beg = end = 0;
 
-			int ref = header.getSequenceIndex(refStr);
-			if (ref == -1) try {
-				ref = Integer.parseInt(refStr);
-			} catch (NumberFormatException e) {
+			SAMSequenceRecord ref = header.getSequence(refStr);
+			if (ref == null) try {
+				ref = header.getSequence(Integer.parseInt(refStr));
+			} catch (NumberFormatException e) {}
+
+			if (ref == null) {
 				System.err.printf(
 					"view :: Not a valid sequence name or index: '%s'\n", refStr);
 				errors = true;
 				continue;
 			}
 
-			final SAMFileSpan span = index.getSpanOverlapping(ref, beg, end);
-			if (span == null)
-				continue;
+			final SAMRecordIterator it =
+				reader.queryOverlapping(ref.getSequenceName(), beg, end);
 
-			try {
-				final SAMRecordIterator it = reader.iterator(span);
-
-				// This containment checking seems like something that should be
-				// handled by the SAMFileSpan, but no such luck...
-				//
-				// Because they're in order, we can get by without doing the full
-				// two-comparison containment check on each record: loop until a
-				// record in range is found and then loop until one out of range is
-				// found.
-
-				while (it.hasNext()) {
-					final SAMRecord rec = it.next();
-					if (rec.getAlignmentEnd() >= beg) {
-						if (rec.getAlignmentStart() <= end)
-							writer.writeAlignment(rec);
-						break;
-					}
-				}
-				while (it.hasNext()) {
-					final SAMRecord rec = it.next();
-					if (rec.getAlignmentStart() <= end)
-						writer.writeAlignment(rec);
-					else
-						break;
-				}
-			} catch (SAMFormatException e) {
-				writer.close();
-				System.err.printf("view :: Could not parse '%s': %s\n",
-				                  path, e.getMessage());
+			if (!writeIterator(writer, it, path))
 				return 4;
-			}
 		}
 		writer.close();
 		return errors ? 5 : 0;
+	}
+
+	private boolean writeIterator(
+		SAMTextWriter writer, SAMRecordIterator it, String path)
+	{
+		try {
+			while (it.hasNext())
+				writer.writeAlignment(it.next());
+			return true;
+		} catch (SAMFormatException e) {
+			writer.close();
+			System.err.printf("view :: Could not parse '%s': %s\n",
+			                  path, e.getMessage());
+			return false;
+		}
 	}
 
 	private int parseCoordinate(String s) {
