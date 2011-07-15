@@ -457,9 +457,7 @@ public final class Summarize extends CLIPlugin {
 			"summarize :: Waiting for sorting jobs' completion...");
 		t.start();
 
-		// Wait for the smaller files first, as they're likely to complete
-		// sooner.
-		for (int i = jobs.length; i-- > 0;) {
+		for (int i = 0; i < jobs.length; ++i) {
 			boolean success;
 			try { success = jobs[i].waitForCompletion(verbose); }
 			catch (IOException e) { success = false; }
