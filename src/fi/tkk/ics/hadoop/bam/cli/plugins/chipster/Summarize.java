@@ -118,8 +118,9 @@ public final class Summarize extends CLIPlugin {
 
 	private final Timer    t = new Timer();
 	private       String[] levels;
-	private       Path     wrkDirPath;
+	private       Path     wrkDir, mainSortOutputDir;
 	private       boolean  verbose;
+	private       boolean  sorted = false;
 
 	private int missingArg(String s) {
 		System.err.printf("summarize :: %s not given.\n", s);
@@ -136,7 +137,7 @@ public final class Summarize extends CLIPlugin {
 			default: break;
 		}
 
-		final String wrkDir  = args.get(0),
+		final String wrkDirS = args.get(0),
 		             bam     = args.get(2),
 		             outAny  = (String)parser.getOptionValue(outputDirOpt),
 		             outLoc  = (String)parser.getOptionValue(outputLocalDirOpt),
@@ -170,7 +171,28 @@ public final class Summarize extends CLIPlugin {
 			return 3;
 		}
 
-		wrkDirPath = new Path(wrkDir);
+		// There's a lot of different Paths here, and it can get a bit confusing.
+		// Here's how it works:
+		//
+		// - out is the output dir for the final merged output, given with the -o
+		//   or -O parameters.
+		//
+		// - wrkDir is the user-given HDFS path where the outputs of the reducers
+		//   go.
+		//
+		// - mergedTmpDir (defined further below) is $wrkDir/sort.tmp: if we are
+		//   sorting, the summaries output in the first Hadoop job are merged in
+		//   there.
+		//
+		// - mainSortOutputDir is $wrkDir/sorted.tmp: getSortOutputDir() gives a
+		//   per-level/strand directory under it, which is used by sortMerged()
+		//   and mergeOne(). This is necessary because we cannot have multiple
+		//   Hadoop jobs outputting into the same directory at the same time, as
+		//   explained in the comment in sortMerged().
+
+		wrkDir            = new Path(wrkDirS);
+		mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
+
 		final Path    bamPath    = new Path(bam);
 		final boolean forceLocal = out == outLoc;
 
@@ -200,11 +222,11 @@ public final class Summarize extends CLIPlugin {
 				return 4;
 			}
 
-			Path sortedTmpDir = null;
+			Path mergedTmpDir = null;
 			try {
 				if (sort) {
-					sortedTmpDir = new Path(wrkDirPath, "sort.tmp");
-					mergeOutputs(sortedTmpDir, false);
+					mergedTmpDir = new Path(wrkDir, "sort.tmp");
+					mergeOutputs(mergedTmpDir, false);
 
 				} else if (out != null)
 					mergeOutputs(new Path(out), forceLocal);
@@ -215,16 +237,60 @@ public final class Summarize extends CLIPlugin {
 			}
 
 			if (sort) {
-				if (!doSorting(sortedTmpDir))
+				if (!doSorting(mergedTmpDir))
 					return 6;
 
+				tryDelete(mergedTmpDir);
+
 				if (out != null) try {
+					sorted = true;
 					mergeOutputs(new Path(out), forceLocal);
 				} catch (IOException e) {
 					System.err.printf(
 						"summarize :: Merging sorted output failed: %s\n", e);
 					return 7;
+				} else {
+					// Move the unmerged results out of the mainSortOutputDir
+					// subdirectories to wrkDir.
+
+					System.out.println(
+						"summarize :: Moving outputs from temporary directories...");
+					t.start();
+
+					try {
+						final FileSystem fs = wrkDir.getFileSystem(conf);
+						for (String lvl : levels) {
+							final FileStatus[] parts;
+
+							try {
+								parts = fs.globStatus(new Path(
+									new Path(mainSortOutputDir, lvl),
+									"*-[0-9][0-9][0-9][0-9][0-9][0-9]"));
+							} catch (IOException e) {
+								System.err.printf(
+									"summarize :: Couldn't move level %s results: %s",
+									lvl, e);
+								continue;
+							}
+
+							for (FileStatus part : parts) {
+								final Path path = part.getPath();
+								try {
+									fs.rename(path, new Path(wrkDir, path.getName()));
+								} catch (IOException e) {
+									System.err.printf(
+										"summarize :: Couldn't move '%s': %s", path, e);
+								}
+							}
+						}
+					} catch (IOException e) {
+						System.err.printf(
+							"summarize :: Moving results failed: %s", e);
+					}
+					System.out.printf("summarize :: Moved in %d.%03d s.\n",
+			                        t.stopS(), t.fms());
 				}
+				tryDelete(mainSortOutputDir);
 			}
 		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
@@ -276,7 +342,7 @@ public final class Summarize extends CLIPlugin {
 		job.setOutputFormatClass(SummarizeOutputFormat.class);
 
 		FileInputFormat .setInputPaths(job, bamPath);
-		FileOutputFormat.setOutputPath(job, wrkDirPath);
+		FileOutputFormat.setOutputPath(job, wrkDir);
 
 		job.setPartitionerClass(TotalOrderPartitioner.class);
 
@@ -317,8 +383,8 @@ public final class Summarize extends CLIPlugin {
 
 		final Configuration conf = getConf();
 
-		final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
-			   FileSystem dstFS =    outPath.getFileSystem(conf);
+		final FileSystem srcFS =  wrkDir.getFileSystem(conf);
+		      FileSystem dstFS = outPath.getFileSystem(conf);
 
 		if (forceLocal)
 			dstFS = FileSystem.getLocal(conf).getRaw();
@@ -332,7 +398,8 @@ public final class Summarize extends CLIPlugin {
 			final OutputStream outs = dstFS.create(new Path(outPath, lvlName));
 
 			final FileStatus[] parts = srcFS.globStatus(new Path(
-				wrkDirPath, lvlName + "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
+				sorted ? getSortOutputDir(level) : wrkDir,
+				lvlName + "-[0-9][0-9][0-9][0-9][0-9][0-9]"));
 
 			for (final FileStatus part : parts) {
 				final InputStream ins = srcFS.open(part.getPath());
@@ -353,7 +420,7 @@ public final class Summarize extends CLIPlugin {
 			               t.stopS(), t.fms());
 	}
 
-	private boolean doSorting(Path sortedTmpDir)
+	private boolean doSorting(Path inputDir)
 		throws ClassNotFoundException, InterruptedException
 	{
 		final Configuration conf = getConf();
@@ -362,12 +429,12 @@ public final class Summarize extends CLIPlugin {
 		boolean errors = false;
 
 		for (int i = 0; i < levels.length; ++i) {
-			final String l = levels[i];
+			final String lvl = levels[i];
 			try {
-				jobs[i] = sortMerged(l, new Path(sortedTmpDir, getSummaryName(l)));
+				jobs[i] = sortMerged(lvl, new Path(inputDir, getSummaryName(lvl)));
 			} catch (IOException e) {
 				System.err.printf(
-					"summarize :: Submitting sorting job %s failed: %s\n", l, e);
+					"summarize :: Submitting sorting job %s failed: %s\n", lvl, e);
 				if (i == 0)
 					return false;
 				else
@@ -396,14 +463,6 @@ public final class Summarize extends CLIPlugin {
 			}
 			System.out.printf(
 				"summarize :: Sorting job for level %s complete.\n", l);
-
-			final Path mergedTmp = FileInputFormat.getInputPaths(jobs[i])[0];
-			try {
-				mergedTmp.getFileSystem(conf).delete(mergedTmp, false);
-			} catch (IOException e) {
-				System.err.printf(
-					"summarize :: Warning: couldn't delete '%s'\n", mergedTmp);
-			}
 		}
 		if (errors)
 			return false;
@@ -432,8 +491,15 @@ public final class Summarize extends CLIPlugin {
 		job.setInputFormatClass (SortInputFormat.class);
 		job.setOutputFormatClass(SortOutputFormat.class);
 
+		// Each job has to run in a separate directory because
+		// FileOutputCommitter deletes the _temporary within whenever a job
+		// completes - that is, not only the subdirectories in _temporary that
+		// are specific to that job, but all of _temporary.
+		//
+		// It's easier to just give different temporary output directories here
+		// than to override that behaviour.
 		FileInputFormat .setInputPaths(job, mergedTmp);
-		FileOutputFormat.setOutputPath(job, wrkDirPath);
+		FileOutputFormat.setOutputPath(job, getSortOutputDir(lvl));
 
 		job.setPartitionerClass(TotalOrderPartitioner.class);
 
@@ -448,6 +514,19 @@ public final class Summarize extends CLIPlugin {
 			               t.stopS(), t.fms());
 		job.submit();
 		return job;
+	}
+
+	private Path getSortOutputDir(String level) {
+		return new Path(mainSortOutputDir, level);
+	}
+
+	private void tryDelete(Path path) {
+		try {
+			path.getFileSystem(getConf()).delete(path, true);
+		} catch (IOException e) {
+			System.err.printf(
+				"summarize :: Warning: couldn't delete '%s': %s\n", path, e);
+		}
 	}
 }
 
@@ -892,10 +971,4 @@ final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
 			filename + "-" + String.format("%06d", part) + extension);
 	}
-
-	// Allow the output directory to exist, so that we can make multiple jobs
-	// that write into it.
-	@Override public void checkOutputSpecs(JobContext job)
-		throws FileAlreadyExistsException, IOException
-	{}
 }
