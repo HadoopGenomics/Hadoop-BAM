@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
@@ -264,7 +265,7 @@ public final class Summarize extends CLIPlugin {
 
 							try {
 								parts = fs.globStatus(new Path(
-									new Path(mainSortOutputDir, lvl),
+									new Path(mainSortOutputDir, lvl + "[fr]"),
 									"*-[0-9][0-9][0-9][0-9][0-9][0-9]"));
 							} catch (IOException e) {
 								System.err.printf(
@@ -296,11 +297,6 @@ public final class Summarize extends CLIPlugin {
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
 		return 0;
-	}
-
-	private String getSummaryName(String lvl) {
-		return getConf().get(SummarizeOutputFormat.OUTPUT_NAME_PROP)
-			+ "-summary" + lvl;
 	}
 
 	private void setSamplingConf(Path input, Configuration conf)
@@ -355,10 +351,14 @@ public final class Summarize extends CLIPlugin {
 		System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());
 
-		for (String lvl : levels)
+		for (String lvl : levels) {
 			MultipleOutputs.addNamedOutput(
-				job, "summary" + lvl, SummarizeOutputFormat.class,
+				job, getOutputName(lvl, false), SummarizeOutputFormat.class,
 				NullWritable.class, Range.class);
+			MultipleOutputs.addNamedOutput(
+				job, getOutputName(lvl,  true), SummarizeOutputFormat.class,
+				NullWritable.class, Range.class);
+		}
 
 		job.submit();
 
@@ -390,48 +390,59 @@ public final class Summarize extends CLIPlugin {
 			dstFS = FileSystem.getLocal(conf).getRaw();
 
 		final Timer tl = new Timer();
-		for (String lvl : levels) {
-			tl.start();
-
-			final String lvlName = getSummaryName(lvl);
-
-			final OutputStream outs = dstFS.create(new Path(outPath, lvlName));
-
-			final FileStatus[] parts = srcFS.globStatus(new Path(
-				sorted ? getSortOutputDir(level) : wrkDir,
-				lvlName + "-[0-9][0-9][0-9][0-9][0-9][0-9]"));
-
-			for (final FileStatus part : parts) {
-				final InputStream ins = srcFS.open(part.getPath());
-				IOUtils.copyBytes(ins, outs, conf, false);
-				ins.close();
-			}
-			for (final FileStatus part : parts)
-				srcFS.delete(part.getPath(), false);
-
-			// Don't forget the BGZF terminator.
-			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
-			outs.close();
-
-			System.out.printf("summarize :: Merged level %s in %d.%03d s.\n",
-				               lvl, tl.stopS(), tl.fms());
+		for (String l : levels) {
+			mergeOne(l, 'f', getSummaryName(l, false), outPath, srcFS, dstFS, tl);
+			mergeOne(l, 'r', getSummaryName(l,  true), outPath, srcFS, dstFS, tl);
 		}
 		System.out.printf("summarize :: Merging complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());
+	}
+	private void mergeOne(
+			String level, char strand,
+			String filename, Path outPath,
+			FileSystem srcFS, FileSystem dstFS, Timer to)
+		throws IOException
+	{
+		to.start();
+		final OutputStream outs = dstFS.create(new Path(outPath, filename));
+
+		final FileStatus[] parts = srcFS.globStatus(new Path(
+			sorted ? getSortOutputDir(level, strand) : wrkDir,
+			filename + "-[0-9][0-9][0-9][0-9][0-9][0-9]"));
+
+		for (final FileStatus part : parts) {
+			final InputStream ins = srcFS.open(part.getPath());
+			IOUtils.copyBytes(ins, outs, getConf(), false);
+			ins.close();
+		}
+		for (final FileStatus part : parts)
+			srcFS.delete(part.getPath(), false);
+
+		// Don't forget the BGZF terminator.
+		outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+		outs.close();
+
+		System.out.printf("summarize :: Merged %s%c in %d.%03d s.\n",
+				            level, strand, to.stopS(), to.fms());
 	}
 
 	private boolean doSorting(Path inputDir)
 		throws ClassNotFoundException, InterruptedException
 	{
 		final Configuration conf = getConf();
-		final Job[] jobs = new Job[levels.length];
+		final Job[] jobs = new Job[2*levels.length];
 
 		boolean errors = false;
 
 		for (int i = 0; i < levels.length; ++i) {
 			final String lvl = levels[i];
 			try {
-				jobs[i] = sortMerged(lvl, new Path(inputDir, getSummaryName(lvl)));
+				jobs[2*i] =
+					sortMerged(lvl, 'f',
+					           new Path(inputDir, getSummaryName(lvl, false)));
+				jobs[2*i + 1] =
+					sortMerged(lvl, 'r',
+					           new Path(inputDir, getSummaryName(lvl,  true)));
 			} catch (IOException e) {
 				System.err.printf(
 					"summarize :: Submitting sorting job %s failed: %s\n", lvl, e);
@@ -448,21 +459,22 @@ public final class Summarize extends CLIPlugin {
 
 		// Wait for the smaller files first, as they're likely to complete
 		// sooner.
-		for (int i = levels.length; i-- > 0;) {
+		for (int i = jobs.length; i-- > 0;) {
 			boolean success;
 			try { success = jobs[i].waitForCompletion(verbose); }
 			catch (IOException e) { success = false; }
 
-			final String l = levels[i];
+			final String l = levels[i/2];
+			final char   s = i%2 == 0 ? 'f' : 'r';
 
 			if (!success) {
 				System.err.printf(
-					"summarize :: Sorting job for level %s failed.\n", l);
+					"summarize :: Sorting job for %s%c failed.\n", l, s);
 				errors = true;
 				continue;
 			}
 			System.out.printf(
-				"summarize :: Sorting job for level %s complete.\n", l);
+				"summarize :: Sorting job for %s%c complete.\n", l, s);
 		}
 		if (errors)
 			return false;
@@ -472,7 +484,7 @@ public final class Summarize extends CLIPlugin {
 		return true;
 	}
 
-	private Job sortMerged(String lvl, Path mergedTmp)
+	private Job sortMerged(String lvl, char strand, Path mergedTmp)
 		throws IOException, ClassNotFoundException, InterruptedException
 	{
 		final Configuration conf = getConf();
@@ -499,12 +511,12 @@ public final class Summarize extends CLIPlugin {
 		// It's easier to just give different temporary output directories here
 		// than to override that behaviour.
 		FileInputFormat .setInputPaths(job, mergedTmp);
-		FileOutputFormat.setOutputPath(job, getSortOutputDir(lvl));
+		FileOutputFormat.setOutputPath(job, getSortOutputDir(lvl, strand));
 
 		job.setPartitionerClass(TotalOrderPartitioner.class);
 
 		System.out.printf(
-			"summarize :: Sampling for sorting level %s...\n", lvl);
+			"summarize :: Sampling for sorting %s%c...\n", lvl, strand);
 		t.start();
 
 		InputSampler.<LongWritable,Text>writePartitionFile(
@@ -516,8 +528,15 @@ public final class Summarize extends CLIPlugin {
 		return job;
 	}
 
-	private Path getSortOutputDir(String level) {
-		return new Path(mainSortOutputDir, level);
+	private String getSummaryName(String lvl, boolean reverseStrand) {
+		return getConf().get(SummarizeOutputFormat.OUTPUT_NAME_PROP)
+			+ "-" + getOutputName(lvl, reverseStrand);
+	}
+	/*package*/ static String getOutputName(String lvl, boolean reverseStrand) {
+		return "summary" + lvl + (reverseStrand ? 'r' : 'f');
+	}
+	private Path getSortOutputDir(String level, char strand) {
+		return new Path(mainSortOutputDir, level + strand);
 	}
 
 	private void tryDelete(Path path) {
@@ -537,8 +556,10 @@ final class SummarizeReducer
 
 	private MultipleOutputs<NullWritable,RangeCount> mos;
 
-	private final List<SummaryGroup> summaryGroups =
-		new ArrayList<SummaryGroup>();
+	// For the reverse and forward strands, respectively.
+	private final List<SummaryGroup>
+		summaryGroupsR = new ArrayList<SummaryGroup>(),
+		summaryGroupsF = new ArrayList<SummaryGroup>();
 
 	private final RangeCount summary = new RangeCount();
 
@@ -553,8 +574,11 @@ final class SummarizeReducer
 		mos = new MultipleOutputs<NullWritable,RangeCount>(ctx);
 
 		for (String s : ctx.getConfiguration().getStrings(SUMMARY_LEVELS_PROP)) {
-			int level = Integer.parseInt(s);
-			summaryGroups.add(new SummaryGroup(level, "summary" + level));
+			int lvl = Integer.parseInt(s);
+			summaryGroupsR.add(
+				new SummaryGroup(lvl, Summarize.getOutputName(s, false)));
+			summaryGroupsF.add(
+				new SummaryGroup(lvl, Summarize.getOutputName(s,  true)));
 		}
 	}
 
@@ -576,6 +600,9 @@ final class SummarizeReducer
 			final int beg = range.beg.get(),
 			          end = range.end.get();
 
+			final List<SummaryGroup> summaryGroups =
+				range.reverseStrand.get() ? summaryGroupsR : summaryGroupsF;
+
 			for (SummaryGroup group : summaryGroups) {
 				group.sumBeg += beg;
 				group.sumEnd += end;
@@ -596,7 +623,10 @@ final class SummarizeReducer
 	}
 
 	private void doAllSummaries() throws IOException, InterruptedException {
-		for (SummaryGroup group : summaryGroups)
+		for (SummaryGroup group : summaryGroupsR)
+			if (group.count > 0)
+				doSummary(group);
+		for (SummaryGroup group : summaryGroupsF)
 			if (group.count > 0)
 				doSummary(group);
 	}
@@ -604,6 +634,8 @@ final class SummarizeReducer
 	private void doSummary(SummaryGroup group)
 		throws IOException, InterruptedException
 	{
+		// The reverseStrand flag is already represented in which group is passed
+		// to this method, so there's no need to set it in summary.range.
 		summary.rid.      set(currentReferenceID);
 		summary.range.beg.set((int)(group.sumBeg / group.count));
 		summary.range.end.set((int)(group.sumEnd / group.count));
@@ -615,12 +647,14 @@ final class SummarizeReducer
 }
 
 final class Range implements Writable {
-	public final IntWritable beg = new IntWritable();
-	public final IntWritable end = new IntWritable();
+	public final IntWritable     beg           = new IntWritable();
+	public final IntWritable     end           = new IntWritable();
+	public final BooleanWritable reverseStrand = new BooleanWritable();
 
 	public void setFrom(SAMRecord record) {
 		beg.set(record.getAlignmentStart());
 		end.set(record.getAlignmentEnd());
+		reverseStrand.set(record.getReadNegativeStrandFlag());
 	}
 
 	public int getCentreOfMass() {
@@ -628,12 +662,14 @@ final class Range implements Writable {
 	}
 
 	@Override public void write(DataOutput out) throws IOException {
-		beg.write(out);
-		end.write(out);
+		beg.          write(out);
+		end.          write(out);
+		reverseStrand.write(out);
 	}
 	@Override public void readFields(DataInput in) throws IOException {
-		beg.readFields(in);
-		end.readFields(in);
+		beg.          readFields(in);
+		end.          readFields(in);
+		reverseStrand.readFields(in);
 	}
 }
 
