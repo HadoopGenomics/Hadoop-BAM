@@ -13,6 +13,7 @@
 			classpath="."
 			encoding="UTF-8"
 			debug="on"
+			includeantruntime="yes"
 		>
 			<include name="**/*.java"/>
 			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
