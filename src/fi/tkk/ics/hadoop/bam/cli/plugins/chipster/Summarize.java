@@ -793,7 +793,7 @@ final class SummarizeOutputFormat
 		Configuration conf = context.getConfiguration();
 
 		// From MultipleOutputs. If we had a later version of FileOutputFormat as
-		// well, we'd use getOutputName().
+		// well, we'd use super.getOutputName().
 		String summaryName = conf.get("mapreduce.output.basename");
 
 		// A RecordWriter is created as soon as a reduce task is started, even
