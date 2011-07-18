@@ -27,7 +27,6 @@
  */
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
-import net.sf.samtools.LinearIndex;
 import net.sf.samtools.SAMException;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.SeekableStream;

@@ -29,8 +29,6 @@ package fi.tkk.ics.hadoop.bam.custom.samtools;
 
 import java.util.*;
 
-import net.sf.samtools.LinearIndex;
-
 /**
  * Represents the contents of a bam index file for one reference.
  * A BAM index (.bai) file contains information for all references in the bam file.

@@ -29,6 +29,7 @@
 			<service type="fi.tkk.ics.hadoop.bam.cli.CLIPlugin">
 				<provider classname="fi.tkk.ics.hadoop.bam.cli.plugins.View"/>
 				<provider classname="fi.tkk.ics.hadoop.bam.cli.plugins.Sort"/>
+				<provider classname="fi.tkk.ics.hadoop.bam.cli.plugins.Index"/>
 			</service>
 		</jar>
 	</target>
