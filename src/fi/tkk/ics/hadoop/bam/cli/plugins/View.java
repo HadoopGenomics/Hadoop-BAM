@@ -109,9 +109,7 @@ public final class View extends CLIPlugin {
 			return 4;
 		}
 
-		// We'd rather get an exception than have Picard barf all the errors it
-		// finds without us knowing about it.
-		reader.setValidationStringency(ValidationStringency.STRICT);
+		reader.setValidationStringency(ValidationStringency.SILENT);
 
 		final SAMTextWriter writer = new SAMTextWriter(System.out);
 		final SAMFileHeader header;
