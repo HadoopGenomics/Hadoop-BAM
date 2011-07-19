@@ -26,9 +26,6 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +33,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -57,14 +53,11 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.util.LineReader;
 
 import hadooptrunk.MultipleOutputs;
 
-import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
@@ -79,10 +72,8 @@ import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.util.BGZFSplitFileInputFormat;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 public final class Summarize extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
@@ -397,12 +388,25 @@ public final class Summarize extends CLIPlugin {
 		for (int i = 0; i < levels.length; ++i) {
 			final String lvl = levels[i];
 			try {
-				jobs[2*i] =
-					sortMerged(lvl, 'f',
-					           new Path(inputDir, getSummaryName(lvl, false)));
-				jobs[2*i + 1] =
-					sortMerged(lvl, 'r',
-					           new Path(inputDir, getSummaryName(lvl,  true)));
+				// Each job has to run in a separate directory because
+				// FileOutputCommitter deletes the _temporary within whenever a job
+				// completes - that is, not only the subdirectories in _temporary
+				// that are specific to that job, but all of _temporary.
+				//
+				// It's easier to just give different temporary output directories
+				// here than to override that behaviour.
+				jobs[2*i] = SummarySort.sortOne(
+					conf,
+					new Path(inputDir, getSummaryName(lvl, false)),
+					getSortOutputDir(lvl, 'f'),
+					"summarize", " for sorting " + lvl + 'f');
+
+				jobs[2*i + 1] = SummarySort.sortOne(
+					conf,
+					new Path(inputDir, getSummaryName(lvl,  true)),
+					getSortOutputDir(lvl, 'r'),
+					"summarize", " for sorting " + lvl + 'r');
+
 			} catch (IOException e) {
 				System.err.printf(
 					"summarize :: Submitting sorting job %s failed: %s\n", lvl, e);
@@ -440,50 +444,6 @@ public final class Summarize extends CLIPlugin {
 		System.out.printf("summarize :: Jobs complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());
 		return true;
-	}
-
-	private Job sortMerged(String lvl, char strand, Path mergedTmp)
-		throws IOException, ClassNotFoundException, InterruptedException
-	{
-		final Configuration conf = getConf();
-		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, mergedTmp.getName());
-		setSamplingConf(mergedTmp, conf);
-		final Job job = new Job(conf);
-
-		job.setJarByClass  (Summarize.class);
-		job.setMapperClass (Mapper.class);
-		job.setReducerClass(SortReducer.class);
-
-		job.setMapOutputKeyClass(LongWritable.class);
-		job.setOutputKeyClass   (NullWritable.class);
-		job.setOutputValueClass (Text.class);
-
-		job.setInputFormatClass (SortInputFormat.class);
-		job.setOutputFormatClass(SortOutputFormat.class);
-
-		// Each job has to run in a separate directory because
-		// FileOutputCommitter deletes the _temporary within whenever a job
-		// completes - that is, not only the subdirectories in _temporary that
-		// are specific to that job, but all of _temporary.
-		//
-		// It's easier to just give different temporary output directories here
-		// than to override that behaviour.
-		FileInputFormat .setInputPaths(job, mergedTmp);
-		FileOutputFormat.setOutputPath(job, getSortOutputDir(lvl, strand));
-
-		job.setPartitionerClass(TotalOrderPartitioner.class);
-
-		System.out.printf(
-			"summarize :: Sampling for sorting %s%c...\n", lvl, strand);
-		t.start();
-
-		InputSampler.<LongWritable,Text>writePartitionFile(
-			job, new InputSampler.SplitSampler<LongWritable,Text>(1 << 16, 10));
-
-		System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
-			               t.stopS(), t.fms());
-		job.submit();
-		return job;
 	}
 
 	private String getSummaryName(String lvl, boolean reverseStrand) {
@@ -797,172 +757,5 @@ final class SummaryGroup {
 	public void reset() {
 		sumBeg = sumEnd = 0;
 		count  = 0;
-	}
-}
-
-///////////////// Sorting
-
-final class SortReducer extends Reducer<LongWritable,Text, NullWritable,Text> {
-	@Override protected void reduce(
-			LongWritable ignored, Iterable<Text> records,
-			Reducer<LongWritable,Text, NullWritable,Text>.Context ctx)
-		throws IOException, InterruptedException
-	{
-		for (Text rec : records)
-			ctx.write(NullWritable.get(), rec);
-	}
-}
-
-final class SortInputFormat
-	extends BGZFSplitFileInputFormat<LongWritable,Text>
-{
-	@Override public RecordReader<LongWritable,Text>
-		createRecordReader(InputSplit split, TaskAttemptContext ctx)
-			throws InterruptedException, IOException
-	{
-		final RecordReader<LongWritable,Text> rr = new SortRecordReader();
-		rr.initialize(split, ctx);
-		return rr;
-	}
-}
-final class SortRecordReader extends RecordReader<LongWritable,Text> {
-
-	private final LongWritable key = new LongWritable();
-
-	private final BlockCompressedLineRecordReader lineRR =
-		new BlockCompressedLineRecordReader();
-
-	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
-		throws IOException
-	{
-		lineRR.initialize(spl, ctx);
-	}
-	@Override public void close() throws IOException { lineRR.close(); }
-
-	@Override public float getProgress() { return lineRR.getProgress(); }
-
-	@Override public LongWritable getCurrentKey  () { return key; }
-	@Override public Text         getCurrentValue() {
-		return lineRR.getCurrentValue();
-	}
-
-	@Override public boolean nextKeyValue()
-		throws IOException, CharacterCodingException
-	{
-		if (!lineRR.nextKeyValue())
-			return false;
-
-		Text line = getCurrentValue();
-		int tabOne = line.find("\t");
-
-		int rid = Integer.parseInt(line.decode(line.getBytes(), 0, tabOne));
-
-		int tabTwo = line.find("\t", tabOne + 1);
-		int posBeg = tabOne + 1;
-		int posEnd = tabTwo - 1;
-
-		int pos = Integer.parseInt(
-			line.decode(line.getBytes(), posBeg, posEnd - posBeg + 1));
-
-		key.set((long)rid << 32 | pos);
-		return true;
-	}
-}
-// LineRecordReader has only private fields so we have to copy the whole thing
-// over. Make the key a NullWritable while we're at it, we don't need it
-// anyway.
-final class BlockCompressedLineRecordReader
-	extends RecordReader<NullWritable,Text>
-{
-	private long start;
-	private long pos;
-	private long end;
-	private BlockCompressedInputStream bin;
-	private LineReader in;
-	private int maxLineLength;
-	private Text value = new Text();
-
-	public void initialize(InputSplit genericSplit,
-			TaskAttemptContext context) throws IOException {
-		Configuration conf = context.getConfiguration();
-		this.maxLineLength = conf.getInt("mapred.linerecordreader.maxlength",
-			Integer.MAX_VALUE);
-
-		FileSplit split = (FileSplit) genericSplit;
-		start = (        split.getStart ()) << 16;
-		end   = (start + split.getLength()) << 16;
-
-		final Path file = split.getPath();
-		FileSystem fs = file.getFileSystem(conf);
-
-		bin =
-			new BlockCompressedInputStream(
-				new WrapSeekable<FSDataInputStream>(
-					fs.open(file), fs.getFileStatus(file).getLen(), file));
-
-		in = new LineReader(bin, conf);
-
-		if (start != 0) {
-			bin.seek(start);
-
-			// Skip first line
-			in.readLine(new Text());
-			start = bin.getFilePointer();
-		}
-		this.pos = start;
-	}
-
-	public boolean nextKeyValue() throws IOException {
-		while (pos <= end) {
-			int newSize = in.readLine(value, maxLineLength);
-			if (newSize == 0)
-				return false;
-
-			pos = bin.getFilePointer();
-			if (newSize < maxLineLength)
-				return true;
-		}
-		return false;
-	}
-
-	@Override public NullWritable getCurrentKey() { return NullWritable.get(); }
-	@Override public Text getCurrentValue() { return value; }
-
-	@Override public float getProgress() {
-		if (start == end) {
-			return 0.0f;
-		} else {
-			return Math.min(1.0f, (pos - start) / (float)(end - start));
-		}
-	}
-
-	@Override public void close() throws IOException { in.close(); }
-}
-
-final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
-	public static final String OUTPUT_NAME_PROP =
-		"hadoopbam.summarysort.output.name";
-
-	@Override public RecordWriter<NullWritable,Text> getRecordWriter(
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		Path path = getDefaultWorkFile(ctx, "");
-		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
-
-		return new TextOutputFormat.LineRecordWriter<NullWritable,Text>(
-			new DataOutputStream(
-				new BlockCompressedOutputStream(fs.create(path))));
-	}
-
-	@Override public Path getDefaultWorkFile(
-			TaskAttemptContext context, String ext)
-		throws IOException
-	{
-		String filename  = context.getConfiguration().get(OUTPUT_NAME_PROP);
-		String extension = ext.isEmpty() ? ext : "." + ext;
-		int    part      = context.getTaskAttemptID().getTaskID().getId();
-		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
-			filename + "-" + String.format("%06d", part) + extension);
 	}
 }
