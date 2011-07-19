@@ -134,9 +134,10 @@ public final class Summarize extends CLIPlugin {
 			default: break;
 		}
 
-		final String wrkDirS = args.get(0),
-		             bam     = args.get(2),
-		             out     = (String)parser.getOptionValue(outputDirOpt);
+		wrkDir = new Path(args.get(0));
+		final String outS = (String)parser.getOptionValue(outputDirOpt);
+		final Path   bam  = new Path(args.get(2)),
+		             out  = outS == null ? null : new Path(outS);
 
 		final boolean sort = parser.getBoolean(sortOpt);
 
@@ -175,15 +176,12 @@ public final class Summarize extends CLIPlugin {
 		//   Hadoop jobs outputting into the same directory at the same time, as
 		//   explained in the comment in sortMerged().
 
-		wrkDir            = new Path(wrkDirS);
 		mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
 
-		final Path bamPath = new Path(bam);
-
-		// Used by SummarizeOutputFormat to name the output files.
 		final Configuration conf = getConf();
 
-		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bamPath.getName());
+		// Used by SummarizeOutputFormat to name the output files.
+		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bam.getName());
 
 		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, levels);
 
@@ -199,7 +197,7 @@ public final class Summarize extends CLIPlugin {
 				conf.setInt("mapred.reduce.tasks",
 				            Math.max(1, maxReduceTasks*9/10));
 
-				if (!runSummary(bamPath))
+				if (!runSummary(bam))
 					return 4;
 			} catch (IOException e) {
 				System.err.printf("summarize :: Summarizing failed: %s\n", e);
@@ -213,7 +211,7 @@ public final class Summarize extends CLIPlugin {
 					mergeOutputs(mergedTmpDir);
 
 				} else if (out != null)
-					mergeOutputs(new Path(out));
+					mergeOutputs(out);
 
 			} catch (IOException e) {
 				System.err.printf("summarize :: Merging failed: %s\n", e);
@@ -228,7 +226,7 @@ public final class Summarize extends CLIPlugin {
 
 				if (out != null) try {
 					sorted = true;
-					mergeOutputs(new Path(out));
+					mergeOutputs(out);
 				} catch (IOException e) {
 					System.err.printf(
 						"summarize :: Merging sorted output failed: %s\n", e);
