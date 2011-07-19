@@ -163,8 +163,10 @@ public final class Sort extends CLIPlugin {
 			System.out.println("sort :: Waiting for job completion...");
 			t.start();
 
-			if (!job.waitForCompletion(verbose))
+			if (!job.waitForCompletion(verbose)) {
+				System.err.println("sort :: Job failed.");
 				return 4;
+			}
 
 			System.out.printf("sort :: Job complete in %d.%03d s.\n",
 			                  t.stopS(), t.fms());
