@@ -26,13 +26,10 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -66,6 +63,7 @@ import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
@@ -120,7 +118,7 @@ public final class Sort extends CLIPlugin {
 
 		final Timer t = new Timer();
 		try {
-			setSamplingConf(inPath.getParent(), inFile, conf);
+			Utils.setSamplingConf(inPath, conf);
 
 			// As far as I can tell there's no non-deprecated way of getting this
 			// info. We can silence this warning but not the import.
@@ -236,23 +234,6 @@ public final class Sort extends CLIPlugin {
 			return 5;
 		}
 		return 0;
-	}
-
-	private void setSamplingConf(
-			Path inputDir, String inputName, Configuration conf)
-		throws IOException
-	{
-		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
-
-		Path partition = new Path(inputDir, "_partitioning" + inputName);
-		TotalOrderPartitioner.setPartitionFile(conf, partition);
-
-		try {
-			URI partitionURI = new URI(
-				partition.toString() + "#_partitioning" + inputName);
-			DistributedCache.addCacheFile(partitionURI, conf);
-			DistributedCache.createSymlink(conf);
-		} catch (URISyntaxException e) { throw new RuntimeException(e); }
 	}
 }
 

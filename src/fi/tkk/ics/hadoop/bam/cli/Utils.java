@@ -23,9 +23,18 @@
 package fi.tkk.ics.hadoop.bam.cli;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.CodeSource;
 import java.util.Scanner;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.Path;
+
+import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 
 public final class Utils {
 	public static void printWrapped(PrintStream out, String str) {
@@ -103,7 +112,8 @@ public final class Utils {
 
 		final String path = cs.getLocation().getPath();
 		if (path.endsWith("/")) {
-			// Typically (always?) a .class file loaded from the directory in path.
+			// Typically (always?) a .class file loaded from the directory in
+			// path.
 			argv0 = argv0Class.getSimpleName();
 		} else {
 			// Typically (always?) a .jar file.
@@ -115,5 +125,24 @@ public final class Utils {
 	public static void setArgv0Class(Class cl) {
 		argv0Class = cl;
 		argv0 = null;
+	}
+
+	public static void setSamplingConf(Path input, Configuration conf)
+		throws IOException
+	{
+		final Path inputDir =
+			input.getParent().makeQualified(input.getFileSystem(conf));
+
+		final String inputName = input.getName();
+
+		final Path partition = new Path(inputDir, "_partitioning" + inputName);
+		TotalOrderPartitioner.setPartitionFile(conf, partition);
+
+		try {
+			final URI partitionURI = new URI(
+				partition.toString() + "#_partitioning" + inputName);
+			DistributedCache.addCacheFile(partitionURI, conf);
+			DistributedCache.createSymlink(conf);
+		} catch (URISyntaxException e) { throw new RuntimeException(e); }
 	}
 }
