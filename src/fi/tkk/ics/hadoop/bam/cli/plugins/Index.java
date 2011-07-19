@@ -22,8 +22,6 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
@@ -38,31 +36,12 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
 
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
-import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
-
 public final class Index extends CLIPlugin {
-	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
-		= new ArrayList<Pair<CmdLineParser.Option, String>>();
-
-	private static final CmdLineParser.Option
-		localInputOpt  = new BooleanOption('L', "--local-input"),
-		localOutputOpt = new BooleanOption('O', "--local-output");
-
 	public Index() {
-		super("index", "BAM indexing", "1.0", "PATH [OUT]", optionDescs,
-			"Indexes the BAM file in PATH to OUT, or PATH.bai by default."+
-			"\n\n"+
-			"By default, PATH is treated as a local file path if run outside "+
-			"Hadoop and an HDFS path if run within it.");
-	}
-	static {
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			localInputOpt, "treat PATH to referring to the local FS, not HDFS"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			localOutputOpt, "treat OUT as referring to the local FS, not HDFS"));
+		super("index", "BAM indexing", "1.0", "PATH [OUT]", null,
+			"Indexes the BAM file in PATH to OUT, or PATH.bai by default.");
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -82,20 +61,10 @@ public final class Index extends CLIPlugin {
 		final String path = args.get(0);
 		final String out  = args.size() > 1 ? args.get(1) : null;
 
-		final boolean
-			localInput  = parser.getBoolean(localInputOpt),
-			localOutput = parser.getBoolean(localOutputOpt);
-
 		final SAMFileReader reader;
-
 		try {
-			if (localInput)
-				reader = new SAMFileReader(new File(path), false);
-			else {
-				final Path p = new Path(path);
-				reader = new SAMFileReader(WrapSeekable.openPath(getConf(), p),
-				                           false);
-			}
+			reader = new SAMFileReader(
+				WrapSeekable.openPath(getConf(), new Path(path)), false);
 		} catch (Exception e) {
 			System.err.printf("index :: Could not open '%s': %s\n",
 			                  path, e.getMessage());
@@ -115,13 +84,9 @@ public final class Index extends CLIPlugin {
 
 		final BAMIndexer indexer;
 		try {
-			if (localOutput)
-				indexer = new BAMIndexer(new File(out), header);
-			else {
-				final Path p = new Path(out);
-				indexer = new BAMIndexer(p.getFileSystem(getConf()).create(p),
-				                         header);
-			}
+			final Path p = new Path(out);
+			indexer = new BAMIndexer(p.getFileSystem(getConf()).create(p),
+				                      header);
 		} catch (Exception e) {
 			System.err.printf("index :: Could not open '%s' for output: %s\n",
 			                  out, e.getMessage());

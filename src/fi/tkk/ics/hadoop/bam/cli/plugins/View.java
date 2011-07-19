@@ -22,7 +22,6 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -51,8 +50,7 @@ public final class View extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		localFilesystemOpt = new BooleanOption('L', "--local-filesystem"),
-		headerOnlyOpt      = new BooleanOption('H', "--header-only");
+		headerOnlyOpt = new BooleanOption('H', "--header-only");
 
 	public View() {
 		super("view", "BAM viewing", "1.0", "PATH [regions...]", optionDescs,
@@ -61,17 +59,12 @@ public final class View extends CLIPlugin {
 			"overlapping with those regions are output. Then an index is also "+
 			"required, expected at PATH.bai by default."+
 			"\n\n"+
-			"By default, PATH is treated as a local file path if run outside "+
-			"Hadoop and an HDFS path if run within it."+
-			"\n\n"+
 			"Regions can be given as only reference sequence names or indices "+
 			"like 'chr1', or with position ranges as well like 'chr1:100-200'. "+
 			"These coordinates are 1-based, with 0 representing the start or "+
 			"end of the sequence.");
 	}
 	static {
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			localFilesystemOpt, "force use of the local FS instead of HDFS"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			headerOnlyOpt, "print header only"));
 	}
@@ -86,23 +79,16 @@ public final class View extends CLIPlugin {
 		final String       path    = args.get(0);
 		final List<String> regions = args.subList(1, args.size());
 
-		final boolean
-			localFilesystem = parser.getBoolean(localFilesystemOpt),
-			headerOnly      = parser.getBoolean(headerOnlyOpt);
+		final boolean headerOnly = parser.getBoolean(headerOnlyOpt);
 
 		final SAMFileReader reader;
 
 		try {
-			if (localFilesystem)
-				reader = new SAMFileReader(
-					new File(path), new File(path + ".bai"), false);
-			else {
-				final Path p = new Path(path);
-				reader = new SAMFileReader(
-					WrapSeekable.openPath(getConf(), p),
-					WrapSeekable.openPath(getConf(), p.suffix(".bai")),
-					false);
-			}
+			final Path p = new Path(path);
+			reader = new SAMFileReader(
+				WrapSeekable.openPath(getConf(), p),
+				WrapSeekable.openPath(getConf(), p.suffix(".bai")),
+				false);
 		} catch (Exception e) {
 			System.err.printf("view :: Could not open '%s': %s\n",
 			                  path, e.getMessage());
