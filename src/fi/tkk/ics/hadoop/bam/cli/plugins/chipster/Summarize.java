@@ -78,6 +78,7 @@ import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 import fi.tkk.ics.hadoop.bam.BAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.BGZFSplitFileInputFormat;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
@@ -280,30 +281,11 @@ public final class Summarize extends CLIPlugin {
 		return 0;
 	}
 
-	private void setSamplingConf(Path input, Configuration conf)
-		throws IOException
-	{
-		final Path inputDir =
-			input.getParent().makeQualified(input.getFileSystem(conf));
-
-		final String inputName = input.getName();
-
-		final Path partition = new Path(inputDir, "_partitioning" + inputName);
-		TotalOrderPartitioner.setPartitionFile(conf, partition);
-
-		try {
-			final URI partitionURI = new URI(
-				partition.toString() + "#_partitioning" + inputName);
-			DistributedCache.addCacheFile(partitionURI, conf);
-			DistributedCache.createSymlink(conf);
-		} catch (URISyntaxException e) { throw new RuntimeException(e); }
-	}
-
 	private boolean runSummary(Path bamPath)
 		throws IOException, ClassNotFoundException, InterruptedException
 	{
 		final Configuration conf = getConf();
-		setSamplingConf(bamPath, conf);
+		Utils.setSamplingConf(bamPath, conf);
 		final Job job = new Job(conf);
 
 		job.setJarByClass  (Summarize.class);
