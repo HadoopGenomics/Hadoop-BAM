@@ -59,7 +59,7 @@ public abstract class CLIPlugin extends Configured {
 		out.printf("hadoop-bam command line: %s version %s\n", command, version);
 		out.printf("Usage: %s %s ", Utils.getArgv0(), command);
 
-		if (!optionDescs.isEmpty())
+		if (optionDescs != null && !optionDescs.isEmpty())
 			out.print("[options] ");
 
 		out.println(usageTail);
@@ -69,7 +69,7 @@ public abstract class CLIPlugin extends Configured {
 			Utils.printWrapped(out, longDesc);
 		}
 
-		if (optionDescs.isEmpty())
+		if (optionDescs == null || optionDescs.isEmpty())
 			return;
 
 		Collections.sort(optionDescs,
@@ -168,11 +168,13 @@ public abstract class CLIPlugin extends Configured {
 		}
 
 		final CmdLineParser parser = new CmdLineParser();
-		for (final Pair<CmdLineParser.Option, String> pair : optionDescs) {
-			final String lf = pair.fst.longForm();
-			final int    eq = lf.lastIndexOf('=');
-			pair.fst.setLongForm(eq == -1 ? lf : lf.substring(0, eq));
-			parser.addOption(pair.fst);
+		if (optionDescs != null) {
+			for (final Pair<CmdLineParser.Option, String> pair : optionDescs) {
+				final String lf = pair.fst.longForm();
+				final int    eq = lf.lastIndexOf('=');
+				pair.fst.setLongForm(eq == -1 ? lf : lf.substring(0, eq));
+				parser.addOption(pair.fst);
+			}
 		}
 
 		try {
