@@ -130,17 +130,18 @@ public final class Utils {
 	public static void setSamplingConf(Path input, Configuration conf)
 		throws IOException
 	{
-		final Path inputDir =
-			input.getParent().makeQualified(input.getFileSystem(conf));
+		final Path partition =
+			new Path(input.getParent(), "_partitioning" + input.getName())
+			.makeQualified(input.getFileSystem(conf));
 
-		final String inputName = input.getName();
-
-		final Path partition = new Path(inputDir, "_partitioning" + inputName);
 		TotalOrderPartitioner.setPartitionFile(conf, partition);
-
 		try {
 			final URI partitionURI = new URI(
-				partition.toString() + "#_partitioning" + inputName);
+				partition.toString() + "#" + partition.getName());
+
+			if (partitionURI.getScheme().equals("file"))
+				return;
+
 			DistributedCache.addCacheFile(partitionURI, conf);
 			DistributedCache.createSymlink(conf);
 		} catch (URISyntaxException e) { throw new RuntimeException(e); }
