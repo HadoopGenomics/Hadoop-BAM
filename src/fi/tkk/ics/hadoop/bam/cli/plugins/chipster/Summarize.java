@@ -88,10 +88,9 @@ public final class Summarize extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		verboseOpt        = new BooleanOption('v', "verbose"),
-		sortOpt           = new BooleanOption('s', "sort"),
-		outputDirOpt      = new  StringOption('o', "output-dir=PATH"),
-		outputLocalDirOpt = new  StringOption('O', "output-local-dir=PATH");
+		verboseOpt   = new BooleanOption('v', "verbose"),
+		sortOpt      = new BooleanOption('s', "sort"),
+		outputDirOpt = new  StringOption('o', "output-dir=PATH");
 
 	public Summarize() {
 		super("summarize", "summarize BAM for zooming", "1.0",
@@ -110,9 +109,6 @@ public final class Summarize extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputDirOpt, "output complete summary files to the file PATH, "+
 			              "removing the parts from WORKDIR"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputLocalDirOpt, "like -o, but treat PATH as referring to the "+
-			                   "local FS"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			sortOpt, "sort created summaries by position"));
 	}
@@ -140,22 +136,11 @@ public final class Summarize extends CLIPlugin {
 
 		final String wrkDirS = args.get(0),
 		             bam     = args.get(2),
-		             outAny  = (String)parser.getOptionValue(outputDirOpt),
-		             outLoc  = (String)parser.getOptionValue(outputLocalDirOpt),
-		             out;
+		             out     = (String)parser.getOptionValue(outputDirOpt);
 
 		final boolean sort = parser.getBoolean(sortOpt);
 
 		verbose = parser.getBoolean(verboseOpt);
-
-		if (outAny != null) {
-			if (outLoc != null) {
-				System.err.println("summarize :: cannot accept both -o and -O!");
-				return 3;
-			}
-			out = outAny;
-		} else
-			out = outLoc;
 
 		levels = args.get(1).split(",");
 		for (String l : levels) {
@@ -178,8 +163,7 @@ public final class Summarize extends CLIPlugin {
 		// - out is the output dir for the final merged output, given with the -o
 		//   or -O parameters.
 		//
-		// - wrkDir is the user-given HDFS path where the outputs of the reducers
-		//   go.
+		// - wrkDir is the user-given path where the outputs of the reducers go.
 		//
 		// - mergedTmpDir (defined further below) is $wrkDir/sort.tmp: if we are
 		//   sorting, the summaries output in the first Hadoop job are merged in
@@ -194,8 +178,7 @@ public final class Summarize extends CLIPlugin {
 		wrkDir            = new Path(wrkDirS);
 		mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
 
-		final Path    bamPath    = new Path(bam);
-		final boolean forceLocal = out == outLoc;
+		final Path bamPath = new Path(bam);
 
 		// Used by SummarizeOutputFormat to name the output files.
 		final Configuration conf = getConf();
@@ -227,10 +210,10 @@ public final class Summarize extends CLIPlugin {
 			try {
 				if (sort) {
 					mergedTmpDir = new Path(wrkDir, "sort.tmp");
-					mergeOutputs(mergedTmpDir, false);
+					mergeOutputs(mergedTmpDir);
 
 				} else if (out != null)
-					mergeOutputs(new Path(out), forceLocal);
+					mergeOutputs(new Path(out));
 
 			} catch (IOException e) {
 				System.err.printf("summarize :: Merging failed: %s\n", e);
@@ -245,7 +228,7 @@ public final class Summarize extends CLIPlugin {
 
 				if (out != null) try {
 					sorted = true;
-					mergeOutputs(new Path(out), forceLocal);
+					mergeOutputs(new Path(out));
 				} catch (IOException e) {
 					System.err.printf(
 						"summarize :: Merging sorted output failed: %s\n", e);
@@ -375,7 +358,7 @@ public final class Summarize extends CLIPlugin {
 		return true;
 	}
 
-	private void mergeOutputs(Path outPath, boolean forceLocal)
+	private void mergeOutputs(Path outPath)
 		throws IOException
 	{
 		System.out.println("summarize :: Merging output...");
@@ -384,10 +367,7 @@ public final class Summarize extends CLIPlugin {
 		final Configuration conf = getConf();
 
 		final FileSystem srcFS =  wrkDir.getFileSystem(conf);
-		      FileSystem dstFS = outPath.getFileSystem(conf);
-
-		if (forceLocal)
-			dstFS = FileSystem.getLocal(conf).getRaw();
+		final FileSystem dstFS = outPath.getFileSystem(conf);
 
 		final Timer tl = new Timer();
 		for (String l : levels) {
