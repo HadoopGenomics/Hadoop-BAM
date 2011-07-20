@@ -1,15 +1,14 @@
 hadoop-bam: a library for manipulation of BAM (Binary Alignment/Map) and
-BGZF-compressed files using the Hadoop MapReduce framework.
-
-Includes programs for indexing both BAM and BGZF files, allowing Hadoop to
-split them, as well as an example program for sorting BAM files.
+BGZF-compressed files using the Hadoop MapReduce framework, and command line
+tools in the vein of SAMtools.
 
 Dependencies
 ------------
 
-Hadoop 0.20.2. Tested 0.21: this version of hadoop-bam is incompatible with it.
+Hadoop 0.20.2 or 0.20.203.0. 0.21 or later will not work with this version of
+hadoop-bam.
 
-Picard 1.27. Later versions have not been tested: use at your own risk.
+Picard SAM-JDK 1.47. Later versions have not been tested: use at your own risk.
 
 Availability:
 	Hadoop - http://hadoop.apache.org/
@@ -29,73 +28,73 @@ This will create the 'hadoop-bam.jar' file. For Javadoc documentation, run:
 
 Documentation can then be found in the 'doc' subdirectory.
 
-General usage
+Command-line usage
+------------------
+
+hadoop-bam can be used as a command-line tool, with functionality in the form
+of plugins that provide commands to which hadoop-bam.jar is a frontend.
+hadoop-bam provides some commands of its own, but any others found in the Java
+class path will be used as well.
+
+Running under Hadoop
+....................
+
+To use hadoop-bam under Hadoop, make sure that, in addition to hadoop-bam.jar,
+Picard's "sam-1.47.jar" (assuming version 1.47) has been added to the
+HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh, along with any
+plugin .jar files that provide other commands. Then, you may run hadoop-bam
+with a command like:
+
+	hadoop jar hadoop-bam.jar
+
+This should print a brief help message listing the commands available. To run a
+command, give it as the first command-line argument. For example, the provided
+BAM sorting command, "sort":
+
+	hadoop jar hadoop-bam.jar sort
+
+This will give a help message specific to that command.
+
+File paths under Hadoop
+.......................
+
+When running under Hadoop, keep in mind that file paths refer to the
+distributed file system, HDFS. To explicitly access a local file, instead of
+using the plain path such as "/foo/bar", you must use a file: URI, such as
+"file:/foo/bar". Note that paths in file: URIs must be absolute.
+
+Output of MapReduce-using commands
+..................................
+
+An example of a MapReduce-using command is "sort". Like all such commands
+should, it takes a working directory argument in which to place its output in
+parts. Each part is the output of one reduce task. For convenience, a "-o"
+parameter is supported to output a single complete BAM file instead of the
+individual parts.
+
+Note that some commands, such as the provided "view" and "index" commands, do
+not use MapReduce: they are merely useful to operate directly on files stored
+in HDFS.
+
+Running without Hadoop
+......................
+
+hadoop-bam can be run directly, outside Hadoop, as long as it and the Picard
+SAM-JDK and Hadoop .jar files ("sam-1.47.jar" and "hadoop-0.20.2-core.jar" for
+versions 1.47 and 0.20.2 respectively) are in the Java class path. A command
+such as the following:
+
+	java fi.tkk.ics.hadoop.bam.cli.Frontend
+
+Is equivalent to the "hadoop jar hadoop-bam.jar" command used earlier. This has
+limited application, but it can be used e.g. for testing purposes.
+
+Library usage
 -------------
 
 In order to use all the functionality of hadoop-bam, you need to have Picard's
-'sam-1.27.jar' (assuming version 1.27) and Hadoop's 'hadoop-0.20.2-core.jar' in
-the CLASSPATH environment variable.
+"sam-1.47.jar" (assuming version 1.47) and Hadoop's "hadoop-0.20.2-core.jar"
+(assuming version 0.20.2) in the CLASSPATH environment variable.
 
-See the Javadoc as well as the BAM sorter's source code
-(src/fi/tkk/ics/hadoop/bam/util/hadoop/BAMSort.java) for library usage
-information.
-
-Example programs
-----------------
-
-Two utilities that are meant for usage from within Hadoop are included. To run,
-use commands such as:
-
-	hadoop jar hadoop-bam.jar fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader
-	hadoop jar hadoop-bam.jar fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort
-
-Run them without passing any further arguments for a brief help message.
-
-BAMReader is a simple proof-of-concept-style tool for reading BAM files from
-HDFS directly, without having to transfer them out to a local disk.
-
-BAMSort is a MapReduce-using application that sorts a BAM file. In distributed
-usage, in order to compose the final result file from multiple parts, you may
-simply concatenate the files together, along with a header retrieved using
-GetSortedBAMHeader (see "utilities" section below) at the beginning, and the
-BGZF terminator block, provided as bgzf-terminator.bin, at the end. Using
-'hadoop fs -getmerge' when retrieving the files out of HDFS is likely the most
-efficient way of doing this.
-
-Utilities
----------
-
-Five non-distributed utility programs are included. They can be invoked as
-follows, with hadoop-bam.jar in the CLASSPATH environment variable:
-
-       java fi.tkk.ics.hadoop.bam.util.GetSortedBAMHeader
-       java fi.tkk.ics.hadoop.bam.SplittingBAMIndexer
-       java fi.tkk.ics.hadoop.bam.SplittingBAMIndex
-       java fi.tkk.ics.hadoop.bam.util.BGZFBlockIndexer
-       java fi.tkk.ics.hadoop.bam.util.BGZFBlockIndex
-
-Again, run them without arguments for a brief help message.
-
-GetSortedBAMHeader reads the SAM header from the input BAM file, sets the 'sort
-order' metadata to 'coordinate', and outputs the result to the output file.
-This is meant to be used with the BAM sorter.
-
-The remaining four, concerning indexing, are all deprecated. With the heuristic
-splitting introduced in hadoop-bam 2.0, there shouldn't be any reason to use
-them. Nevertheless, they are still included and explained below.
-
-Running SplittingBAMIndexer on a BAM file creates a .splitting-bai file which
-is used by BAMInputFormat to determine how to split up work between map tasks.
-Note that indexing can be a time-consuming process if the BAM file is large.
-
-The granularity argument does not matter much: in practice, what it specifies
-is the maximum amount of alignments (respectively gzip blocks, for
-BGZFBlockIndexer) that may be "shunted" from one Hadoop mapper to another. If
-Hadoop places a split point between two offsets in the index file, it is
-rounded to one of them. A reasonable value for SplittingBAMIndexer granularity
-is, for example, 1024: this results in a 3-megabyte index for a 50-gigabyte BAM
-file.
-
-BGZFBlockIndexer is similar, but for working with BGZF-compressed files without
-caring about the type of data within. If you've only got BAM files, you
-probably don't want to deal with them at this level.
+See the Javadoc as well as the command line plugins' source code
+(src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for library usage information.
