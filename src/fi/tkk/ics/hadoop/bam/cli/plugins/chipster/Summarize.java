@@ -86,10 +86,10 @@ public final class Summarize extends CLIPlugin {
 
 	public Summarize() {
 		super("summarize", "summarize BAM for zooming", "1.0",
-			"WORKDIR LEVELS PATH", optionDescs,
+			"WORKDIR LEVELS INPATH", optionDescs,
 			"Outputs, for each level in LEVELS, a summary file describing the "+
 			"average number of alignments at various positions in the BAM file "+
-			"in PATH. The summary files are placed in parts in WORKDIR."+
+			"in INPATH. The summary files are placed in parts in WORKDIR."+
 			"\n\n"+
 			"LEVELS should be a comma-separated list of positive integers. "+
 			"Each level is the number of alignments that are summarized into "+
@@ -122,7 +122,7 @@ public final class Summarize extends CLIPlugin {
 		switch (args.size()) {
 			case 0: return missingArg("WORKDIR");
 			case 1: return missingArg("LEVELS");
-			case 2: return missingArg("PATH");
+			case 2: return missingArg("INPATH");
 			default: break;
 		}
 

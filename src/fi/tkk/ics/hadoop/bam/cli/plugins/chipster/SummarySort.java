@@ -81,8 +81,8 @@ public final class SummarySort extends CLIPlugin {
 
 	public SummarySort() {
 		super("summarysort", "sort summary file for zooming", "1.0",
-			"WORKDIR PATH", optionDescs,
-			"Sorts the summary file in PATH in a distributed fashion using "+
+			"WORKDIR INPATH", optionDescs,
+			"Sorts the summary file in INPATH in a distributed fashion using "+
 			"Hadoop. Output parts are placed in WORKDIR."+
 			"\n\n"+
 			"This is equivalent to one of the sorts done by the 'summarize' "+
@@ -104,7 +104,7 @@ public final class SummarySort extends CLIPlugin {
 			return 3;
 		}
 		if (args.size() == 1) {
-			System.err.println("summarysort :: PATH not given.");
+			System.err.println("summarysort :: INPATH not given.");
 			return 3;
 		}
 
