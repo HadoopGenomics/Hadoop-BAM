@@ -264,9 +264,9 @@ final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 		throws IOException
 	{
 		if (super.header == null) {
-			Configuration c = context.getConfiguration();
-			readSAMHeaderFrom(
-				new Path(c.get(INPUT_PATH_PROP)), FileSystem.get(c));
+			final Configuration conf = context.getConfiguration();
+			final Path          path = new Path(conf.get(INPUT_PATH_PROP));
+			readSAMHeaderFrom(path, path.getFileSystem(conf));
 		}
 		return super.getRecordWriter(context);
 	}

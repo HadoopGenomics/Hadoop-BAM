@@ -56,8 +56,9 @@ public abstract class BAMRecordWriter<K>
 			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
-		final SAMFileReader r =
-			new SAMFileReader(FileSystem.get(ctx.getConfiguration()).open(input));
+		final SAMFileReader r = new SAMFileReader(
+			input.getFileSystem(ctx.getConfiguration()).open(input));
+
 		final SAMFileHeader hdr = r.getFileHeader();
 		r.close();
 		init(output, hdr, writeHeader, ctx);
@@ -68,7 +69,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			FileSystem.get(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	public BAMRecordWriter(
@@ -86,7 +87,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			FileSystem.get(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	private void init(

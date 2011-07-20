@@ -58,7 +58,7 @@ public class BAMRecordReader
 		final FileVirtualSplit split = (FileVirtualSplit)spl;
 
 		final Path file = split.getPath();
-		final FileSystem fs = FileSystem.get(ctx.getConfiguration());
+		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
 		final FSDataInputStream in = fs.open(file);
 		codec = new BAMRecordCodec(new SAMFileReader(in).getFileHeader());
