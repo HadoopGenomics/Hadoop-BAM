@@ -93,7 +93,7 @@ public final class Sort extends CLIPlugin {
 	@Override protected int run(CmdLineParser parser) {
 		final List<String> args = parser.getRemainingArgs();
 		if (args.isEmpty()) {
-			System.err.println("sort :: OUTDIR not given.");
+			System.err.println("sort :: WORKDIR not given.");
 			return 3;
 		}
 		if (args.size() == 1) {
