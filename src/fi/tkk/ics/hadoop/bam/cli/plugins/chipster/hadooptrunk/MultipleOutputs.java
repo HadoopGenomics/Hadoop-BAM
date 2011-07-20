@@ -20,7 +20,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hadooptrunk;
+package fi.tkk.ics.hadoop.bam.cli.plugins.chipster.hadooptrunk;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;

@@ -56,7 +56,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
-import hadooptrunk.MultipleOutputs;
+import fi.tkk.ics.hadoop.bam.cli.plugins.chipster.hadooptrunk.MultipleOutputs;
 
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
