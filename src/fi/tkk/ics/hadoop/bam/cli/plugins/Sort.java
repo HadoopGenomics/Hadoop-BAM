@@ -30,8 +30,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ChecksumFileSystem;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
@@ -184,7 +186,12 @@ public final class Sort extends CLIPlugin {
 			final Path outPath = new Path(out);
 
 			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
-			final FileSystem dstFS =    outPath.getFileSystem(conf);
+			      FileSystem dstFS =    outPath.getFileSystem(conf);
+
+			// The checksummed local file system doesn't support append().
+			if (dstFS instanceof LocalFileSystem
+			 && dstFS instanceof ChecksumFileSystem)
+				dstFS = ((LocalFileSystem)dstFS).getRaw();
 
 			// First, place the BAM header.
 
