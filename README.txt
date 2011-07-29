@@ -40,7 +40,7 @@ data:
 
 	<reference sequence ID>	<left coordinate> <right coordinate> <count>
 
-The coordinate columns are 1-based.
+The coordinate columns are 1-based and both ends are inclusive.
 
 The 'count' field represents the number of alignments that have been summarized
 into that single range. Note that it may not exactly match any of the 'level'
