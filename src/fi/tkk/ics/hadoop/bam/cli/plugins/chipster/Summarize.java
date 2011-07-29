@@ -58,6 +58,9 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import fi.tkk.ics.hadoop.bam.cli.plugins.chipster.hadooptrunk.MultipleOutputs;
 
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
@@ -569,10 +572,11 @@ final class Range implements Writable {
 	public final IntWritable     end           = new IntWritable();
 	public final BooleanWritable reverseStrand = new BooleanWritable();
 
-	public void setFrom(SAMRecord record) {
-		beg.set(record.getAlignmentStart());
-		end.set(record.getAlignmentEnd());
-		reverseStrand.set(record.getReadNegativeStrandFlag());
+	public Range() {}
+	public Range(int b, int e, boolean rev) {
+		beg.          set(b);
+		end.          set(e);
+		reverseStrand.set(rev);
 	}
 
 	public int getCentreOfMass() {
@@ -656,9 +660,10 @@ final class SummarizeInputFormat extends FileInputFormat<LongWritable,Range> {
 }
 final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 
-	private final BAMRecordReader bamRR = new BAMRecordReader();
-	private final LongWritable    key   = new LongWritable();
-	private final Range           range = new Range();
+	private final BAMRecordReader bamRR    = new BAMRecordReader();
+	private final LongWritable    key      = new LongWritable();
+	private final List<Range>     ranges   = new ArrayList<Range>();
+	private       int             rangeIdx = 0;
 
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
@@ -670,11 +675,18 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 	@Override public float getProgress() { return bamRR.getProgress(); }
 
 	@Override public LongWritable getCurrentKey  () { return key; }
-	@Override public Range        getCurrentValue() { return range; }
+	@Override public Range        getCurrentValue() {
+		return ranges.get(rangeIdx);
+	}
 
 	@Override public boolean nextKeyValue() {
-		SAMRecord rec;
+		if (rangeIdx+1 < ranges.size()) {
+			++rangeIdx;
+			key.set(key.get() >>> 32 << 32 | getCurrentValue().getCentreOfMass());
+			return true;
+		}
 
+		SAMRecord rec;
 		do {
 			if (!bamRR.nextKeyValue())
 				return false;
@@ -682,9 +694,49 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 			rec = bamRR.getCurrentValue().get();
 		} while (rec.getReadUnmappedFlag());
 
-		range.setFrom(rec);
-		key.set((long)rec.getReferenceIndex() << 32 | range.getCentreOfMass());
+		parseCIGAR(rec, rec.getReadNegativeStrandFlag());
+		rangeIdx = 0;
+		key.set((long)rec.getReferenceIndex() << 32 |
+		        getCurrentValue().getCentreOfMass());
 		return true;
+	}
+
+	void parseCIGAR(SAMRecord rec, boolean reverseStrand) {
+		ranges.clear();
+		final Cigar cigar = rec.getCigar();
+
+		int begPos = rec.getAlignmentStart();
+		int endPos = begPos;
+
+		for (int i = 0; i < rec.getCigarLength(); ++i) {
+
+			final CigarElement  element = cigar.getCigarElement(i);
+			final CigarOperator op      = element.getOperator();
+			switch (op) {
+				case M:
+				case EQ:
+				case X:
+					// Accumulate this part into the current range.
+					endPos += element.getLength();
+					continue;
+
+				default: break;
+			}
+
+			if (begPos != endPos) {
+				// No more consecutive fully contained parts: save the range and
+				// move along.
+				ranges.add(new Range(begPos, endPos-1, reverseStrand));
+				begPos = endPos;
+			}
+
+			if (op.consumesReferenceBases()) {
+				begPos += element.getLength();
+				endPos = begPos;
+			}
+		}
+		if (begPos != endPos)
+			ranges.add(new Range(begPos, endPos-1, reverseStrand));
 	}
 }
 
