@@ -1,4 +1,4 @@
-hadoop-bam: a library for manipulation of BAM (Binary Alignment/Map) and
+Hadoop-BAM: a library for manipulation of BAM (Binary Alignment/Map) and
 BGZF-compressed files using the Hadoop MapReduce framework, and command line
 tools in the vein of SAMtools.
 
@@ -6,7 +6,7 @@ Dependencies
 ------------
 
 Hadoop 0.20.2 or 0.20.203.0. 0.21 or later will not work with this version of
-hadoop-bam.
+Hadoop-BAM.
 
 Picard SAM-JDK 1.47. Later versions have not been tested: use at your own risk.
 
@@ -17,7 +17,7 @@ Availability:
 Installation
 ------------
 
-The easiest way to build hadoop-bam is to use Apache Ant (version 1.6 or
+The easiest way to build Hadoop-BAM is to use Apache Ant (version 1.6 or
 greater) with the following command:
 
 	ant jar
@@ -31,18 +31,18 @@ Documentation can then be found in the 'doc' subdirectory.
 Command-line usage
 ------------------
 
-hadoop-bam can be used as a command-line tool, with functionality in the form
+Hadoop-BAM can be used as a command-line tool, with functionality in the form
 of plugins that provide commands to which hadoop-bam.jar is a frontend.
-hadoop-bam provides some commands of its own, but any others found in the Java
+Hadoop-BAM provides some commands of its own, but any others found in the Java
 class path will be used as well.
 
 Running under Hadoop
 ....................
 
-To use hadoop-bam under Hadoop, make sure that, in addition to hadoop-bam.jar,
+To use Hadoop-BAM under Hadoop, make sure that, in addition to hadoop-bam.jar,
 Picard's "sam-1.47.jar" (assuming version 1.47) has been added to the
 HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh, along with any
-plugin .jar files that provide other commands. Then, you may run hadoop-bam
+plugin .jar files that provide other commands. Then, you may run Hadoop-BAM
 with a command like:
 
 	hadoop jar hadoop-bam.jar
@@ -79,7 +79,7 @@ in HDFS.
 Running without Hadoop
 ......................
 
-hadoop-bam can be run directly, outside Hadoop, as long as it and the Picard
+Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 SAM-JDK and Hadoop .jar files ("sam-1.47.jar" and "hadoop-0.20.2-core.jar" for
 versions 1.47 and 0.20.2 respectively) are in the Java class path. A command
 such as the following:
@@ -92,7 +92,7 @@ limited application, but it can be used e.g. for testing purposes.
 Library usage
 -------------
 
-In order to use all the functionality of hadoop-bam, you need to have Picard's
+In order to use all the functionality of Hadoop-BAM, you need to have Picard's
 "sam-1.47.jar" (assuming version 1.47) and Hadoop's "hadoop-0.20.2-core.jar"
 (assuming version 0.20.2) in the CLASSPATH environment variable.
 
