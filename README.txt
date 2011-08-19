@@ -8,7 +8,8 @@ Dependencies
 Hadoop 0.20.2 or 0.20.203.0. 0.21 or later will not work with this version of
 Hadoop-BAM.
 
-Picard SAM-JDK 1.47. Later versions have not been tested: use at your own risk.
+Picard SAM-JDK. Version 1.47 is provided in the form of sam-1.47.jar. Later
+versions may also work but have not been tested.
 
 Availability:
 	Hadoop - http://hadoop.apache.org/
