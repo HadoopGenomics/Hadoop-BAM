@@ -14,6 +14,10 @@ Availability:
 	Hadoop - http://hadoop.apache.org/
 	Picard - http://picard.sourceforge.net/
 
+In order to use all the functionality of Hadoop-BAM, you need to have Picard's
+"sam-1.47.jar" (assuming version 1.47) and Hadoop's "hadoop-0.20.2-core.jar"
+(assuming version 0.20.2) in the CLASSPATH environment variable.
+
 Installation
 ------------
 
@@ -91,10 +95,6 @@ limited application, but it can be used e.g. for testing purposes.
 
 Library usage
 -------------
-
-In order to use all the functionality of Hadoop-BAM, you need to have Picard's
-"sam-1.47.jar" (assuming version 1.47) and Hadoop's "hadoop-0.20.2-core.jar"
-(assuming version 0.20.2) in the CLASSPATH environment variable.
 
 See the Javadoc as well as the command line plugins' source code
 (src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for library usage information.
