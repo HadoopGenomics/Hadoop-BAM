@@ -86,8 +86,8 @@ public abstract class CLIPlugin extends Configured {
 					final CmdLineParser.Option a = ap.fst,
 					                           b = bp.fst;
 
-					final String as = a.shortForm(), al = a.longForm().substring(2),
-					             bs = b.shortForm(), bl = b.longForm().substring(2);
+					final String as = a.shortForm(), al = a.longForm(),
+					             bs = b.shortForm(), bl = b.longForm();
 
 					if (as != null && bs != null) {
 						assert as.length() == 1;
@@ -125,11 +125,11 @@ public abstract class CLIPlugin extends Configured {
 			optLen = Math.max(optLen, opt.longForm().length());
 		}
 
-		final String optFmt = "%-" + optLen + "s  ";
+		final String optFmt = "--%-" + optLen + "s  ";
 
 		out.print("\nOptions: ");
 		final int  optPos = "Options: ".length(),
-		          descPos = optPos + optLen + 2
+		          descPos = optPos + 2+optLen + 2
 		                  + (anyShortForms ? "-x, ".length() : 0);
 
 		boolean first = true;
