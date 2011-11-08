@@ -50,7 +50,7 @@ public final class View extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		headerOnlyOpt = new BooleanOption('H', "--header-only");
+		headerOnlyOpt = new BooleanOption('H', "header-only");
 
 	public View() {
 		super("view", "BAM viewing", "1.0", "PATH [regions...]", optionDescs,
