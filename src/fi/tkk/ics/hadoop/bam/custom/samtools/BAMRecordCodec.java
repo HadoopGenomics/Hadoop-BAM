@@ -41,22 +41,26 @@ import java.util.Arrays;
  * Class for translating between in-memory and disk representation of BAMRecord.
  */
 public class BAMRecordCodec implements SortingCollection.Codec<SAMRecord> {
-	static final int FIXED_BLOCK_SIZE = 8 * 4;
-	static final int MAXIMUM_RECORD_LENGTH = 1024 * 1024;
+    static final int FIXED_BLOCK_SIZE = 8 * 4;
 
     private final BinaryCigarCodec cigarCodec = new BinaryCigarCodec();
     private final SAMFileHeader header;
     private final BinaryCodec binaryCodec = new BinaryCodec();
     private final BinaryTagCodec binaryTagCodec = new BinaryTagCodec(binaryCodec);
+    private final SAMRecordFactory samRecordFactory;
 
     public BAMRecordCodec(final SAMFileHeader header) {
+        this(header, new DefaultSAMRecordFactory());
+    }
+
+    public BAMRecordCodec(final SAMFileHeader header, final SAMRecordFactory factory) {
         this.header = header;
+        this.samRecordFactory = factory;
     }
 
     public BAMRecordCodec clone() {
         // Do not clone the references to codecs, as they must be distinct for each instance.
-        BAMRecordCodec other = new BAMRecordCodec(this.header);
-        return other;
+        return new BAMRecordCodec(this.header, this.samRecordFactory);
     }
 
 
@@ -150,7 +154,7 @@ public class BAMRecordCodec implements SortingCollection.Codec<SAMRecord> {
             this.binaryCodec.writeBytes(qualities);
             SAMBinaryTagAndValue attribute = alignment.getBinaryAttributes();
             while (attribute != null) {
-                this.binaryTagCodec.writeTag(attribute.tag, attribute.value);
+                this.binaryTagCodec.writeTag(attribute.tag, attribute.value, attribute.isUnsignedArray());
                 attribute = attribute.getNext();
             }
         }
@@ -171,8 +175,7 @@ public class BAMRecordCodec implements SortingCollection.Codec<SAMRecord> {
             return null;
         }
 
-        if (recordLength < FIXED_BLOCK_SIZE ||
-                recordLength > MAXIMUM_RECORD_LENGTH) {
+        if (recordLength < FIXED_BLOCK_SIZE) {
             throw new SAMFormatException("Invalid record length: " + recordLength);
         }
         
@@ -189,7 +192,8 @@ public class BAMRecordCodec implements SortingCollection.Codec<SAMRecord> {
         final int insertSize = this.binaryCodec.readInt();
         final byte[] restOfRecord = new byte[recordLength - FIXED_BLOCK_SIZE];
         this.binaryCodec.readBytes(restOfRecord);
-        final BAMRecord ret = new BAMRecord(header, referenceID, coordinate, readNameLength, mappingQuality,
+        final BAMRecord ret = this.samRecordFactory.createBAMRecord(
+                header, referenceID, coordinate, readNameLength, mappingQuality,
                 bin, cigarLen, flags, readLen, mateReferenceID, mateCoordinate, insertSize, restOfRecord);
         ret.setHeader(header); 
         return ret;

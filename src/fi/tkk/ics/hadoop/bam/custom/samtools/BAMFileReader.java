@@ -28,10 +28,10 @@
 package fi.tkk.ics.hadoop.bam.custom.samtools;
 
 import net.sf.samtools.SAMException;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.util.*;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
 
 import java.io.*;
 import java.util.ArrayList;

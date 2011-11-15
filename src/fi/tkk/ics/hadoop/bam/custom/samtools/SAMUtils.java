@@ -1,4 +1,4 @@
-// Copied because it wasn't public.
+// Copied because processValidationErrors (among others?) wasn't public.
 //
 // Additionally, changed RuntimeExceptions to SAMFormatExceptions (WHY WOULD
 // YOU THROW RAW RUNTIMEEXCEPTIONS!).

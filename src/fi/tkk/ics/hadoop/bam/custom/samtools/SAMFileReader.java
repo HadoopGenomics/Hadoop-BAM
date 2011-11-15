@@ -1,6 +1,6 @@
 // Added a constructor that takes a SeekableStream, not a File, for the index.
 //
-// Required for HDFSBAMReader.
+// Required for cli.plugins.View.
 
 /*
  * The MIT License

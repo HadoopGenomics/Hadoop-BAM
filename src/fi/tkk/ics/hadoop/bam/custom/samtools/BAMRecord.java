@@ -1,4 +1,4 @@
-// Copied because it wasn't public.
+// Copied because we have a different SAMFileHeader.
 //
 // Required because of LazyBAMRecord.
 
@@ -75,7 +75,7 @@ public class BAMRecord
      */
     private boolean mBinaryDataStale;
 
-    BAMRecord(final SAMFileHeader header, final int referenceID, final int coordinate, final short readNameLength,
+    protected BAMRecord(final SAMFileHeader header, final int referenceID, final int coordinate, final short readNameLength,
               final short mappingQuality, final int indexingBin, final int cigarLen, final int flags,
               final int readLen, final int mateReferenceID, final int mateCoordinate, final int insertSize,
               final byte[] restOfData) {

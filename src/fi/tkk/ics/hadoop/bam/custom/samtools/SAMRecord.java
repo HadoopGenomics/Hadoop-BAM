@@ -1,5 +1,6 @@
-// Copied because get/set/computeIndexingBin (for BAMRecord) and eagerDecode
-// (for BAMFileReader) weren't public.
+// Copied because get/set/computeIndexingBin (for BAMRecord and BAMRecordCodec)
+// and eagerDecode (for BAMFileReader) weren't public, and because we have a
+// custom SAMFileSource.
 //
 // As an additional bonus, to make LazyBAMRecord simpler,
 // m[Mate]Reference{Index,Name} are made protected.

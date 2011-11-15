@@ -29,7 +29,6 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.LazyBAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import fi.tkk.ics.hadoop.bam.util.DataInputWrapper;
@@ -55,19 +54,15 @@ public class SAMRecordWritable implements Writable {
 		// BAMRecordCodec or not, since the representation of an alignment in BAM
 		// doesn't depend on the header data at all. Only its interpretation
 		// does, and a simple read/write codec shouldn't really have anything to
-		// say about that.
-		//
-		// But in practice, it already does matter for decode(), which is why
-		// LazyBAMRecordCodec exists. If this does blow up one day due to
-		// record.getHeader() == null, we need to do a similar copy-paste job for
-		// BAMRecordCodec.encode() and/or the classes it depends on. (Unless
-		// you're in less of a hurry and want to file bug reports.)
+		// say about that. (But in practice, it already does matter for decode(),
+		// which is why LazyBAMRecordFactory exists.)
 		final BAMRecordCodec codec = new BAMRecordCodec(record.getHeader());
 		codec.setOutputStream(new DataOutputWrapper(out));
 		codec.encode(record);
 	}
 	@Override public void readFields(DataInput in) throws IOException {
-		final LazyBAMRecordCodec codec = new LazyBAMRecordCodec();
+		final BAMRecordCodec codec =
+			new BAMRecordCodec(null, new LazyBAMRecordFactory());
 		codec.setInputStream(new DataInputWrapper(in));
 		record = codec.decode();
 	}

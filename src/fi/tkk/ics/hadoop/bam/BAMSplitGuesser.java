@@ -27,14 +27,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
 import net.sf.samtools.util.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.LazyBAMRecordCodec;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
 
 public class BAMSplitGuesser {
@@ -63,7 +62,7 @@ public class BAMSplitGuesser {
 		referenceSequenceCount =
 			new SAMFileReader(ss).getFileHeader().getSequenceDictionary().size();
 
-		bamCodec = new LazyBAMRecordCodec();
+		bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());
 	}
 
 	/// Looks in the range [beg,end). Returns end if no BAM record was found.
