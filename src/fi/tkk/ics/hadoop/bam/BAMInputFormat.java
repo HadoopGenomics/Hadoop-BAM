@@ -122,11 +122,16 @@ public class BAMInputFormat
 			final long start =         fileSplit.getStart();
 			final long end   = start + fileSplit.getLength();
 
-			final Long blockStart =
-				j == i ? idx.nextAlignment(0)
-				       : idx.prevAlignment(start);
+			final Long blockStart = idx.nextAlignment(start);
+
+			// The last split needs to end where the last alignment ends, but the
+			// index doesn't store that data (whoops); we only know where the last
+			// alignment begins. Fortunately there's no need to change the index
+			// format for this: we can just set the end to the maximal length of
+			// the final BGZF block (0xffff), and then read until BAMRecordCodec
+			// hits EOF.
 			final Long blockEnd =
-				j == splitsEnd-1 ? idx.prevAlignment(end)
+				j == splitsEnd-1 ? idx.prevAlignment(end) | 0xffff
 				                 : idx.nextAlignment(end);
 
 			if (blockStart == null)
@@ -156,20 +161,24 @@ public class BAMInputFormat
 
 		final BAMSplitGuesser guesser = new BAMSplitGuesser(sin);
 
-		FileSplit fspl;
-		do {
-			fspl = (FileSplit)splits.get(i);
+		for (; i < splits.size(); ++i) {
+			FileSplit fspl = (FileSplit)splits.get(i);
+			if (!fspl.getPath().equals(path))
+				break;
 
 			long beg =       fspl.getStart();
 			long end = beg + fspl.getLength();
 
 			long alignedBeg = guesser.guessNextBAMRecordStart(beg, end);
 
-			newSplits.add(new FileVirtualSplit(
-				path, alignedBeg, end << 16, fspl.getLocations()));
+			// As the guesser goes to the next BGZF block before looking for BAM
+			// records, the ending BGZF blocks have to always be traversed fully.
+			// Hence force the length to be 0xffff, the maximum possible.
+			long alignedEnd = end << 16 | 0xffff;
 
-			++i;
-		} while (i < splits.size() && fspl.getPath().equals(path));
+			newSplits.add(new FileVirtualSplit(
+				path, alignedBeg, alignedEnd, fspl.getLocations()));
+		}
 
 		sin.close();
 		return i;
