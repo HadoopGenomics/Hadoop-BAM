@@ -70,7 +70,10 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 
 	public Path getPath() { return file; }
 
+	/** Inclusive. */
 	public long getStartVirtualOffset() { return vStart; }
+
+	/** Exclusive. */
 	public long   getEndVirtualOffset() { return vEnd;   }
 
 	@Override public void write(DataOutput out) throws IOException {
