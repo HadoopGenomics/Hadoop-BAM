@@ -41,27 +41,33 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import net.sf.picard.sam.ReservedTagConstants;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SamFileHeaderMerger;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.BAMInputFormat;
+import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
@@ -78,9 +84,11 @@ public final class Sort extends CLIPlugin {
 		outputFileOpt = new  StringOption('o', "output-file=PATH");
 
 	public Sort() {
-		super("sort", "BAM sorting", "1.0", "WORKDIR INPATH", optionDescs,
-			"Sorts the BAM file in INPATH in a distributed fashion using "+
-			"Hadoop. Output parts are placed in WORKDIR.");
+		super("sort", "BAM sorting", "1.0", "WORKDIR INPATH [INPATH...]",
+			optionDescs,
+			"Merges together the BAM files in the INPATHs, sorting the result, "+
+			"in a distributed fashion using Hadoop. Output parts are placed in "+
+			"WORKDIR.");
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
@@ -102,25 +110,36 @@ public final class Sort extends CLIPlugin {
 		}
 
 		final String wrkDir = args.get(0),
-		             in     = args.get(1),
 		             out    = (String)parser.getOptionValue(outputFileOpt);
+
+		final List<String> strInputs = args.subList(1, args.size());
+
+		final List<Path> inputs = new ArrayList<Path>(strInputs.size());
+		for (final String in : strInputs)
+			inputs.add(new Path(in));
 
 		final boolean verbose = parser.getBoolean(verboseOpt);
 
-		final Path   inPath     = new Path(in),
-		             wrkDirPath = new Path(wrkDir);
-		final String inFile     = inPath.getName();
+		final String intermediateOutName =
+			out == null ? inputs.get(0).getName() : out;
 
 		final Configuration conf = getConf();
 
-		// Used by SortOutputFormat to fetch the SAM header to output and to name
-		// the output files, respectively.
-		conf.set(SortOutputFormat.INPUT_PATH_PROP,  in);
-		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, inFile);
+		// Used by getHeaderMerger. SortRecordReader needs it to correct the
+		// reference indices when the output has a different index and
+		// SortOutputFormat needs it to have the correct header for the output
+		// records.
+		conf.setStrings(INPUT_PATHS_PROP, strInputs.toArray(new String[0]));
+
+		// Used by SortOutputFormat to name the output files.
+		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, intermediateOutName);
+
+		final Path wrkDirPath = new Path(wrkDir);
 
 		final Timer t = new Timer();
 		try {
-			Utils.setSamplingConf(inPath, conf);
+			for (final Path in : inputs)
+				Utils.configureSampling(in, conf);
 
 			// As far as I can tell there's no non-deprecated way of getting this
 			// info. We can silence this warning but not the import.
@@ -144,7 +163,9 @@ public final class Sort extends CLIPlugin {
 			job.setInputFormatClass (BAMInputFormat.class);
 			job.setOutputFormatClass(SortOutputFormat.class);
 
-			FileInputFormat .setInputPaths(job, inPath);
+			for (final Path in : inputs)
+				FileInputFormat.addInputPath(job, in);
+
 			FileOutputFormat.setOutputPath(job, wrkDirPath);
 
 			job.setPartitionerClass(TotalOrderPartitioner.class);
@@ -199,12 +220,7 @@ public final class Sort extends CLIPlugin {
 				new BAMFileWriter(dstFS.create(outPath), new File(""));
 
 			w.setSortOrder(SAMFileHeader.SortOrder.coordinate, true);
-
-			final SAMFileReader r =
-				new SAMFileReader(inPath.getFileSystem(conf).open(inPath));
-
-			w.setHeader(r.getFileHeader());
-			r.close();
+			w.setHeader(getHeaderMerger(conf).getMergedHeader());
 			w.close();
 
 			// Then, the BAM contents.
@@ -244,6 +260,37 @@ public final class Sort extends CLIPlugin {
 		}
 		return 0;
 	}
+
+	private static final String INPUT_PATHS_PROP = "hadoopbam.sort.input.paths";
+
+	private static SamFileHeaderMerger headerMerger = null;
+
+	public static SamFileHeaderMerger getHeaderMerger(Configuration conf)
+		throws IOException
+	{
+		// TODO: it would be preferable to cache this beforehand instead of
+		// having every task read the header block of every input file. But that
+		// would be trickier, given that SamFileHeaderMerger isn't trivially
+		// serializable.
+
+		// Save it in a static field, though, in case that helps anything.
+		if (headerMerger != null)
+			return headerMerger;
+
+		final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
+
+		for (final String in : conf.getStrings(INPUT_PATHS_PROP)) {
+			final Path p = new Path(in);
+
+			final SAMFileReader r =
+				new SAMFileReader(p.getFileSystem(conf).open(p));
+			headers.add(r.getFileHeader());
+			r.close();
+		}
+
+		return headerMerger = new SamFileHeaderMerger(
+			SAMFileHeader.SortOrder.coordinate, headers, true);
+	}
 }
 
 final class SortReducer
@@ -262,19 +309,83 @@ final class SortReducer
 	}
 }
 
+final class SortInputFormat extends BAMInputFormat {
+	@Override public RecordReader<LongWritable,SAMRecordWritable>
+		createRecordReader(InputSplit split, TaskAttemptContext ctx)
+			throws InterruptedException, IOException
+	{
+		final RecordReader<LongWritable,SAMRecordWritable> rr =
+			new SortRecordReader();
+		rr.initialize(split, ctx);
+		return rr;
+	}
+}
+final class SortRecordReader extends BAMRecordReader {
+	private SamFileHeaderMerger headerMerger;
+
+	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
+		throws IOException
+	{
+		super.initialize(spl, ctx);
+		headerMerger = Sort.getHeaderMerger(ctx.getConfiguration());
+	}
+
+	@Override public boolean nextKeyValue() {
+		if (!super.nextKeyValue())
+			return false;
+
+		final SAMRecord     r = getCurrentValue().get();
+		final SAMFileHeader h = r.getHeader();
+
+		// Correct the reference indices, and thus the key, if necessary.
+		if (headerMerger.hasMergedSequenceDictionary()) {
+			final int ri = headerMerger.getMergedSequenceIndex(
+				h, r.getReferenceIndex());
+
+			r.setReferenceIndex(ri);
+			if (r.getReadPairedFlag())
+				r.setMateReferenceIndex(headerMerger.getMergedSequenceIndex(
+					h, r.getMateReferenceIndex()));
+
+			getCurrentKey().set((long)ri << 32 | r.getAlignmentStart() - 1);
+		}
+
+		// Correct the program group if necessary.
+		if (headerMerger.hasProgramGroupCollisions()) {
+			final String pg = (String)r.getAttribute(
+				ReservedTagConstants.PROGRAM_GROUP_ID);
+			if (pg != null)
+				r.setAttribute(
+					ReservedTagConstants.PROGRAM_GROUP_ID,
+					headerMerger.getProgramGroupId(h, pg));
+		}
+
+		// Correct the read group if necessary.
+		if (headerMerger.hasReadGroupCollisions()) {
+			final String rg = (String)r.getAttribute(
+				ReservedTagConstants.READ_GROUP_ID);
+			if (rg != null)
+				r.setAttribute(
+					ReservedTagConstants.READ_GROUP_ID,
+					headerMerger.getProgramGroupId(h, rg));
+		}
+
+		getCurrentValue().set(r);
+		return true;
+	}
+}
+
 final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
-	public static final String  INPUT_PATH_PROP = "hadoopbam.sort.input.path",
-	                           OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
+	public static final String OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
 
 	@Override public RecordWriter<NullWritable,SAMRecordWritable>
 		getRecordWriter(TaskAttemptContext context)
 		throws IOException
 	{
-		if (super.header == null) {
-			final Configuration conf = context.getConfiguration();
-			final Path          path = new Path(conf.get(INPUT_PATH_PROP));
-			readSAMHeaderFrom(path, path.getFileSystem(conf));
-		}
+		if (super.header == null)
+			super.header = Sort.getHeaderMerger(
+				context.getConfiguration()).getMergedHeader();
+
 		return super.getRecordWriter(context);
 	}
 

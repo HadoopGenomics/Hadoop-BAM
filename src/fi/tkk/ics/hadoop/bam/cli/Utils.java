@@ -127,7 +127,7 @@ public final class Utils {
 		argv0 = null;
 	}
 
-	public static void setSamplingConf(Path input, Configuration conf)
+	public static void configureSampling(Path input, Configuration conf)
 		throws IOException
 	{
 		final Path partition =

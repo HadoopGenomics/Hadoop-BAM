@@ -16,6 +16,7 @@
 			includeantruntime="yes"
 		>
 			<classpath path="sam-1.56.jar"/>
+			<classpath path="picard-1.56.jar"/>
 			<include name="**/*.java"/>
 			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
 		</javac>
