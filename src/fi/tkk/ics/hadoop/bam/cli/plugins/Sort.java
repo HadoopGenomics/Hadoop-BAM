@@ -84,7 +84,8 @@ public final class Sort extends CLIPlugin {
 		outputFileOpt = new  StringOption('o', "output-file=PATH");
 
 	public Sort() {
-		super("sort", "BAM sorting", "1.0", "WORKDIR INPATH [INPATH...]",
+		super("sort", "BAM sorting and merging", "2.0",
+			"WORKDIR INPATH [INPATH...]",
 			optionDescs,
 			"Merges together the BAM files in the INPATHs, sorting the result, "+
 			"in a distributed fashion using Hadoop. Output parts are placed in "+
