@@ -56,14 +56,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
-import fi.tkk.ics.hadoop.bam.cli.plugins.chipster.hadooptrunk.MultipleOutputs;
-
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
+import fi.tkk.ics.hadoop.bam.custom.hadoop.MultipleOutputs;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
@@ -279,7 +278,7 @@ public final class Summarize extends CLIPlugin {
 		throws IOException, ClassNotFoundException, InterruptedException
 	{
 		final Configuration conf = getConf();
-		Utils.setSamplingConf(bamPath, conf);
+		Utils.configureSampling(bamPath, conf);
 		final Job job = new Job(conf);
 
 		job.setJarByClass  (Summarize.class);
