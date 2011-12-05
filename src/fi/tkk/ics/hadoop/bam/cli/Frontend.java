@@ -35,8 +35,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public final class Frontend {
 	public static final int
-		VERSION_MAJOR = 2,
-		VERSION_MINOR = 0;
+		VERSION_MAJOR = 3,
+		VERSION_MINOR = 1;
 
 	public static void main(String[] args) {
 		final Map<String, CLIPlugin> plugins = new TreeMap<String, CLIPlugin>();
