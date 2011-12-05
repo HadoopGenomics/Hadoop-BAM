@@ -101,7 +101,7 @@ public final class Summarize extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			verboseOpt, "tell Hadoop jobs to be more verbose"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputDirOpt, "output complete summary files to the file PATH, "+
+			outputDirOpt, "output complete summary files to the directory PATH, "+
 			              "removing the parts from WORKDIR"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			sortOpt, "sort created summaries by position"));
