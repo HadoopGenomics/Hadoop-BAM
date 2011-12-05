@@ -43,8 +43,9 @@ Library usage
 
 See the Javadoc as well as the command line plugins' source code (in
 src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for library usage information. In
-particular, for MapReduce usage, see
-src/fi/tkk/ics/hadoop/bam/cli/plugins/Sort.java.
+particular, for MapReduce usage, see for example
+src/fi/tkk/ics/hadoop/bam/cli/plugins/Sort.java and
+src/fi/tkk/ics/hadoop/bam/cli/plugins/chipster/Summarize.java.
 
 ------------------
 Command-line usage
@@ -107,3 +108,42 @@ Java class path. A command such as the following:
 
 Is equivalent to the "hadoop jar hadoop-bam.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.
+
+------------------
+Summarizer plugins
+------------------
+
+This part explains some behaviour of the summarizing plugins, available in the
+command line interface as "hadoop jar hadoop-bam.jar summarize" and "hadoop jar
+hadoop-bam.jar summarysort". Unless you are a Chipster user, this section is
+unlikely to be relevant to you, and even then, this is not likely to be
+something you are interested in.
+
+Summarization is typically best done with the "hadoop jar hadoop-bam.jar
+summarize --sort -o output-directory" command. Then there is no need to worry
+about concatenating nor sorting the output, as both are done automatically in
+this one command. But if you do not pass the "--sort" option, do remember that
+Chipster needs the outputs sorted before it can make use of them. For this, you
+need to run a separate "hadoop jar hadoop-bam.jar summarysort" command for each
+summary file output by "summarize".
+
+Output format
+.............
+
+The summarizer's output format is tabix-compatible. It is composed of rows of
+tab-separated data:
+
+	<reference sequence ID>	<left coordinate> <right coordinate> <count>
+
+The coordinate columns are 1-based and both ends are inclusive.
+
+The 'count' field represents the number of alignments that have been summarized
+into that single range. Note that it may not exactly match any of the 'level'
+arguments passed to Summarize, due to Hadoop splitting the file at a boundary
+which is not an even multiple of the requested level.
+
+Note that the output files are BGZF-compressed, but do not include the empty
+terminating block which would make them valid BGZF files. This is to avoid
+having to remove it from the end of each output file in distributed usage (when
+not using the "-o" convenience parameter): it's much simpler to put an empty
+gzip block to the end of the output.
