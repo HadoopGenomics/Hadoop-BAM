@@ -1,0 +1,36 @@
+<project default="jar">
+	<property name="targetdir" value="bin"/>
+	<property name="srcdir"    value="src"/>
+
+	<fileset id="srcfiles" dir="${srcdir}" includes="**/*.java"/>
+
+	<target name="compile">
+		<mkdir dir="${targetdir}"/>
+		<javac
+			srcdir="src"
+			destdir="${targetdir}"
+			source="1.6" target="1.6"
+			classpath="."
+			encoding="UTF-8"
+			debug="on"
+			includeantruntime="yes"
+		>
+			<include name="**/*.java"/>
+			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
+		</javac>
+	</target>
+	<target name="jar" depends="compile">
+		<jar destfile="summarize.jar" basedir="${targetdir}">
+			<include name="**/*.class"/>
+			<service type="fi.tkk.ics.hadoop.bam.cli.CLIPlugin">
+				<provider classname="fi.tkk.ics.hadoop.bam.cli.plugins.chipster.Summarize"/>
+				<provider classname="fi.tkk.ics.hadoop.bam.cli.plugins.chipster.SummarySort"/>
+			</service>
+		</jar>
+	</target>
+	<target name="clean">
+		<delete>
+			<fileset dir="${targetdir}" includes="**/*.class"/>
+		</delete>
+	</target>
+</project>
