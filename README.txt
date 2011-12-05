@@ -6,8 +6,8 @@ tools in the vein of SAMtools.
 Dependencies
 ------------
 
-Hadoop 0.20.2 or 0.20.203.0. 0.21 or later will not work with this version of
-Hadoop-BAM.
+Hadoop 0.20.2 or later in the 0.20 series. 0.21 or later will not work with
+this version of Hadoop-BAM.
 
 Picard SAM-JDK. Version 1.56 is provided in the form of sam-1.56.jar and
 picard-1.56.jar. Later versions may also work but have not been tested.
