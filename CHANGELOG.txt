@@ -1,3 +1,21 @@
+2011-12-05 --- 3.1:
+	- Important data loss bug fixes!
+
+	- 'sort' plugin updated to 2.0: it can now take multiple input files,
+	  merging them together.
+
+	- New 'summary' and 'summarysort' command line plugins, respectively for
+	  creating and sorting Chipster summary files. Not very generically useful;
+	  intended more as example code.
+
+	- Some minor command line argument handling bug fixes.
+
+	- Updated embedded and provided Picard from 1.47 to 1.56.
+
+	- As Hadoop-BAM now depends on Picard proper as well as the SAM-JDK, a
+	  compatible JAR, currently picard-1.56.jar, is distributed together with
+	  Hadoop-BAM.
+
 2011-08-19 --- 3.0:
 	- Plugin-extensible command line interface.
 	- The 'view', 'sort', and 'index' command line plugins. These supersede the
