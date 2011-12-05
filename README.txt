@@ -41,9 +41,17 @@ Documentation can then be found in the "doc" subdirectory.
 Library usage
 -------------
 
+Hadoop-BAM provides the standard set of Hadoop file format classes for BAM
+files: a FileInputFormat and a RecordReader, and a FileOutputFormat and a
+RecordWriter. These are BAMInputFormat, BAMRecordReader, BAMOutputFormat, and
+BAMRecordWriter, respectively.
+
+Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
+0.20 Hadoop releases instead of the older, deprecated API.
+
 See the Javadoc as well as the command line plugins' source code (in
-src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for library usage information. In
-particular, for MapReduce usage, see for example
+src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for more information. In
+particular, for MapReduce usage examples, see for example
 src/fi/tkk/ics/hadoop/bam/cli/plugins/Sort.java and
 src/fi/tkk/ics/hadoop/bam/cli/plugins/chipster/Summarize.java.
 
