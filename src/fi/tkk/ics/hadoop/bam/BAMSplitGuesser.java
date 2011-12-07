@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import net.sf.samtools.FileTruncatedException;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
@@ -130,11 +131,10 @@ public class BAMSplitGuesser {
 							++b;
 						}
 					}
-				} catch (SAMFormatException e) {
-					continue;
-				} catch (RuntimeEOFException e) {
-					continue;
-				}
+				} catch (SAMFormatException     e) { continue; }
+				  catch (RuntimeEOFException    e) { continue; }
+				  catch (FileTruncatedException e) { continue; }
+
 				return beg+cp0 << 16 | up0;
 			}
 		}
