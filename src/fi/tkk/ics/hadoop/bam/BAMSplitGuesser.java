@@ -227,12 +227,10 @@ public class BAMSplitGuesser {
 	}
 
 	private int guessNextBAMPos(long cpVirt, int up, int cSize) {
-		// The BAM record needs to be in this block and what we're actually
-		// searching for is what's at offset [4], not [0]. So skip ahead to the
-		// minimum point where [4] can be such that [0] is in this block at
-		// position up or greater.
-		if (up < 4)
-			up += 4;
+		// What we're actually searching for is what's at offset [4], not [0]. So
+		// skip ahead by 4, thus ensuring that whenever we find a valid [0] it's
+		// at position up or greater.
+		up += 4;
 
 		try {
 			while (up + SHORTEST_POSSIBLE_BAM_RECORD - 4 < cSize) {
