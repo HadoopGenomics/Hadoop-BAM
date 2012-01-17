@@ -31,7 +31,7 @@ import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 
-import net.sf.samtools.util.AsciiLineReader;
+import net.sf.samtools.util.BufferedLineReader;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.StringUtil;
 
@@ -61,9 +61,10 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
     private static final int NUM_REQUIRED_FIELDS = 11;
 
     // Read string must contain only these characters
-    private static final Pattern VALID_BASES = Pattern.compile("^[acgtnACGTN.=]+$");
+    private static final Pattern VALID_BASES = Pattern.compile("^[acmgrsvtwyhkdbnACMGRSVTWYHKDBN.=]+$");
 
-    private AsciiLineReader mReader;
+    private SAMRecordFactory samRecordFactory;
+    private BufferedLineReader mReader;
     private SAMFileHeader mFileHeader = null;
     private String mCurrentLine = null;
     private RecordIterator mIterator = null;
@@ -80,8 +81,8 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
      * Prepare to read a SAM text file.
      * @param stream Need not be buffered, as this class provides buffered reading.
      */
-    SAMTextReader(final InputStream stream, final ValidationStringency validationStringency) {
-        mReader = new AsciiLineReader(stream);
+    SAMTextReader(final InputStream stream, final ValidationStringency validationStringency, final SAMRecordFactory factory) {
+        mReader = new BufferedLineReader(stream);
         this.validationStringency = validationStringency;
         readHeader();
     }
@@ -91,8 +92,8 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
      * @param stream Need not be buffered, as this class provides buffered reading.
      * @param file For error reporting only.
      */
-    SAMTextReader(final InputStream stream, final File file, final ValidationStringency validationStringency) {
-        this(stream, validationStringency);
+    SAMTextReader(final InputStream stream, final File file, final ValidationStringency validationStringency, final SAMRecordFactory factory) {
+        this(stream, validationStringency, factory);
         mFile = file;
     }
 
@@ -112,8 +113,12 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
         throw new UnsupportedOperationException("Cannot enable index memory mapping for a SAM text reader");
     }
 
-    void enableCrcChecking(boolean enabled) {
+    void enableCrcChecking(final boolean enabled) {
         // Do nothing - this has no meaning for SAM reading
+    }
+
+    void setSAMRecordFactory(final SAMRecordFactory factory) {
+        this.samRecordFactory = factory;
     }
 
     boolean hasIndex() {
@@ -169,7 +174,7 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
      * @param fileSpan The file span.
      * @return An iterator over the given file span.
      */
-    CloseableIterator<SAMRecord> getIterator(SAMFileSpan fileSpan) {
+    CloseableIterator<SAMRecord> getIterator(final SAMFileSpan fileSpan) {
         throw new UnsupportedOperationException("Cannot directly iterate over regions within SAM text files.");
     }
 
@@ -323,7 +328,7 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
                     reportErrorParsingLine("Empty field at position " + i + " (zero-based)");
                 }
             }
-            final SAMRecord samRecord = new SAMRecord(mFileHeader);
+            final SAMRecord samRecord = samRecordFactory.createSAMRecord(mFileHeader);
             samRecord.setValidationStringency(getValidationStringency());
             if(mParentReader != null)
                 samRecord.setFileSource(new SAMFileSource(mParentReader,null));
@@ -452,7 +457,17 @@ class SAMTextReader extends SAMFileReader.ReaderImplementation {
                 reportErrorParsingLine(e);
             }
             if (entry != null) {
-                samRecord.setAttribute(entry.getKey(), entry.getValue());
+                if (entry.getValue() instanceof TagValueAndUnsignedArrayFlag) {
+                    final TagValueAndUnsignedArrayFlag valueAndFlag = (TagValueAndUnsignedArrayFlag) entry.getValue();
+                    if (valueAndFlag.isUnsignedArray) {
+                        samRecord.setUnsignedArrayAttribute(entry.getKey(), valueAndFlag.value);
+                    }
+                    else {
+                        samRecord.setAttribute(entry.getKey(), valueAndFlag.value);
+                    }
+                } else {
+                    samRecord.setAttribute(entry.getKey(), entry.getValue());
+                }
             }
         }
     }

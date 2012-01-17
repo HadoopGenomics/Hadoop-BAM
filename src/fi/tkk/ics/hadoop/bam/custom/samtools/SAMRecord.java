@@ -36,6 +36,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMBinaryTagAndValue;
+import net.sf.samtools.SAMBinaryTagAndUnsignedArrayValue;
 import net.sf.samtools.SAMException;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.TextCigarCodec;
@@ -43,7 +44,11 @@ import net.sf.samtools.util.CoordMath;
 import net.sf.samtools.util.StringUtil;
 import net.sf.samtools.SAMFileReader;
 
-import java.util.*;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 
 /**
@@ -53,12 +58,12 @@ import java.util.*;
  * do not necessarily mean that a read is aligned.  Those values may merely be set to force a SAMRecord
  * to appear in a certain place in the sort order.  The readUnmappedFlag must be checked to determine whether
  * or not a read is mapped.  Only if the readUnmappedFlag is false can the reference name/index and alignment start
- * be interpretted as indicating an actual alignment position.
+ * be interpreted as indicating an actual alignment position.
  *
  * Likewise, presence of mate reference name/index and mate alignment start do not necessarily mean that the
  * mate is aligned.  These may be set for an unaligned mate if the mate has been forced into a particular place
  * in the sort order per the above paragraph.  Only if the mateUnmappedFlag is false can the mate reference name/index
- * and mate alignment start be interpretted as indicating the actual alignment position of the mate.
+ * and mate alignment start be interpreted as indicating the actual alignment position of the mate.
  *
  * Note also that there are a number of getters & setters that are linked, i.e. they present different representations
  * of the same underlying data.  In these cases there is typically a representation that is preferred because it
@@ -85,6 +90,9 @@ import java.util.*;
  * Some of the get() methods return values that are mutable, due to the limitations of Java.  A caller should
  * never change the value returned by a get() method.  If you want to change the value of some attribute of a
  * SAMRecord, create a new value object and call the appropriate set() method.
+ *
+ * By default, extensive validation of SAMRecords is done when they are read.  Very limited validation is done when
+ * values are set onto SAMRecords.
  */
 public class SAMRecord implements Cloneable
 {
@@ -773,7 +781,7 @@ public class SAMRecord implements Cloneable
      * Use setReadUnmappedFlag instead.
      * @deprecated
      */
-    @Deprecated public void setReadUmappedFlag(final boolean flag) {
+    public void setReadUmappedFlag(final boolean flag) {
         setReadUnmappedFlag(flag);
     }
 
@@ -967,6 +975,7 @@ public class SAMRecord implements Cloneable
         throw new SAMException("Value for tag " + tag + " is not a Float: " + val.getClass());
     }
 
+    /** Will work for signed byte array, unsigned byte array, or old-style hex array */
     public byte[] getByteArrayAttribute(final String tag) {
         final Object val = getAttribute(tag);
         if (val == null) return null;
@@ -974,6 +983,85 @@ public class SAMRecord implements Cloneable
             return (byte[])val;
         }
         throw new SAMException("Value for tag " + tag + " is not a byte[]: " + val.getClass());
+    }
+
+    public byte[] getUnsignedByteArrayAttribute(final String tag) {
+        final byte[] ret = getByteArrayAttribute(tag);
+        if (ret != null) requireUnsigned(tag);
+        return ret;
+    }
+
+    /** Will work for signed byte array or old-style hex array */
+    public byte[] getSignedByteArrayAttribute(final String tag) {
+        final byte[] ret = getByteArrayAttribute(tag);
+        if (ret != null) requireSigned(tag);
+        return ret;
+    }
+
+    public short[] getUnsignedShortArrayAttribute(final String tag) {
+        final Object val = getAttribute(tag);
+        if (val == null) return null;
+        if (val instanceof short[]) {
+            requireUnsigned(tag);
+            return (short[]) val;
+        }
+        throw new SAMException("Value for tag " + tag + " is not a short[]: " + val.getClass());
+    }
+
+    public short[] getSignedShortArrayAttribute(final String tag) {
+        final Object val = getAttribute(tag);
+        if (val == null) return null;
+        if (val instanceof short[]) {
+            requireSigned(tag);
+            return (short[]) val;
+        }
+        throw new SAMException("Value for tag " + tag + " is not a short[]: " + val.getClass());
+    }
+
+    public int[] getUnsignedIntArrayAttribute(final String tag) {
+        final Object val = getAttribute(tag);
+        if (val == null) return null;
+        if (val instanceof int[]) {
+            requireUnsigned(tag);
+            return (int[]) val;
+        }
+        throw new SAMException("Value for tag " + tag + " is not a int[]: " + val.getClass());
+    }
+
+    public int[] getSignedIntArrayAttribute(final String tag) {
+        final Object val = getAttribute(tag);
+        if (val == null) return null;
+        if (val instanceof int[]) {
+            requireSigned(tag);
+            return (int[]) val;
+        }
+        throw new SAMException("Value for tag " + tag + " is not a int[]: " + val.getClass());
+    }
+
+    public float[] getFloatArrayAttribute(final String tag) {
+        final Object val = getAttribute(tag);
+        if (val != null && !(val instanceof float[])) {
+            throw new SAMException("Value for tag " + tag + " is not a float[]: " + val.getClass());
+        }
+        return (float[]) val;
+    }
+
+    /**
+     * @return True if this tag is an unsigned array, else false.
+     * @throws SAMException if the tag is not present.
+     */
+    public boolean isUnsignedArrayAttribute(final String tag) {
+        final SAMBinaryTagAndValue tmp = this.mAttributes.find(SAMTagUtil.getSingleton().makeBinaryTag(tag));
+        if (tmp != null) return tmp.isUnsignedArray();
+        throw new SAMException("Tag " + tag + " is not present in this SAMRecord");
+    }
+
+    private void requireSigned(final String tag) {
+        if (isUnsignedArrayAttribute(tag))  throw new SAMException("Value for tag " + tag + " is not signed");
+    }
+
+    private void requireUnsigned(final String tag) {
+        if (!isUnsignedArrayAttribute(tag))  throw new SAMException("Value for tag " + tag + " is not unsigned");
     }
 
     protected Object getAttribute(final short tag) {
@@ -988,7 +1076,7 @@ public class SAMRecord implements Cloneable
     /**
      * Set a named attribute onto the SAMRecord.  Passing a null value causes the attribute to be cleared.
      * @param tag two-character tag name.  See http://samtools.sourceforge.net/SAM1.pdf for standard and user-defined tags.
-     * @param value Supported types are String, Char, Integer, Float, byte[].
+     * @param value Supported types are String, Char, Integer, Float, byte[], short[]. int[], float[].
      * If value == null, tag is cleared.
      *
      * Byte and Short are allowed but discouraged.  If written to a SAM file, these will be converted to Integer,
@@ -996,25 +1084,64 @@ public class SAMRecord implements Cloneable
      *
      * Long with value between 0 and MAX_UINT is allowed for BAM but discouraged.  Attempting to write such a value
      * to SAM will cause an exception to be thrown.
+     *
+     * To set unsigned byte[], unsigned short[] or unsigned int[] (which is discouraged because of poor Java language
+     * support), setUnsignedArrayAttribute() must be used instead of this method.
+     *
+     * String values are not validated to ensure that they conform to SAM spec.
      */
     public void setAttribute(final String tag, final Object value) {
+        if (value != null && value.getClass().isArray() && Array.getLength(value) == 0) {
+            throw new IllegalArgumentException("Empty value passed for tag " + tag);
+        }
         setAttribute(SAMTagUtil.getSingleton().makeBinaryTag(tag), value);
     }
 
+    /**
+     * Because Java does not support unsigned integer types, we think it is a bad idea to encode them in SAM
+     * files.  If you must do so, however, you must call this method rather than setAttribute, because calling
+     * this method is the way to indicate that, e.g. a short array should be interpreted as unsigned shorts.
+     * @param value must be one of byte[], short[], int[]
+     */
+    public void setUnsignedArrayAttribute(final String tag, final Object value) {
+        if (!value.getClass().isArray()) {
+            throw new IllegalArgumentException("Non-array passed to setUnsignedArrayAttribute for tag " + tag);
+        }
+        if (Array.getLength(value) == 0) {
+            throw new IllegalArgumentException("Empty array passed to setUnsignedArrayAttribute for tag " + tag);
+        }
+        setAttribute(SAMTagUtil.getSingleton().makeBinaryTag(tag), value, true);
+    }
+    
     protected void setAttribute(final short tag, final Object value) {
+        setAttribute(tag, value, false);
+    }
+
+    protected void setAttribute(final short tag, final Object value, boolean isUnsignedArray) {
         if (value != null &&
                 !(value instanceof Byte || value instanceof Short || value instanceof Integer ||
                 value instanceof String || value instanceof Character || value instanceof Float ||
-                value instanceof byte[])) {
+                value instanceof byte[] || value instanceof short[] || value instanceof int[] ||
+                        value instanceof float[])) {
             throw new SAMException("Attribute type " + value.getClass() + " not supported. Tag: " +
                     SAMTagUtil.getSingleton().makeStringTag(tag));
         }
-        // It's a new tag
         if (value == null) {
             if (this.mAttributes != null) this.mAttributes = this.mAttributes.remove(tag);
         }
         else {
-            final SAMBinaryTagAndValue tmp = new SAMBinaryTagAndValue(tag, value);
+            final SAMBinaryTagAndValue tmp;
+            if(!isUnsignedArray) {
+                tmp = new SAMBinaryTagAndValue(tag, value);
+            }
+            else {
+                if (!value.getClass().isArray() || value instanceof float[]) {
+                    throw new SAMException("Attribute type " + value.getClass() +
+                            " cannot be encoded as an unsigned array. Tag: " +
+                            SAMTagUtil.getSingleton().makeStringTag(tag));
+                }
+                tmp = new SAMBinaryTagAndUnsignedArrayValue(tag, value);
+            }
             if (this.mAttributes == null) this.mAttributes = tmp;
             else this.mAttributes = this.mAttributes.insert(tmp);
         }
@@ -1127,6 +1254,12 @@ public class SAMRecord implements Cloneable
         return -1;
     }
 
+    /**
+     *
+     * @return String representation of this.
+     * @deprecated This method is not guaranteed to return a valid SAM text representation of the SAMRecord.
+     * To get standard SAM text representation, use net.sf.samtools.SAMRecord#getSAMString().
+     */
     public String format() {
         final StringBuilder buffer = new StringBuilder();
         addField(buffer, getReadName(), null, null);
@@ -1405,10 +1538,7 @@ public class SAMRecord implements Cloneable
                 if (ret == null) ret = new ArrayList<SAMValidationError>();
                 ret.add(new SAMValidationError(SAMValidationError.Type.INVALID_MAPPING_QUALITY, "MAPQ should be 0 for unmapped read.", getReadName()));
             }
-            if (getCigarLength() != 0) {
-                if (ret == null) ret = new ArrayList<SAMValidationError>();
-                ret.add(new SAMValidationError(SAMValidationError.Type.INVALID_CIGAR, "CIGAR should have zero elements for unmapped read.", getReadName()));
-            }
+            /* non-empty CIGAR on unmapped read is now allowed, because there are special reads when SAM is used to store assembly. */
 /*
             TODO: PIC-97 This validation should be enabled, but probably at this point there are too many
             BAM files that have the proper pair flag set when read or mate is unmapped.
@@ -1594,6 +1724,14 @@ public class SAMRecord implements Cloneable
         }
 
         return builder.toString();
+    }
+
+    /**
+	Returns the record in the SAM line-based text format.  Fields are
+	separated by '\t' characters, and the String is terminated by '\n'.
+    */
+    public String getSAMString() {
+	return SAMTextWriter.getSAMString(this);
     }
 }
 
