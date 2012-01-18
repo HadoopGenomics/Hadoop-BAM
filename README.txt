@@ -19,8 +19,8 @@ Availability:
 In order to use all the functionality of Hadoop-BAM, you need to have Picard's
 "sam-1.56.jar" and "picard-1.56.jar" (assuming version 1.56) and Hadoop's
 "hadoop-0.20.2-core.jar" (assuming version 0.20.2) in the CLASSPATH environment
-variable, and, for running under Hadoop, in the HADOOP_CLASSPATH setting in
-hadoop-env.sh.
+variable. For running under Hadoop, the Picard .jars should also be in the
+HADOOP_CLASSPATH setting in hadoop-env.sh.
 
 ------------
 Installation
