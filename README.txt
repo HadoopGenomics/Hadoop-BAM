@@ -26,8 +26,11 @@ HADOOP_CLASSPATH setting in hadoop-env.sh.
 Installation
 ------------
 
-The easiest way to build Hadoop-BAM is to use Apache Ant (version 1.6 or
-greater) with the following command:
+A precompiled "hadoop-bam.jar" is provided. You may also build it yourself
+using the commands below.
+
+The easiest way to compile Hadoop-BAM is to use Apache Ant (version 1.6 or
+greater) with the following command and all relevant .jar files in CLASSPATH:
 
 	ant jar
 
