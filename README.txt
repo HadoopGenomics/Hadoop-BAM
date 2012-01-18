@@ -34,7 +34,14 @@ greater) with the following command and all relevant .jar files in CLASSPATH:
 
 	ant jar
 
-This will create the 'hadoop-bam.jar' file. For Javadoc documentation, run:
+Note that this building step depends on an additional .jar file, provided by
+Hadoop as "lib/commons-cli-1.2.jar" (assuming Hadoop 0.20.2). Ordinarily, when
+using Hadoop-BAM under Hadoop, this need not be provided in CLASSPATH or
+HADOOP_CLASSPATH, since Hadoop loads it by itself; but compilation does not
+happen under Hadoop, so here it is necessary.
+
+The previous command will create the 'hadoop-bam.jar' file. For Javadoc
+documentation, run:
 
 	ant javadoc
 
@@ -112,8 +119,9 @@ Running without Hadoop
 
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 SAM-JDK and Hadoop .jar files ("sam-1.56.jar" and "picard-1.56.jar" and
-"hadoop-0.20.2-core.jar" for versions 1.56 and 0.20.2 respectively) are in the
-Java class path. A command such as the following:
+"hadoop-0.20.2-core.jar" for versions 1.56 and 0.20.2 respectively) as well as
+the Apache Commons CLI .jar provided by Hadoop ("lib/commons-cli-1.2.jar" for
+version 0.20.2) are in the Java class path. A command such as the following:
 
 	java fi.tkk.ics.hadoop.bam.cli.Frontend
 
