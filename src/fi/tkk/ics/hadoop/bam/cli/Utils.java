@@ -95,8 +95,8 @@ public final class Utils {
 		out.print('\n');
 	}
 
-	private static String argv0 = null;
-	private static Class  argv0Class = null;
+	private static String   argv0 = null;
+	private static Class<?> argv0Class = null;
 
 	// For printing something intelligent in "Usage: argv0 <args>" messages.
 	public static String getArgv0() {
@@ -122,7 +122,7 @@ public final class Utils {
 
 		return argv0;
 	}
-	public static void setArgv0Class(Class cl) {
+	public static void setArgv0Class(Class<?> cl) {
 		argv0Class = cl;
 		argv0 = null;
 	}
