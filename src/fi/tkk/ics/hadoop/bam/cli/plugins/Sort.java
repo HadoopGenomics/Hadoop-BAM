@@ -310,6 +310,9 @@ final class SortReducer
 	}
 }
 
+// Because we want a total order and we may change the key when merging
+// headers, we can't use a mapper here: the InputSampler reads directly from
+// the InputFormat.
 final class SortInputFormat extends BAMInputFormat {
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
