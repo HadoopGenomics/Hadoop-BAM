@@ -66,8 +66,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-import fi.tkk.ics.hadoop.bam.BAMInputFormat;
-import fi.tkk.ics.hadoop.bam.BAMRecordReader;
+import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
@@ -316,25 +315,33 @@ final class SortReducer
 final class SortInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
-	private BAMInputFormat bamIF = new BAMInputFormat();
+	private AnySAMInputFormat baseIF;
+
+	private void initBaseIF(final Configuration conf) {
+		baseIF = new AnySAMInputFormat(conf, true);
+	}
 
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
 	{
+		initBaseIF(ctx.getConfiguration());
+
 		final RecordReader<LongWritable,SAMRecordWritable> rr =
-			new SortRecordReader(bamIF.createRecordReader(split, ctx));
+			new SortRecordReader(baseIF.createRecordReader(split, ctx));
 		rr.initialize(split, ctx);
 		return rr;
 	}
 
 	@Override protected boolean isSplitable(JobContext job, Path path) {
-		return bamIF.isSplitable(job, path);
+		initBaseIF(job.getConfiguration());
+		return baseIF.isSplitable(job, path);
 	}
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		return bamIF.getSplits(job);
+		initBaseIF(job.getConfiguration());
+		return baseIF.getSplits(job);
 	}
 }
 final class SortRecordReader
