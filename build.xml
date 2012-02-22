@@ -9,10 +9,9 @@
 	<target name="compile">
 		<mkdir dir="${targetdir}"/>
 		<javac
-			srcdir="src"
+			srcdir="${srcdir}"
 			destdir="${targetdir}"
 			source="1.6" target="1.6"
-			classpath="."
 			encoding="UTF-8"
 			debug="on"
 			includeantruntime="yes"
@@ -25,7 +24,9 @@
 
 			<classpath path="sam-1.56.jar"/>
 			<classpath path="picard-1.56.jar"/>
+
 			<include name="**/*.java"/>
+
 			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
 		</javac>
 	</target>
