@@ -313,29 +313,70 @@ final class SortReducer
 // Because we want a total order and we may change the key when merging
 // headers, we can't use a mapper here: the InputSampler reads directly from
 // the InputFormat.
-final class SortInputFormat extends BAMInputFormat {
+final class SortInputFormat
+	extends FileInputFormat<LongWritable,SAMRecordWritable>
+{
+	private BAMInputFormat bamIF = new BAMInputFormat();
+
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
 	{
 		final RecordReader<LongWritable,SAMRecordWritable> rr =
-			new SortRecordReader();
+			new SortRecordReader(bamIF.createRecordReader(split, ctx));
 		rr.initialize(split, ctx);
 		return rr;
 	}
-}
-final class SortRecordReader extends BAMRecordReader {
-	private SamFileHeaderMerger headerMerger;
 
-	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
+	@Override protected boolean isSplitable(JobContext job, Path path) {
+		return bamIF.isSplitable(job, path);
+	}
+	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		super.initialize(spl, ctx);
+		return bamIF.getSplits(job);
+	}
+}
+final class SortRecordReader
+	extends RecordReader<LongWritable,SAMRecordWritable>
+{
+	private final RecordReader<LongWritable,SAMRecordWritable> baseRR;
+
+	private SamFileHeaderMerger headerMerger;
+
+	public SortRecordReader(RecordReader<LongWritable,SAMRecordWritable> rr) {
+		baseRR = rr;
+	}
+
+	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
+		throws InterruptedException, IOException
+	{
 		headerMerger = Sort.getHeaderMerger(ctx.getConfiguration());
 	}
 
-	@Override public boolean nextKeyValue() {
-		if (!super.nextKeyValue())
+	@Override public void close() throws IOException { baseRR.close(); }
+
+	@Override public float getProgress()
+		throws InterruptedException, IOException
+	{
+		return baseRR.getProgress();
+	}
+
+	@Override public LongWritable getCurrentKey()
+		throws InterruptedException, IOException
+	{
+		return baseRR.getCurrentKey();
+	}
+	@Override public SAMRecordWritable getCurrentValue()
+		throws InterruptedException, IOException
+	{
+		return baseRR.getCurrentValue();
+	}
+
+	@Override public boolean nextKeyValue()
+		throws InterruptedException, IOException
+	{
+		if (!baseRR.nextKeyValue())
 			return false;
 
 		final SAMRecord     r = getCurrentValue().get();
