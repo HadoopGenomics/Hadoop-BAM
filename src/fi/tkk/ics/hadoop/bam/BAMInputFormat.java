@@ -70,8 +70,13 @@ public class BAMInputFormat
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		final List<InputSplit> splits = super.getSplits(job);
+		return getSplits(super.getSplits(job), job.getConfiguration());
+	}
 
+	public List<InputSplit> getSplits(
+			List<InputSplit> splits, Configuration cfg)
+		throws IOException
+	{
 		// Align the splits so that they don't cross blocks.
 
 		// addIndexedSplits() requires the given splits to be sorted by file
@@ -86,8 +91,6 @@ public class BAMInputFormat
 
 		final List<InputSplit> newSplits =
 			new ArrayList<InputSplit>(splits.size());
-
-		final Configuration cfg = job.getConfiguration();
 
 		for (int i = 0; i < splits.size();) {
 			try {
