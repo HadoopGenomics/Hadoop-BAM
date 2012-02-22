@@ -122,7 +122,7 @@ public final class Sort extends CLIPlugin {
 		final boolean verbose = parser.getBoolean(verboseOpt);
 
 		final String intermediateOutName =
-			out == null ? inputs.get(0).getName() : out;
+			(out == null ? inputs.get(0) : new Path(out)).getName();
 
 		final Configuration conf = getConf();
 
