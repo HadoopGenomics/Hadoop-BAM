@@ -161,7 +161,7 @@ public final class Sort extends CLIPlugin {
 			job.setOutputKeyClass   (NullWritable.class);
 			job.setOutputValueClass (SAMRecordWritable.class);
 
-			job.setInputFormatClass (BAMInputFormat.class);
+			job.setInputFormatClass (SortInputFormat.class);
 			job.setOutputFormatClass(SortOutputFormat.class);
 
 			for (final Path in : inputs)
