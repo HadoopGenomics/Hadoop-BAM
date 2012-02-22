@@ -284,14 +284,14 @@ final class SortRecordReader extends RecordReader<LongWritable,Text> {
 		Text line = getCurrentValue();
 		int tabOne = line.find("\t");
 
-		int rid = Integer.parseInt(line.decode(line.getBytes(), 0, tabOne));
+		int rid = Integer.parseInt(Text.decode(line.getBytes(), 0, tabOne));
 
 		int tabTwo = line.find("\t", tabOne + 1);
 		int posBeg = tabOne + 1;
 		int posEnd = tabTwo - 1;
 
 		int pos = Integer.parseInt(
-			line.decode(line.getBytes(), posBeg, posEnd - posBeg + 1));
+			Text.decode(line.getBytes(), posBeg, posEnd - posBeg + 1));
 
 		key.set((long)rid << 32 | pos);
 		return true;
