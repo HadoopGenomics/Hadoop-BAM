@@ -2,6 +2,8 @@
 	<property name="targetdir" value="bin"/>
 	<property name="srcdir"    value="src"/>
 
+	<property environment="env"/>
+
 	<fileset id="srcfiles" dir="${srcdir}" includes="**/*.java"/>
 
 	<target name="compile">
@@ -15,6 +17,12 @@
 			debug="on"
 			includeantruntime="yes"
 		>
+			<classpath path="${env.HADOOP_HOME}/hadoop-0.20.2-core.jar"/>
+			<classpath path="${env.HADOOP_HOME}/hadoop-core-0.20.203.0.jar"/>
+			<classpath path="${env.HADOOP_HOME}/hadoop-core-0.20.204.0.jar"/>
+			<classpath path="${env.HADOOP_HOME}/hadoop-core-0.20.205.0.jar"/>
+			<classpath path="${env.HADOOP_HOME}/hadoop-core-1.0.0.jar"/>
+
 			<classpath path="sam-1.56.jar"/>
 			<classpath path="picard-1.56.jar"/>
 			<include name="**/*.java"/>
