@@ -93,14 +93,15 @@ public final class Sort extends CLIPlugin {
 			optionDescs,
 			"Merges together the BAM and SAM files in the INPATHs, sorting the "+
 			"result, in a distributed fashion using Hadoop. Output parts are "+
-			"placed in WORKDIR in headerless BAM format.");
+			"placed in WORKDIR in, by default, headerless BAM format.");
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			verboseOpt, "tell the Hadoop job to be more verbose"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputFileOpt, "output a complete BAM file to the file PATH, "+
-			               "removing the parts from WORKDIR"));
+			outputFileOpt, "output a complete SAM/BAM file to the file PATH, "+
+			               "removing the parts from WORKDIR; SAM/BAM is chosen "+
+			               "by file extension"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
 			                "never by file extension"));
