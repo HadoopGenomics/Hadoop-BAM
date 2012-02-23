@@ -435,18 +435,23 @@ final class SortRecordReader
 	}
 }
 
-final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
+final class SortOutputFormat
+	extends FileOutputFormat<NullWritable,SAMRecordWritable>
+{
 	public static final String OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
+
+	private KeyIgnoringBAMOutputFormat<NullWritable> baseOF =
+		new KeyIgnoringBAMOutputFormat<NullWritable>();
 
 	@Override public RecordWriter<NullWritable,SAMRecordWritable>
 		getRecordWriter(TaskAttemptContext context)
 		throws IOException
 	{
-		if (super.header == null)
-			super.header = Sort.getHeaderMerger(
-				context.getConfiguration()).getMergedHeader();
+		if (baseOF.getSAMHeader() == null)
+			baseOF.setSAMHeader(Sort.getHeaderMerger(
+				context.getConfiguration()).getMergedHeader());
 
-		return super.getRecordWriter(context);
+		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));
 	}
 
 	@Override public Path getDefaultWorkFile(
@@ -456,7 +461,7 @@ final class SortOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
 		String filename  = context.getConfiguration().get(OUTPUT_NAME_PROP);
 		String extension = ext.isEmpty() ? ext : "." + ext;
 		int    part      = context.getTaskAttemptID().getTaskID().getId();
-		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
+		return new Path(baseOF.getDefaultWorkFile(context, ext).getParent(),
 			filename + "-" + String.format("%06d", part) + extension);
 	}
 
