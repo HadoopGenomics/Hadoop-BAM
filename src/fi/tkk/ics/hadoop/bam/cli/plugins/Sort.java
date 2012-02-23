@@ -79,8 +79,9 @@ public final class Sort extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		verboseOpt    = new BooleanOption('v', "verbose"),
-		outputFileOpt = new  StringOption('o', "output-file=PATH");
+		verboseOpt     = new BooleanOption('v', "verbose"),
+		outputFileOpt  = new  StringOption('o', "output-file=PATH"),
+		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Sort() {
 		super("sort", "BAM sorting and merging", "2.0",
@@ -96,6 +97,9 @@ public final class Sort extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputFileOpt, "output a complete BAM file to the file PATH, "+
 			               "removing the parts from WORKDIR"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
+			                "never by file extension"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -124,6 +128,9 @@ public final class Sort extends CLIPlugin {
 			(out == null ? inputs.get(0) : new Path(out)).getName();
 
 		final Configuration conf = getConf();
+
+		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
+		                !parser.getBoolean(noTrustExtsOpt));
 
 		// Used by getHeaderMerger. SortRecordReader needs it to correct the
 		// reference indices when the output has a different index and
