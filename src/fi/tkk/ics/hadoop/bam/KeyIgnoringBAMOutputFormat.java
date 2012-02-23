@@ -75,11 +75,18 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 			TaskAttemptContext ctx)
 		throws IOException
 	{
+		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
+	}
+
+	// Allows wrappers to provide their own work file.
+	public RecordWriter<K,SAMRecordWritable> getRecordWriter(
+			TaskAttemptContext ctx, Path out)
+		throws IOException
+	{
 		if (this.header == null)
 			throw new IOException(
 				"Can't create a RecordWriter without the SAM header");
 
-		return new KeyIgnoringBAMRecordWriter<K>(
-			getDefaultWorkFile(ctx, ""), this.header, this.writeHeader, ctx);
+		return new KeyIgnoringBAMRecordWriter<K>(out, header, writeHeader, ctx);
 	}
 }
