@@ -45,8 +45,6 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 public class AnySAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
-	public static enum SAMFormat { SAM, BAM }
-
 	public static final String TRUST_EXTS_PROPERTY =
 		"hadoopbam.anysam.trust-exts";
 
@@ -85,14 +83,10 @@ public class AnySAMInputFormat
 				"SAM format for '"+path+"' not in given map");
 
 		if (trustExts) {
-			final String name = path.getName();
-			if (name.endsWith(".bam")) {
-				formatMap.put(path, SAMFormat.BAM);
-				return SAMFormat.BAM;
-			}
-			if (name.endsWith(".sam")) {
-				formatMap.put(path, SAMFormat.SAM);
-				return SAMFormat.SAM;
+			final SAMFormat f = SAMFormat.inferFromFilePath(path);
+			if (f != null) {
+				formatMap.put(path, f);
+				return f;
 			}
 		}
 
