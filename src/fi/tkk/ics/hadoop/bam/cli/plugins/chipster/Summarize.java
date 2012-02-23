@@ -88,7 +88,7 @@ public final class Summarize extends CLIPlugin {
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Summarize() {
-		super("summarize", "summarize SAM or BAM for zooming", "1.0",
+		super("summarize", "summarize SAM or BAM for zooming", "2.0",
 			"WORKDIR LEVELS INPATH", optionDescs,
 			"Outputs, for each level in LEVELS, a summary file describing the "+
 			"average number of alignments at various positions in the SAM or "+
