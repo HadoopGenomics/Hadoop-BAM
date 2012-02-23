@@ -82,9 +82,10 @@ public final class Summarize extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		verboseOpt   = new BooleanOption('v', "verbose"),
-		sortOpt      = new BooleanOption('s', "sort"),
-		outputDirOpt = new  StringOption('o', "output-dir=PATH");
+		verboseOpt     = new BooleanOption('v', "verbose"),
+		sortOpt        = new BooleanOption('s', "sort"),
+		outputDirOpt   = new  StringOption('o', "output-dir=PATH"),
+		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Summarize() {
 		super("summarize", "summarize SAM or BAM for zooming", "1.0",
@@ -106,6 +107,9 @@ public final class Summarize extends CLIPlugin {
 			              "removing the parts from WORKDIR"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			sortOpt, "sort created summaries by position"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
+			                "never by file extension"));
 	}
 
 	private final Timer    t = new Timer();
@@ -174,6 +178,9 @@ public final class Summarize extends CLIPlugin {
 		mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
 
 		final Configuration conf = getConf();
+
+		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
+		                !parser.getBoolean(noTrustExtsOpt));
 
 		// Used by SummarizeOutputFormat to name the output files.
 		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bam.getName());
