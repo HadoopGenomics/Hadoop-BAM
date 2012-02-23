@@ -22,6 +22,7 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -33,8 +34,10 @@ import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.util.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriterImpl;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceRecord;
@@ -51,7 +54,8 @@ public final class View extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		headerOnlyOpt = new BooleanOption('H', "header-only");
+		headerOnlyOpt = new BooleanOption('H', "header-only"),
+		bamOpt        = new BooleanOption('b', "output-bam");
 
 	public View() {
 		super("view", "SAM and BAM viewing", "1.1", "PATH [regions...]",
@@ -69,6 +73,8 @@ public final class View extends CLIPlugin {
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			headerOnlyOpt, "print header only"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			bamOpt, "output in BAM instead of SAM format"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -81,7 +87,8 @@ public final class View extends CLIPlugin {
 		final String       path    = args.get(0);
 		final List<String> regions = args.subList(1, args.size());
 
-		final boolean headerOnly = parser.getBoolean(headerOnlyOpt);
+		final boolean headerOnly = parser.getBoolean(headerOnlyOpt),
+		              useBAM     = parser.getBoolean(bamOpt);
 
 		final SAMFileReader reader;
 
@@ -107,7 +114,6 @@ public final class View extends CLIPlugin {
 
 		reader.setValidationStringency(ValidationStringency.SILENT);
 
-		final SAMTextWriter writer = new SAMTextWriter(System.out);
 		final SAMFileHeader header;
 
 		try {
@@ -117,6 +123,10 @@ public final class View extends CLIPlugin {
 			                  path, e.getMessage());
 			return 4;
 		}
+
+		final SAMFileWriterImpl writer =
+			useBAM ? new BAMFileWriter(System.out, new File("<stdout>"))
+			       : new SAMTextWriter(System.out);
 
 		if (regions.isEmpty() || headerOnly) {
 			writer.setSortOrder(header.getSortOrder(), true);
@@ -191,11 +201,11 @@ public final class View extends CLIPlugin {
 	}
 
 	private boolean writeIterator(
-		SAMTextWriter writer, SAMRecordIterator it, String path)
+		SAMFileWriterImpl writer, SAMRecordIterator it, String path)
 	{
 		try {
 			while (it.hasNext())
-				writer.writeAlignment(it.next());
+				writer.addAlignment(it.next());
 			return true;
 		} catch (SAMFormatException e) {
 			writer.close();
