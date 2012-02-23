@@ -318,7 +318,7 @@ final class SortInputFormat
 	private AnySAMInputFormat baseIF;
 
 	private void initBaseIF(final Configuration conf) {
-		baseIF = new AnySAMInputFormat(conf, true);
+		baseIF = new AnySAMInputFormat(conf);
 	}
 
 	@Override public RecordReader<LongWritable,SAMRecordWritable>

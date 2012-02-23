@@ -47,6 +47,9 @@ public class AnySAMInputFormat
 {
 	public static enum SAMFormat { SAM, BAM }
 
+	public static final String TRUST_EXTS_PROPERTY =
+		"hadoopbam.anysam.trust-exts";
+
 	private final BAMInputFormat bamIF = new BAMInputFormat();
 	private final SAMInputFormat samIF = new SAMInputFormat();
 
@@ -56,10 +59,10 @@ public class AnySAMInputFormat
 	private final boolean trustExts,
 	                      givenMap;
 
-	public AnySAMInputFormat(Configuration conf, boolean trustExts) {
+	public AnySAMInputFormat(Configuration conf) {
 		this.formatMap = new HashMap<Path,SAMFormat>();
 		this.conf      = conf;
-		this.trustExts = trustExts;
+		this.trustExts = conf.getBoolean(TRUST_EXTS_PROPERTY, true);
 		this.givenMap  = false;
 	}
 
