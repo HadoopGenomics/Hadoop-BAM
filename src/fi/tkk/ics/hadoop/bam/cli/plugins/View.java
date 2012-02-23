@@ -54,9 +54,10 @@ public final class View extends CLIPlugin {
 		headerOnlyOpt = new BooleanOption('H', "header-only");
 
 	public View() {
-		super("view", "BAM viewing", "1.0", "PATH [regions...]", optionDescs,
-			"Reads the BAM file in PATH and, by default, outputs it in SAM "+
-			"format. If any number of regions is given, only the alignments "+
+		super("view", "SAM and BAM viewing", "1.0", "PATH [regions...]",
+			optionDescs,
+			"Reads the BAM or SAM file in PATH and, by default, outputs it in "+
+			"SAM format. If any number of regions is given, only the alignments "+
 			"overlapping with those regions are output. Then an index is also "+
 			"required, expected at PATH.bai by default."+
 			"\n\n"+
