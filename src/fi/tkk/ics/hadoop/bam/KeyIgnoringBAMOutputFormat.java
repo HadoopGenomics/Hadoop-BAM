@@ -56,6 +56,7 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 	/** Set whether the header will be written or not. */
 	public void    setWriteHeader(boolean b) { writeHeader = b; }
 
+	public SAMFileHeader getSAMHeader() { return header; }
 	public void setSAMHeader(SAMFileHeader header) { this.header = header; }
 
 	public void readSAMHeaderFrom(Path path, FileSystem fs) throws IOException {
