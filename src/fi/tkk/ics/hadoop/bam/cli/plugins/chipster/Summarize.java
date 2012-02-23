@@ -70,8 +70,8 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-import fi.tkk.ics.hadoop.bam.BAMInputFormat;
-import fi.tkk.ics.hadoop.bam.BAMRecordReader;
+import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
+import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
@@ -637,48 +637,68 @@ final class RangeCount implements Comparable<RangeCount>, Writable {
 // we might as well get that here as well.
 final class SummarizeInputFormat extends FileInputFormat<LongWritable,Range> {
 
-	private final BAMInputFormat bamIF = new BAMInputFormat();
+	private AnySAMInputFormat baseIF = null;
+
+	private void initBaseIF(final Configuration conf) {
+		if (baseIF == null)
+			baseIF = new AnySAMInputFormat(conf);
+	}
 
 	@Override protected boolean isSplitable(JobContext job, Path path) {
-		return bamIF.isSplitable(job, path);
+		initBaseIF(job.getConfiguration());
+		return baseIF.isSplitable(job, path);
 	}
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		return bamIF.getSplits(job);
+		initBaseIF(job.getConfiguration());
+		return baseIF.getSplits(job);
 	}
 
 	@Override public RecordReader<LongWritable,Range>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
 	{
-		final RecordReader<LongWritable,Range> rr = new SummarizeRecordReader();
+		initBaseIF(ctx.getConfiguration());
+
+		final RecordReader<LongWritable,Range> rr =
+			new SummarizeRecordReader(baseIF.createRecordReader(split, ctx));
 		rr.initialize(split, ctx);
 		return rr;
 	}
 }
 final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 
-	private final BAMRecordReader bamRR    = new BAMRecordReader();
-	private final LongWritable    key      = new LongWritable();
-	private final List<Range>     ranges   = new ArrayList<Range>();
-	private       int             rangeIdx = 0;
+	private final RecordReader<LongWritable,SAMRecordWritable> baseRR;
 
-	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
-		throws IOException
+	private final LongWritable key      = new LongWritable();
+	private final List<Range>  ranges   = new ArrayList<Range>();
+	private       int          rangeIdx = 0;
+
+	public SummarizeRecordReader(
+		RecordReader<LongWritable,SAMRecordWritable> rr)
 	{
-		bamRR.initialize(spl, ctx);
+		baseRR = rr;
 	}
-	@Override public void close() throws IOException { bamRR.close(); }
 
-	@Override public float getProgress() { return bamRR.getProgress(); }
+	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx) {}
+
+	@Override public void close() throws IOException { baseRR.close(); }
+
+	@Override public float getProgress()
+		throws InterruptedException, IOException
+	{
+		return baseRR.getProgress();
+	}
 
 	@Override public LongWritable getCurrentKey  () { return key; }
 	@Override public Range        getCurrentValue() {
 		return ranges.get(rangeIdx);
 	}
 
-	@Override public boolean nextKeyValue() {
+	@Override public boolean nextKeyValue()
+		throws InterruptedException, IOException
+	{
 		if (rangeIdx+1 < ranges.size()) {
 			++rangeIdx;
 			key.set(key.get() >>> 32 << 32 | getCurrentValue().getCentreOfMass());
@@ -687,10 +707,10 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 
 		SAMRecord rec;
 		do {
-			if (!bamRR.nextKeyValue())
+			if (!baseRR.nextKeyValue())
 				return false;
 
-			rec = bamRR.getCurrentValue().get();
+			rec = baseRR.getCurrentValue().get();
 		} while (rec.getReadUnmappedFlag());
 
 		parseCIGAR(rec, rec.getReadNegativeStrandFlag());
