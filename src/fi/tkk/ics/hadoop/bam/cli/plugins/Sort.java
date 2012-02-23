@@ -322,10 +322,11 @@ final class SortReducer
 final class SortInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
-	private AnySAMInputFormat baseIF;
+	private AnySAMInputFormat baseIF = null;
 
 	private void initBaseIF(final Configuration conf) {
-		baseIF = new AnySAMInputFormat(conf);
+		if (baseIF == null)
+			baseIF = new AnySAMInputFormat(conf);
 	}
 
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
