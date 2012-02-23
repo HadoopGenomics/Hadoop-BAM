@@ -62,12 +62,16 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SamFileHeaderMerger;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriterImpl;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
-import fi.tkk.ics.hadoop.bam.KeyIgnoringBAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.AnySAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
@@ -128,6 +132,15 @@ public final class Sort extends CLIPlugin {
 			(out == null ? inputs.get(0) : new Path(out)).getName();
 
 		final Configuration conf = getConf();
+
+		final SAMFormat format;
+		if (out != null)
+			format = SAMFormat.inferFromFilePath(out);
+		else
+			format = SAMFormat.BAM;
+
+		conf.set(AnySAMOutputFormat.OUTPUT_SAM_FORMAT_PROPERTY,
+		         format.toString());
 
 		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
 		                !parser.getBoolean(noTrustExtsOpt));
@@ -223,14 +236,21 @@ public final class Sort extends CLIPlugin {
 
 			// First, place the BAM header.
 
-			final BAMFileWriter w =
-				new BAMFileWriter(dstFS.create(outPath), new File(""));
-
+			final SAMFileWriterImpl w;
+			switch (format) {
+				case BAM:
+					w = new BAMFileWriter(dstFS.create(outPath), new File(""));
+					break;
+				case SAM:
+					w = new SAMTextWriter(dstFS.create(outPath));
+					break;
+				default: assert false; w = null;
+			}
 			w.setSortOrder(SAMFileHeader.SortOrder.coordinate, true);
 			w.setHeader(getHeaderMerger(conf).getMergedHeader());
 			w.close();
 
-			// Then, the BAM contents.
+			// Then, the actual SAM or BAM contents.
 
 			final OutputStream outs = dstFS.append(outPath);
 
@@ -253,9 +273,10 @@ public final class Sort extends CLIPlugin {
 			for (final FileStatus part : parts)
 				srcFS.delete(part.getPath(), false);
 
-			// Finally, the BGZF terminator.
+			// And if BAM, the BGZF terminator.
+			if (format == SAMFormat.BAM)
+				outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
 
-			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
 			outs.close();
 
 			System.out.printf("sort :: Merging complete in %d.%03d s.\n",
@@ -440,13 +461,19 @@ final class SortOutputFormat
 {
 	public static final String OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
 
-	private KeyIgnoringBAMOutputFormat<NullWritable> baseOF =
-		new KeyIgnoringBAMOutputFormat<NullWritable>();
+	private KeyIgnoringAnySAMOutputFormat<NullWritable> baseOF;
+
+	private void initBaseOF(Configuration conf) {
+		if (baseOF == null)
+			baseOF = new KeyIgnoringAnySAMOutputFormat<NullWritable>(conf);
+	}
 
 	@Override public RecordWriter<NullWritable,SAMRecordWritable>
 		getRecordWriter(TaskAttemptContext context)
 		throws IOException
 	{
+		initBaseOF(context.getConfiguration());
+
 		if (baseOF.getSAMHeader() == null)
 			baseOF.setSAMHeader(Sort.getHeaderMerger(
 				context.getConfiguration()).getMergedHeader());
@@ -458,6 +485,7 @@ final class SortOutputFormat
 			TaskAttemptContext context, String ext)
 		throws IOException
 	{
+		initBaseOF(context.getConfiguration());
 		String filename  = context.getConfiguration().get(OUTPUT_NAME_PROP);
 		String extension = ext.isEmpty() ? ext : "." + ext;
 		int    part      = context.getTaskAttemptID().getTaskID().getId();
