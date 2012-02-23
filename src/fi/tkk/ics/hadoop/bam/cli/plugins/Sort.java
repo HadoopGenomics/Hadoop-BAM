@@ -85,6 +85,7 @@ public final class Sort extends CLIPlugin {
 	private static final CmdLineParser.Option
 		verboseOpt     = new BooleanOption('v', "verbose"),
 		outputFileOpt  = new  StringOption('o', "output-file=PATH"),
+		samOutputOpt   = new BooleanOption('s', "output-sam"),
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Sort() {
@@ -101,10 +102,12 @@ public final class Sort extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputFileOpt, "output a complete SAM/BAM file to the file PATH, "+
 			               "removing the parts from WORKDIR; SAM/BAM is chosen "+
-			               "by file extension"));
+			               "by file extension, if appropriate (overrides -s)"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
 			                "never by file extension"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			samOutputOpt, "output SAM instead of BAM"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -134,11 +137,13 @@ public final class Sort extends CLIPlugin {
 
 		final Configuration conf = getConf();
 
-		final SAMFormat format;
+		SAMFormat format = null;
 		if (out != null)
 			format = SAMFormat.inferFromFilePath(out);
-		else
-			format = SAMFormat.BAM;
+
+		if (format == null)
+			format = parser.getBoolean(samOutputOpt)
+			         	? SAMFormat.SAM : SAMFormat.BAM;
 
 		conf.set(AnySAMOutputFormat.OUTPUT_SAM_FORMAT_PROPERTY,
 		         format.toString());
