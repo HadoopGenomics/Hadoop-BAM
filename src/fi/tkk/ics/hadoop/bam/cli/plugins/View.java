@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.util.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
@@ -85,10 +86,18 @@ public final class View extends CLIPlugin {
 
 		try {
 			final Path p = new Path(path);
-			reader = new SAMFileReader(
-				WrapSeekable.openPath(getConf(), p),
-				WrapSeekable.openPath(getConf(), p.suffix(".bai")),
-				false);
+
+			SeekableStream idx;
+			try {
+				idx = WrapSeekable.openPath(getConf(), p.suffix(".bai"));
+			} catch (Exception e) {
+				idx = null;
+			}
+
+			final SeekableStream sam = WrapSeekable.openPath(getConf(), p);
+
+			reader = idx == null ? new SAMFileReader(sam,      false)
+			                     : new SAMFileReader(sam, idx, false);
 		} catch (Exception e) {
 			System.err.printf("view :: Could not open '%s': %s\n",
 			                  path, e.getMessage());
@@ -118,6 +127,11 @@ public final class View extends CLIPlugin {
 
 			writer.close();
 			return 0;
+		}
+
+		if (!reader.isBinary()) {
+			System.err.println("view :: Cannot output regions from SAM file");
+			return 4;
 		}
 
 		if (!reader.hasIndex()) {
