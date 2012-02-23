@@ -226,14 +226,14 @@ public class BlockCompressedOutputStream
         //     System.err.println("In BlockCompressedOutputStream, had to throttle back " + numberOfThrottleBacks +
         //                        " times for file " + codec.getOutputFileName());
         // }
-        codec.writeBytes(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+        //codec.writeBytes(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
         codec.close();
         // Can't re-open something that is not a regular file, e.g. a named pipe or an output stream
-        if (this.file == null || !this.file.isFile()) return;
-        if (BlockCompressedInputStream.checkTermination(this.file) !=
-                BlockCompressedInputStream.FileTermination.HAS_TERMINATOR_BLOCK) {
-            throw new IOException("Terminator block not found after closing BGZF file " + this.file);
-        }
+        //if (this.file == null || !this.file.isFile()) return;
+        //if (BlockCompressedInputStream.checkTermination(this.file) !=
+        //        BlockCompressedInputStream.FileTermination.HAS_TERMINATOR_BLOCK) {
+        //    throw new IOException("Terminator block not found after closing BGZF file " + this.file);
+        //}
     }
 
     /**
