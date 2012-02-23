@@ -84,7 +84,7 @@ public final class Sort extends CLIPlugin {
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Sort() {
-		super("sort", "BAM sorting and merging", "2.0",
+		super("sort", "BAM and SAM sorting and merging", "2.0",
 			"WORKDIR INPATH [INPATH...]",
 			optionDescs,
 			"Merges together the BAM and SAM files in the INPATHs, sorting the "+
