@@ -46,9 +46,6 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for BAM files. Values
  * are the individual records; see {@link BAMRecordReader} for the meaning of
  * the key.
- *
- * <p>A {@link SplittingBAMIndex} for each Path used is required, or an
- * <code>IOException</code> is thrown out of {@link #getSplits}.</p>
  */
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
