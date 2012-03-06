@@ -24,6 +24,7 @@ package fi.tkk.ics.hadoop.bam.cli;
 
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public final class Frontend {
 		final ServiceLoader<CLIPlugin> pluginLoader =
 			ServiceLoader.load(CLIPlugin.class);
 
+		final List<Throwable> serviceConfigErrors = new ArrayList<Throwable>(0);
+
 		for (final Iterator<CLIPlugin> it = pluginLoader.iterator();;) {
 			final CLIPlugin p;
 			try {
@@ -52,12 +55,17 @@ public final class Frontend {
 				p = it.next();
 
 			} catch (ServiceConfigurationError e) {
-				System.err.println(
-					"Warning: ServiceConfigurationError while loading plugins:");
-				e.printStackTrace();
+				serviceConfigErrors.add(e);
 				continue;
 			}
 			plugins.put(p.getCommandName(), p);
+		}
+
+		if (!serviceConfigErrors.isEmpty()) {
+			System.err.println(
+				"Warning: ServiceConfigurationErrors while loading plugins:");
+			for (final Throwable e : serviceConfigErrors)
+				System.err.println(e.getMessage());
 		}
 
 		if (plugins.isEmpty()) {
