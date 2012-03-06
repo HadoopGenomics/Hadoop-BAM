@@ -27,6 +27,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordFactory;
 
+/** A factory for the kind of lazy {@link BAMRecord} used internally. */
 public class LazyBAMRecordFactory implements SAMRecordFactory {
 	@Override public SAMRecord createSAMRecord(SAMFileHeader hdr) {
 		throw new UnsupportedOperationException(

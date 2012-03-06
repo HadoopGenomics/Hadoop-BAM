@@ -24,12 +24,22 @@ package fi.tkk.ics.hadoop.bam;
 
 import org.apache.hadoop.fs.Path;
 
+/** Describes a SAM format. */
 public enum SAMFormat {
 	SAM, BAM;
 
+	/** Infers the SAM format by looking at the filename of the given path.
+	 *
+	 * @see #inferFromFilePath(String)
+	 */
 	public static SAMFormat inferFromFilePath(final Path path) {
 		return inferFromFilePath(path.getName());
 	}
+
+	/** Infers the SAM format by looking at the extension of the given file
+	 * name. <code>*.sam</code> is recognized as {@link #SAM} and
+	 * <code>*.bam</code> as {@link #BAM}.
+	 */
 	public static SAMFormat inferFromFilePath(final String name) {
 		if (name.endsWith(".bam")) return BAM;
 		if (name.endsWith(".sam")) return SAM;

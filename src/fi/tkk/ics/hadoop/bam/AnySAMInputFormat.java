@@ -42,9 +42,23 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 
+/** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM and BAM files.
+ * Values are the individual records; see {@link BAMRecordReader} for the
+ * meaning of the key.
+ *
+ * <p>By default, files are recognized as SAM or BAM based on their file
+ * extensions: see {@link #TRUST_EXTS_PROPERTY}. If that fails, or this
+ * behaviour is disabled, the first byte of each file is read to determine the
+ * file type.</p>
+ */
 public class AnySAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
+	/** A Boolean property: are file extensions trusted? The default is
+	 * <code>true</code>.
+	 *
+	 * @see SAMFormat#inferFromFilePath
+	 */
 	public static final String TRUST_EXTS_PROPERTY =
 		"hadoopbam.anysam.trust-exts";
 
@@ -57,6 +71,9 @@ public class AnySAMInputFormat
 	private final boolean trustExts,
 	                      givenMap;
 
+	/** Creates a new input format, reading {@link #TRUST_EXTS_PROPERTY} from
+	 * the given <code>Configuration</code>.
+	 */
 	public AnySAMInputFormat(Configuration conf) {
 		this.formatMap = new HashMap<Path,SAMFormat>();
 		this.conf      = conf;
@@ -64,6 +81,13 @@ public class AnySAMInputFormat
 		this.givenMap  = false;
 	}
 
+	/** Creates a new input format, trusting the given <code>Map</code> to
+	 * define the file-to-format associations. Neither file paths nor their
+	 * contents are looked at, only the <code>Map</code> is used.
+	 *
+	 * <p>The <code>Map</code> is not copied, so it should not be modified while
+	 * this input format is in use!</p>
+	 * */
 	public AnySAMInputFormat(Map<Path,SAMFormat> formatMap) {
 		this.formatMap = formatMap;
 		this.givenMap  = true;
@@ -73,6 +97,15 @@ public class AnySAMInputFormat
 		this.trustExts = false;
 	}
 
+	/** Returns the {@link SAMFormat} corresponding to the given path. Returns
+	 * <code>null</code> if it cannot be determined even based on the file
+	 * contents (unless future SAM/BAM formats are very different, this means
+	 * that the path does not refer to a SAM or BAM file).
+	 *
+	 * <p>If this input format was constructed using a given
+	 * <code>Map&lt;Path,SAMFormat&gt;</code> and the path is not contained
+	 * within that map, throws an {@link IllegalArgumentException}.</p>
+	 */
 	public SAMFormat getFormat(final Path path) {
 		SAMFormat fmt = formatMap.get(path);
 		if (fmt != null || formatMap.containsKey(path))
@@ -106,6 +139,15 @@ public class AnySAMInputFormat
 		return fmt;
 	}
 
+	/** Returns a {@link BAMRecordReader} or {@link SAMRecordReader} as
+	 * appropriate, initialized with the given parameters.
+	 *
+	 * <p>Throws {@link IllegalArgumentException} if the given input split is
+	 * not a {@link FileVirtualSplit} (used by {@link BAMInputFormat}) or a
+	 * {@link FileSplit} (used by {@link SAMInputFormat}), or if the path
+	 * referred to is not recognized as a SAM or BAM file (see {@link
+	 * #getFormat}).</p>
+	 */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
@@ -131,6 +173,9 @@ public class AnySAMInputFormat
 		}
 	}
 
+	/** Defers to {@link BAMInputFormat} or {@link SAMInputFormat} as
+	 * appropriate for the given path.
+	 */
 	@Override public boolean isSplitable(JobContext job, Path path) {
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -143,6 +188,10 @@ public class AnySAMInputFormat
 		}
 	}
 
+	/** Defers to {@link BAMInputFormat} as appropriate for each individual
+	 * path. SAM paths do not require special handling, so their splits are left
+	 * unchanged.
+	 */
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{

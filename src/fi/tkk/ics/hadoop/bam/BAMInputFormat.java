@@ -63,7 +63,7 @@ public class BAMInputFormat
 		return rr;
 	}
 
-	/** The splits returned are FileVirtualSplits. */
+	/** The splits returned are {@link FileVirtualSplit FileVirtualSplits}. */
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{

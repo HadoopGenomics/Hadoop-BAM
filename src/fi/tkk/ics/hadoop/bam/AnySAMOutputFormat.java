@@ -25,23 +25,34 @@ package fi.tkk.ics.hadoop.bam;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+/** An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for SAM and
+ * BAM files. Only locks down the value type and stores the output format
+ * requested.
+ */
 public abstract class AnySAMOutputFormat<K>
 	extends FileOutputFormat<K,SAMRecordWritable>
 {
+	/** A string property defining the output format to use. The value is read
+	 * directly by {@link SAMFormat#valueOf}.
+	 */
 	public static final String OUTPUT_SAM_FORMAT_PROPERTY =
 		"hadoop.anysam.output-format";
 
 	protected SAMFormat format;
 
-	protected AnySAMOutputFormat(SAMFormat fmt) {
-		if (fmt == null)
-			throw new IllegalArgumentException("null SAMFormat");
-		format = fmt;
-	}
-
+	/** Creates a new output format, reading {@link #OUTPUT_SAM_FORMAT_PROPERTY}
+	 * from the given <code>Configuration</code>.
+	 */
 	protected AnySAMOutputFormat(Configuration conf) {
 		final String fmtStr = conf.get(OUTPUT_SAM_FORMAT_PROPERTY);
 
 		format = fmtStr == null ? null : SAMFormat.valueOf(fmtStr);
+	}
+
+	/** Creates a new output format for the given SAM format. */
+	protected AnySAMOutputFormat(SAMFormat fmt) {
+		if (fmt == null)
+			throw new IllegalArgumentException("null SAMFormat");
+		format = fmt;
 	}
 }

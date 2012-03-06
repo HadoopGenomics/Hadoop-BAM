@@ -40,6 +40,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
 
+/** See {@link BAMRecordReader} for the meaning of the key. */
 public class SAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
 {

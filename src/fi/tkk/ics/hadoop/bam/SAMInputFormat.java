@@ -32,9 +32,14 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
+/** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM files. Values
+ * are the individual records; see {@link BAMRecordReader} for the meaning of
+ * the key.
+ */
 public class SAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
+	/** Returns a {@link SAMRecordReader} initialized with the parameters. */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException

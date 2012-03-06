@@ -37,6 +37,9 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
 
+/** A class for heuristically finding BAM record positions inside an area of
+ * a BAM file.
+ */
 public class BAMSplitGuesser {
 	private       SeekableStream             inFile, in;
 	private       BlockCompressedInputStream bgzf;
@@ -66,7 +69,9 @@ public class BAMSplitGuesser {
 		bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());
 	}
 
-	/// Looks in the range [beg,end). Returns end if no BAM record was found.
+	/** Finds a virtual BAM record position in the physical position range
+	 * [beg,end). Returns end if no BAM record was found.
+	 */
 	public long guessNextBAMRecordStart(long beg, long end)
 		throws IOException
 	{
