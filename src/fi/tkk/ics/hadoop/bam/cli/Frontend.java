@@ -22,7 +22,11 @@
 
 package fi.tkk.ics.hadoop.bam.cli;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.io.PrintStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,6 +37,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 public final class Frontend {
@@ -41,6 +46,131 @@ public final class Frontend {
 		VERSION_MINOR = 3;
 
 	public static void main(String[] args) {
+
+		final Thread thread = Thread.currentThread();
+
+		// This naming scheme should become clearer below.
+		final URLClassLoader loader2 =
+			(URLClassLoader)thread.getContextClassLoader();
+
+		// Parse Hadoop's generic options first, so that -libjars is handled
+		// before we try to load plugins.
+		final GenericOptionsParser parser;
+		try {
+			parser = new GenericOptionsParser(args);
+
+		// This should be IOException but Hadoop 0.20.2 doesn't throw it...
+		} catch (Exception e) {
+			System.err.printf("Error in Hadoop arguments: %s\n", e.getMessage());
+			System.exit(1);
+
+			// Hooray for javac
+			return;
+		}
+
+		args = parser.getRemainingArgs();
+		final Configuration conf = parser.getConfiguration();
+
+		final URLClassLoader
+			loader1 = (URLClassLoader)thread.getContextClassLoader();
+
+		if (loader1 != loader2) {
+			/* Set the thread's context class loader to a new one that includes
+			 * the URLs of both the current one and its parent. Replace those two
+			 * completely: have the new one delegate to the current one's
+			 * grandparent.
+			 *
+			 * This is necessary to support Hadoop's "-libjars" argument because
+			 * of the way Hadoop's "hadoop jar" command works: it doesn't handle
+			 * "-libjars" or anything like it, instead the GenericOptionsParser we
+			 * use above does. Since URLs can't be added to class loaders,
+			 * GenericOptionsParser creates a new loader, adds the paths given via
+			 * "-libjars" to it, and makes it delegate to the loader created by
+			 * "hadoop jar". So the class loader setup at this point looks like
+			 * the following:
+			 *
+			 * 1. The loader that knows about the "-libjars" parameters.
+			 * 2. The loader that knows about "hadoop jar"'s parameter: the jar we
+			 *    are running.
+			 * 3. The system class loader (I think), which was created when the
+			 *    "hadoop" script ran "java"; it knows about the main Hadoop jars,
+			 *    everything in HADOOP_CLASSPATH, etc.
+			 *
+			 * Here 3 is 2's parent and 2 is 1's parent. The result is that when
+			 * loading our own plugins, we end up finding them in 2, of course.
+			 * But if Picard was given in "-libjars", 2 can't see the dependencies
+			 * of those plugins, because they're not visible to it or its parents,
+			 * and thus throws a NoClassDefFoundError.
+			 *
+			 * Thus, we create a new class loader which combines 1 and 2 and
+			 * delegates to 3.
+			 *
+			 * Only done inside this if statement because otherwise we didn't get
+			 * "-libjars" and so loader 1 is missing, and we don't want to mess
+			 * with loader 3.
+			 */
+
+			final URL[] urls1   = loader1.getURLs(),
+			            urls2   = loader2.getURLs(),
+			            allURLs = new URL[urls1.length + urls2.length];
+
+			System.arraycopy(urls1, 0, allURLs,            0, urls1.length);
+			System.arraycopy(urls2, 0, allURLs, urls1.length, urls2.length);
+
+			thread.setContextClassLoader(
+				new URLClassLoader(allURLs, loader2.getParent()));
+
+			// Evidently we don't need to do conf.setClassLoader(). Presumably
+			// Hadoop loads the libjars and the main jar in the same class loader.
+		}
+
+		/* Call the go(args,conf) method of this class, but do it via
+		 * reflection, loading this class from the context class loader.
+		 *
+		 * This is because in Java, class identity is based on both class name
+		 * and class loader. Using the same loader identifiers as in the
+		 * previous comment, this class and the rest of Hadoop-BAM was
+		 * originally loaded by loader 2. Therefore if we were to call
+		 * go(args,conf) directly, plain old "CLIPlugin.class" would not be
+		 * compatible with any plugins that the new class loader finds,
+		 * because their CLIPlugin is a different CLIPlugin!
+		 *
+		 * Hence, jump into the new class loader. Both String[] and
+		 * Configuration are from loader 1 and thus we can safely pass those
+		 * from here (loader 2) to there (the new loader).
+		 */
+		try {
+			final Class<?> frontendClass =
+				Class.forName(Frontend.class.getName(), true,
+				              thread.getContextClassLoader());
+
+			final Method meth = frontendClass.getMethod(
+				"go", args.getClass(), conf.getClass());
+
+			meth.invoke(null, args, conf);
+
+		} catch (InvocationTargetException e) {
+			// Presumably some RuntimeException thrown by go() for some reason.
+			e.getCause().printStackTrace();
+			System.exit(1);
+
+		} catch (ClassNotFoundException e) {
+			System.err.println("VERY STRANGE: could not reload Frontend class:");
+			e.printStackTrace();
+
+		} catch (NoSuchMethodException e) {
+			System.err.println("VERY STRANGE: could not find our own method:");
+			e.printStackTrace();
+
+		} catch (IllegalAccessException e) {
+			System.err.println(
+				"VERY STRANGE: not allowed to access our own method:");
+			e.printStackTrace();
+		}
+		System.exit(112);
+	}
+
+	public static void go(String[] args, Configuration conf) {
 		final Map<String, CLIPlugin> plugins = new TreeMap<String, CLIPlugin>();
 
 		final ServiceLoader<CLIPlugin> pluginLoader =
@@ -76,20 +206,6 @@ public final class Frontend {
 			System.exit(1);
 		}
 
-		GenericOptionsParser parser;
-		try {
-			parser = new GenericOptionsParser(args);
-
-		// This should be IOException but Hadoop 0.20.2 doesn't throw it...
-		} catch (Exception e) {
-			System.err.printf("Error in Hadoop arguments: %s\n", e.getMessage());
-			System.exit(1);
-
-			// Hooray for javac
-			return;
-		}
-		args = parser.getRemainingArgs();
-
 		Utils.setArgv0Class(Frontend.class);
 
 		if (args.length == 0) {
@@ -110,7 +226,7 @@ public final class Frontend {
 			System.exit(1);
 		}
 
-		p.setConf(parser.getConfiguration());
+		p.setConf(conf);
 		System.exit(p.main(Arrays.asList(args).subList(1, args.length)));
 	}
 
