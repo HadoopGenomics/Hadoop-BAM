@@ -160,10 +160,13 @@ public final class Sort extends CLIPlugin {
 		// Used by SortOutputFormat to name the output files.
 		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, intermediateOutName);
 
-		final Path wrkDirPath = new Path(wrkDir);
+		Path wrkDirPath = new Path(wrkDir);
 
 		final Timer t = new Timer();
 		try {
+			// Required for path ".", for example.
+			wrkDirPath = wrkDirPath.getFileSystem(conf).makeQualified(wrkDirPath);
+
 			for (final Path in : inputs)
 				Utils.configureSampling(in, conf);
 

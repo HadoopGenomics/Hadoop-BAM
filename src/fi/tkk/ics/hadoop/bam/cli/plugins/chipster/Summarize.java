@@ -157,26 +157,6 @@ public final class Summarize extends CLIPlugin {
 			return 3;
 		}
 
-		// There's a lot of different Paths here, and it can get a bit confusing.
-		// Here's how it works:
-		//
-		// - out is the output dir for the final merged output, given with the -o
-		//   or -O parameters.
-		//
-		// - wrkDir is the user-given path where the outputs of the reducers go.
-		//
-		// - mergedTmpDir (defined further below) is $wrkDir/sort.tmp: if we are
-		//   sorting, the summaries output in the first Hadoop job are merged in
-		//   there.
-		//
-		// - mainSortOutputDir is $wrkDir/sorted.tmp: getSortOutputDir() gives a
-		//   per-level/strand directory under it, which is used by sortMerged()
-		//   and mergeOne(). This is necessary because we cannot have multiple
-		//   Hadoop jobs outputting into the same directory at the same time, as
-		//   explained in the comment in sortMerged().
-
-		mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
-
 		final Configuration conf = getConf();
 
 		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
@@ -189,6 +169,30 @@ public final class Summarize extends CLIPlugin {
 
 		try {
 			try {
+				// There's a lot of different Paths here, and it can get a bit
+				// confusing. Here's how it works:
+				//
+				// - out is the output dir for the final merged output, given with
+				//   the -o or -O parameters.
+				//
+				// - wrkDir is the user-given path where the outputs of the
+				//   reducers go.
+				//
+				// - mergedTmpDir (defined further below) is $wrkDir/sort.tmp: if
+				//   we are sorting, the summaries output in the first Hadoop job are
+				//   merged in there.
+				//
+				// - mainSortOutputDir is $wrkDir/sorted.tmp: getSortOutputDir()
+				//   gives a per-level/strand directory under it, which is used by
+				//   sortMerged() and mergeOne(). This is necessary because we cannot
+				//   have multiple Hadoop jobs outputting into the same directory at
+				//   the same time, as explained in the comment in sortMerged().
+
+				// Required for path ".", for example.
+				wrkDir = wrkDir.getFileSystem(conf).makeQualified(wrkDir);
+
+				mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
+
 				// As far as I can tell there's no non-deprecated way of getting
 				// this info. We can silence this warning but not the import.
 				@SuppressWarnings("deprecation")
