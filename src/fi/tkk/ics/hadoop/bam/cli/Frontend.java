@@ -105,7 +105,8 @@ public final class Frontend {
 
 		final CLIPlugin p = plugins.get(command);
 		if (p == null) {
-			System.err.printf("Unknown command '%s'\n", command);
+			System.err.printf(
+				"Unknown command '%s', see '--help' for help.\n", command);
 			System.exit(1);
 		}
 
