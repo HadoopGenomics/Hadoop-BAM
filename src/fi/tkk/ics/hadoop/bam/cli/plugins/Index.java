@@ -59,7 +59,7 @@ public final class Index extends CLIPlugin {
 		}
 
 		final String path = args.get(0);
-		final String out  = args.size() > 1 ? args.get(1) : null;
+		final String out  = args.size() > 1 ? args.get(1) : path + ".bai";
 
 		final SAMFileReader reader;
 		try {
@@ -86,7 +86,7 @@ public final class Index extends CLIPlugin {
 		try {
 			final Path p = new Path(out);
 			indexer = new BAMIndexer(p.getFileSystem(getConf()).create(p),
-				                      header);
+			                         header);
 		} catch (Exception e) {
 			System.err.printf("index :: Could not open '%s' for output: %s\n",
 			                  out, e.getMessage());
