@@ -24,12 +24,13 @@ package fi.tkk.ics.hadoop.bam.cli;
 
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -45,7 +46,7 @@ public final class Frontend {
 		final ServiceLoader<CLIPlugin> pluginLoader =
 			ServiceLoader.load(CLIPlugin.class);
 
-		final List<Throwable> serviceConfigErrors = new ArrayList<Throwable>(0);
+		final Set<String> seenServiceConfigErrors = new HashSet<String>(0);
 
 		for (final Iterator<CLIPlugin> it = pluginLoader.iterator();;) {
 			final CLIPlugin p;
@@ -55,17 +56,18 @@ public final class Frontend {
 				p = it.next();
 
 			} catch (ServiceConfigurationError e) {
-				serviceConfigErrors.add(e);
+				if (seenServiceConfigErrors.isEmpty())
+					System.err.println("Warning: ServiceConfigurationErrors while "+
+					                   "loading plugins:");
+
+				final String msg = e.getMessage();
+				if (!seenServiceConfigErrors.contains(msg)) {
+					System.err.println(msg);
+					seenServiceConfigErrors.add(msg);
+				}
 				continue;
 			}
 			plugins.put(p.getCommandName(), p);
-		}
-
-		if (!serviceConfigErrors.isEmpty()) {
-			System.err.println(
-				"Warning: ServiceConfigurationErrors while loading plugins:");
-			for (final Throwable e : serviceConfigErrors)
-				System.err.println(e.getMessage());
 		}
 
 		if (plugins.isEmpty()) {
