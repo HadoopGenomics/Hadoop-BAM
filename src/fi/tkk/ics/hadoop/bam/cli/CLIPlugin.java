@@ -56,7 +56,10 @@ public abstract class CLIPlugin extends Configured {
 	public final String getDescription() { return desc;    }
 
 	public void printUsage(PrintStream out) {
-		out.printf("hadoop-bam command line: %s version %s\n", command, version);
+		out.printf("hadoop-bam version %d.%d command line: %s version %s\n",
+		           Frontend.VERSION_MAJOR, Frontend.VERSION_MINOR,
+		           command, version);
+
 		out.printf("Usage: %s %s ", Utils.getArgv0(), command);
 
 		if (optionDescs != null && !optionDescs.isEmpty())
