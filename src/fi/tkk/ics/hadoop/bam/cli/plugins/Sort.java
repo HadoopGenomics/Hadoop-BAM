@@ -257,6 +257,7 @@ public final class Sort extends CLIPlugin {
 					};
 					final BAMFileWriter w =
 						new BAMFileWriter(openOuts, new File(""));
+					w.setSortOrder(header.getSortOrder(), true);
 					w.setHeader(header);
 					w.close();
 					break;
