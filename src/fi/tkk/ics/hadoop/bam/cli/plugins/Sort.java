@@ -23,9 +23,12 @@
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
 import java.io.File;
+import java.io.FilterOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,6 +66,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SamFileHeaderMerger;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriterImpl;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
@@ -239,30 +243,38 @@ public final class Sort extends CLIPlugin {
 			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
 			      FileSystem dstFS =    outPath.getFileSystem(conf);
 
-			// The checksummed local file system doesn't support append().
-			if (dstFS instanceof LocalFileSystem
-			 && dstFS instanceof ChecksumFileSystem)
-				dstFS = ((LocalFileSystem)dstFS).getRaw();
-
 			// First, place the BAM header.
+
+			final SAMFileHeader header = getHeaderMerger(conf).getMergedHeader();
+			header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+
+			final OutputStream outs = dstFS.create(outPath);
 
 			final SAMFileWriterImpl w;
 			switch (format) {
-				case BAM:
-					w = new BAMFileWriter(dstFS.create(outPath), new File(""));
+				case BAM: {
+					// With BAM, use the BAMFileWriter, but make sure that it
+					// doesn't close the underlying stream.
+					final OutputStream openOuts = new FilterOutputStream(outs) {
+						@Override public void close() {}
+					};
+					w = new BAMFileWriter(openOuts, new File(""));
+					w.setHeader(header);
+					w.close();
 					break;
-				case SAM:
-					w = new SAMTextWriter(dstFS.create(outPath));
+				}
+				case SAM: {
+					// With SAM, we can just encode the header directly to the file.
+					final Writer sw = new OutputStreamWriter(outs);
+					new SAMTextHeaderCodec().encode(sw, header);
+					sw.flush();
+					w = new SAMTextWriter(outs);
 					break;
+				}
 				default: assert false; w = null;
 			}
-			w.setSortOrder(SAMFileHeader.SortOrder.coordinate, true);
-			w.setHeader(getHeaderMerger(conf).getMergedHeader());
-			w.close();
 
 			// Then, the actual SAM or BAM contents.
-
-			final OutputStream outs = dstFS.append(outPath);
 
 			final FileStatus[] parts = srcFS.globStatus(new Path(
 				wrkDir, conf.get(SortOutputFormat.OUTPUT_NAME_PROP) +
