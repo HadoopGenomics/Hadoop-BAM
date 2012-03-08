@@ -46,7 +46,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
  */
 public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 	protected SAMFileHeader header;
-	private boolean writeHeader = false;
+	private boolean writeHeader = true;
 
 	public KeyIgnoringBAMOutputFormat() {}
 
