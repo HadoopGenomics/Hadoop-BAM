@@ -164,6 +164,10 @@ public final class Sort extends CLIPlugin {
 		// Used by SortOutputFormat to name the output files.
 		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, intermediateOutName);
 
+		// Let the output format know if we're going to merge the output, so that
+		// it doesn't write headers into the intermediate files.
+		conf.setBoolean(SortOutputFormat.WRITE_HEADER_PROP, out == null);
+
 		Path wrkDirPath = new Path(wrkDir);
 
 		final Timer t = new Timer();
@@ -479,13 +483,20 @@ final class SortRecordReader
 final class SortOutputFormat
 	extends FileOutputFormat<NullWritable,SAMRecordWritable>
 {
-	public static final String OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
+	public static final String
+		OUTPUT_NAME_PROP  = "hadoopbam.sort.output.name",
+		WRITE_HEADER_PROP = "hadoopbam.sort.output.write-header";
 
 	private KeyIgnoringAnySAMOutputFormat<NullWritable> baseOF;
 
 	private void initBaseOF(Configuration conf) {
-		if (baseOF == null)
-			baseOF = new KeyIgnoringAnySAMOutputFormat<NullWritable>(conf);
+		if (baseOF != null)
+			return;
+
+		baseOF = new KeyIgnoringAnySAMOutputFormat<NullWritable>(conf);
+
+		baseOF.setWriteHeader(
+			conf.getBoolean(WRITE_HEADER_PROP, baseOF.getWriteHeader()));
 	}
 
 	@Override public RecordWriter<NullWritable,SAMRecordWritable>
