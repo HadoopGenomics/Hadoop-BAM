@@ -22,6 +22,9 @@
 
 package fi.tkk.ics.hadoop.bam;
 
+import java.io.InputStream;
+import java.io.IOException;
+
 import org.apache.hadoop.fs.Path;
 
 /** Describes a SAM format. */
@@ -43,6 +46,16 @@ public enum SAMFormat {
 	public static SAMFormat inferFromFilePath(final String name) {
 		if (name.endsWith(".bam")) return BAM;
 		if (name.endsWith(".sam")) return SAM;
+		return null;
+	}
+
+	public static SAMFormat inferFromData(final InputStream in) throws IOException {
+		final byte b = (byte)in.read();
+		in.close();
+		switch (b) {
+			case 0x1f: return SAMFormat.BAM;
+			case '@':  return SAMFormat.SAM;
+		}
 		return null;
 	}
 }

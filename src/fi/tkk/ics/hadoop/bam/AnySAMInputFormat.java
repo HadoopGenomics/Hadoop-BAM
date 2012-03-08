@@ -124,15 +124,7 @@ public class AnySAMInputFormat
 		}
 
 		try {
-			final FSDataInputStream in = path.getFileSystem(conf).open(path);
-			final byte b = in.readByte();
-			in.close();
-
-			switch (b) {
-				case 0x1f: fmt = SAMFormat.BAM; break;
-				case '@':  fmt = SAMFormat.SAM; break;
-				default: break;
-			}
+			fmt = SAMFormat.inferFromData(path.getFileSystem(conf).open(path));
 		} catch (IOException e) {}
 
 		formatMap.put(path, fmt);
