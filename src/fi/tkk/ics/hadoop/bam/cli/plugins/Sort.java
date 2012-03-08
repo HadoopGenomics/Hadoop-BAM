@@ -65,7 +65,6 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SamFileHeaderMerger;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriterImpl;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
@@ -249,7 +248,6 @@ public final class Sort extends CLIPlugin {
 
 			final OutputStream outs = dstFS.create(outPath);
 
-			final SAMFileWriterImpl w;
 			switch (format) {
 				case BAM: {
 					// With BAM, use the BAMFileWriter, but make sure that it
@@ -257,7 +255,8 @@ public final class Sort extends CLIPlugin {
 					final OutputStream openOuts = new FilterOutputStream(outs) {
 						@Override public void close() {}
 					};
-					w = new BAMFileWriter(openOuts, new File(""));
+					final BAMFileWriter w =
+						new BAMFileWriter(openOuts, new File(""));
 					w.setHeader(header);
 					w.close();
 					break;
@@ -267,10 +266,9 @@ public final class Sort extends CLIPlugin {
 					final Writer sw = new OutputStreamWriter(outs);
 					new SAMTextHeaderCodec().encode(sw, header);
 					sw.flush();
-					w = new SAMTextWriter(outs);
 					break;
 				}
-				default: assert false; w = null;
+				default: assert false;
 			}
 
 			// Then, the actual SAM or BAM contents.
