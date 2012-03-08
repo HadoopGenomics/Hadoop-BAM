@@ -291,7 +291,7 @@ public final class Summarize extends CLIPlugin {
 		throws IOException, ClassNotFoundException, InterruptedException
 	{
 		final Configuration conf = getConf();
-		Utils.configureSampling(bamPath, conf);
+		Utils.configureSampling(wrkDir, bamPath.getName(), conf);
 		final Job job = new Job(conf);
 
 		job.setJarByClass  (Summarize.class);

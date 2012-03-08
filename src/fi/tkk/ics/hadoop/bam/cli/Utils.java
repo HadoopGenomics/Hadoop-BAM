@@ -127,12 +127,13 @@ public final class Utils {
 		argv0 = null;
 	}
 
-	public static void configureSampling(Path input, Configuration conf)
+	public static void configureSampling(
+			Path workDir, String outName, Configuration conf)
 		throws IOException
 	{
 		final Path partition =
-			new Path(input.getParent(), "_partitioning" + input.getName())
-			.makeQualified(input.getFileSystem(conf));
+			new Path(workDir, "_partitioning" + outName)
+			.makeQualified(workDir.getFileSystem(conf));
 
 		TotalOrderPartitioner.setPartitionFile(conf, partition);
 		try {

@@ -197,7 +197,7 @@ public final class SummarySort extends CLIPlugin {
 		throws IOException, ClassNotFoundException, InterruptedException
 	{
 		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, inputFile.getName());
-		Utils.configureSampling(inputFile, conf);
+		Utils.configureSampling(outputDir, inputFile.getName(), conf);
 		final Job job = new Job(conf);
 
 		job.setJarByClass  (Summarize.class);

@@ -172,8 +172,7 @@ public final class Sort extends CLIPlugin {
 			// Required for path ".", for example.
 			wrkDirPath = wrkDirPath.getFileSystem(conf).makeQualified(wrkDirPath);
 
-			for (final Path in : inputs)
-				Utils.configureSampling(in, conf);
+			Utils.configureSampling(wrkDirPath, intermediateOutName, conf);
 
 			// As far as I can tell there's no non-deprecated way of getting this
 			// info. We can silence this warning but not the import.
