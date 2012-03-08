@@ -52,6 +52,28 @@ public class BAMRecordReader
 	private BAMRecordCodec codec;
 	private long fileStart, virtualEnd;
 
+	public static long getKey(final SAMRecord rec) {
+		// Put unmapped reads at the end.
+		if (rec.getReadUnmappedFlag())
+			return Long.MAX_VALUE;
+
+		return getKey(rec.getReferenceIndex(), rec.getAlignmentStart());
+	}
+
+	/** @param alignmentStart 1-based leftmost coordinate. */
+	public static long getKey(int refIdx, int alignmentStart) {
+		return getKey0(refIdx, alignmentStart-1);
+	}
+
+	/** @param alignmentStart0 0-based leftmost coordinate. */
+	public static long getKey0(int refIdx, int alignmentStart0) {
+		// Put unmapped reads at the end here, too.
+		if (refIdx < 0 || alignmentStart0 < 0)
+			return Long.MAX_VALUE;
+
+		return (long)refIdx << 32 | alignmentStart0;
+	}
+
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
@@ -105,11 +127,7 @@ public class BAMRecordReader
 		if (r == null)
 			return false;
 
-		int idx = r.getReferenceIndex();
-		if (idx == -1)
-			idx = Integer.MAX_VALUE;
-
-		key.set((long)idx << 32 | r.getAlignmentStart() - 1);
+		key.set(getKey(r));
 		record.set(r);
 		return true;
 	}

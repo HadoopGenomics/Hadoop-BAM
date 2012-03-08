@@ -64,6 +64,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
+import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.BGZFSplitFileInputFormat;
@@ -293,7 +294,7 @@ final class SortRecordReader extends RecordReader<LongWritable,Text> {
 		int pos = Integer.parseInt(
 			Text.decode(line.getBytes(), posBeg, posEnd - posBeg + 1));
 
-		key.set((long)rid << 32 | pos);
+		key.set(BAMRecordReader.getKey0(rid, pos));
 		return true;
 	}
 }

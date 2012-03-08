@@ -103,11 +103,7 @@ public class SAMRecordReader
 
 		final SAMRecord r = iterator.next();
 
-		int idx = r.getReferenceIndex();
-		if (idx == -1)
-			idx = Integer.MAX_VALUE;
-
-		key.set((long)idx << 32 | r.getAlignmentStart() - 1);
+		key.set(BAMRecordReader.getKey(r));
 		record.set(r);
 		return true;
 	}

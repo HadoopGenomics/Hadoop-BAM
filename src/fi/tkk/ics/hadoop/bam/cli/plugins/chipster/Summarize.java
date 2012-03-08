@@ -71,6 +71,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
+import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
@@ -728,11 +729,8 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 		parseCIGAR(rec, rec.getReadNegativeStrandFlag());
 		rangeIdx = 0;
 
-		int idx = rec.getReferenceIndex();
-		if (idx == -1)
-			idx = Integer.MAX_VALUE;
-
-		key.set((long)idx | getCurrentValue().getCentreOfMass());
+		key.set(BAMRecordReader.getKey0(rec.getReferenceIndex(),
+		                                getCurrentValue().getCentreOfMass()));
 		return true;
 	}
 

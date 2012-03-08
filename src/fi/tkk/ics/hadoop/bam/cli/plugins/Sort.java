@@ -70,6 +70,7 @@ import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.AnySAMOutputFormat;
+import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
@@ -437,10 +438,7 @@ final class SortRecordReader
 				r.setMateReferenceIndex(headerMerger.getMergedSequenceIndex(
 					h, r.getMateReferenceIndex()));
 
-			if (ri == -1)
-				ri = Integer.MAX_VALUE;
-
-			getCurrentKey().set((long)ri << 32 | r.getAlignmentStart() - 1);
+			getCurrentKey().set(BAMRecordReader.getKey(r));
 		}
 
 		// Correct the program group if necessary.
