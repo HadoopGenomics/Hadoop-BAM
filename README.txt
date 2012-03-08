@@ -29,7 +29,7 @@ Installation
 A precompiled "hadoop-bam.jar" is provided. You may also build it yourself
 using the commands below.
 
-The easiest way to compile Hadoop-BAM is to use Apache Ant (version 1.6 or
+The easiest way to compile Hadoop-BAM is to use Apache Ant (version 1.7.1 or
 greater) with the following command and all relevant .jar files in CLASSPATH:
 
 	ant jar

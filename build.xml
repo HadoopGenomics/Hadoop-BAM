@@ -33,7 +33,8 @@
 
 	<path id="classpath">
 		<fileset refid="jars_override" />
-		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}">
+		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}"
+		         erroronmissingdir="false">
 			<include name="hadoop-*.jar"/>
 			<include name="lib/*.jar"/>
 		</fileset>
