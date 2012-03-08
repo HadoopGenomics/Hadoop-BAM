@@ -12,6 +12,7 @@
 		<pathelement path="${env.HADOOP_HOME}/hadoop-core-0.20.204.0.jar"/>
 		<pathelement path="${env.HADOOP_HOME}/hadoop-core-0.20.205.0.jar"/>
 		<pathelement path="${env.HADOOP_HOME}/hadoop-core-1.0.0.jar"/>
+		<pathelement path="${env.HADOOP_HOME}/lib/commons-cli-1.2.jar"/>
 
 		<pathelement path="sam-1.56.jar"/>
 		<pathelement path="picard-1.56.jar"/>
