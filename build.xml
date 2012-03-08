@@ -1,12 +1,38 @@
 <project default="jar">
 	<property name="targetdir" value="bin"/>
+	<property name="class.dir" value="${targetdir}"/>
 	<property name="srcdir"    value="src"/>
+	<property name="test.dir" value="tests" />
+	<property name="test.class.dir" value="test-classes" />
 
 	<property environment="env"/>
+
+	<!-- look for junit jars on the various platforms -->
+	<fileset id="junit_jars_ubuntu" dir="/usr/share/java">
+		<include name="junit4.jar"/>
+		<include name="hamcrest-*.jar"/>
+	</fileset>
+
+	<fileset id="junit_jars_gentoo" dir="/usr/share">
+		<include name="junit-4/lib/*.jar"/>
+		<include name="hamcrest-core/lib/*.jar" />
+	</fileset>
+
+	<fileset id="junit_jars_scientific_linux" dir="/usr/share/java/">
+		<include name="ant/*junit*.jar" />
+		<include name="junit4.jar" />
+		<include name="hamcrest/*.jar" />
+	</fileset>
+
+	<!-- gives a change to the user to add custom jar paths -->
+	<fileset id="jars_override" dir="/">
+		<include name="${jars.override}" />
+	</fileset>
 
 	<fileset id="srcfiles" dir="${srcdir}" includes="**/*.java"/>
 
 	<path id="classpath">
+		<fileset refid="jars_override" />
 		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}">
 			<include name="hadoop-*.jar"/>
 			<include name="lib/*.jar"/>
@@ -29,8 +55,10 @@
 			<include name="**/*.java"/>
 
 			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
+			<compilerarg value="-Xlint:-deprecation"/>
 		</javac>
 	</target>
+
 	<target name="jar" depends="compile">
 		<jar destfile="hadoop-bam.jar" basedir="${targetdir}">
 			<include name="**/*.class"/>
@@ -47,11 +75,14 @@
 			</service>
 		</jar>
 	</target>
+
 	<target name="clean">
 		<delete>
 			<fileset dir="${targetdir}" includes="**/*.class"/>
 		</delete>
+		<delete failonerror="false" dir="${test.class.dir}"/>
 	</target>
+
 	<target name="javadoc">
 		<javadoc
 			destdir="doc"
@@ -67,4 +98,64 @@
 			<fileset refid="srcfiles"/>
 		</javadoc>
 	</target>
+
+	<target name="build-tests" depends="compile">
+		<mkdir dir="${test.class.dir}"/>
+		<javac srcdir="${test.dir}" destdir="${test.class.dir}" includeAntRuntime="false" debug="true">
+			<classpath>
+				<pathelement path="${class.dir}"/>
+				<fileset refid="hadoop_jars"/>
+				<fileset refid="jars_override" />
+				<fileset refid="junit_jars_ubuntu" />
+				<fileset refid="junit_jars_gentoo" />
+				<fileset refid="junit_jars_scientific_linux" />
+			</classpath>
+
+			<!--
+				We suppress deprecation warnings to avoid lots of warnings on the
+				mapred classes.
+				-->
+			<compilerarg value="-Xlint"/>
+			<compilerarg value="-Xlint:-deprecation"/>
+		</javac>
+	</target>
+
+	<target name="run-tests" depends="build-tests">
+		<junit showoutput="true">
+			<classpath>
+				<pathelement path="${class.dir}"/>
+				<pathelement path="${test.class.dir}"/>
+				<fileset refid="hadoop_jars"/>
+				<fileset refid="jars_override" />
+				<fileset refid="junit_jars_ubuntu" />
+				<fileset refid="junit_jars_gentoo" />
+				<fileset refid="junit_jars_scientific_linux" />
+			</classpath>
+			<formatter type="brief" usefile="false"/>
+			<batchtest>
+				<fileset dir="${test.class.dir}">
+					 <include name="**/Test*.class" />
+					 <exclude name="**/Test*$*.class" />  <!-- exclude inner classes -->
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
+
+	<target name="run-one-test" depends="build-tests">
+		<fail unless="run.class" message="You must set the class to run with -Drun.class=&lt;your class&gt;" />
+		<echo message="Running class ${run.class}" />
+		<java classname="${run.class}">
+			<classpath>
+				<pathelement path="${class.dir}"/>
+				<pathelement path="${test.class.dir}"/>
+				<fileset refid="hadoop_jars"/>
+				<fileset refid="jars_override" />
+				<fileset refid="junit_jars_ubuntu" />
+				<fileset refid="junit_jars_gentoo" />
+				<fileset refid="junit_jars_scientific_linux" />
+			</classpath>
+		</java>
+	</target>
+
+
 </project>

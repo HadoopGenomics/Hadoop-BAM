@@ -166,3 +166,14 @@ terminating block which would make them valid BGZF files. This is to avoid
 having to remove it from the end of each output file in distributed usage (when
 not using the "-o" convenience parameter): it's much simpler to put an empty
 gzip block to the end of the output.
+
+
+Unit tests
+--------------
+
+Unit tests exists for some of the classes in hadoop-bam.  To build and run
+them you'll need JUnit4.  Run
+
+  ant run-tests
+
+from the hadoop-bam base directory.
