@@ -24,6 +24,8 @@ package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,6 +41,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceDictionary;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceRecord;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
 
 /** A base {@link RecordWriter} for BAM records.
  *
@@ -114,8 +117,12 @@ public abstract class BAMRecordWriter<K>
 	}
 
 	private void writeHeader(final SAMFileHeader header) {
-		binaryCodec.writeBytes ("BAM\001".getBytes());
-		binaryCodec.writeString(header.getTextHeader(), true, false);
+		binaryCodec.writeBytes("BAM\001".getBytes());
+
+		final Writer sw = new StringWriter();
+		new SAMTextHeaderCodec().encode(sw, header);
+
+		binaryCodec.writeString(sw.toString(), true, false);
 
 		final SAMSequenceDictionary dict = header.getSequenceDictionary();
 
