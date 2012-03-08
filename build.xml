@@ -41,7 +41,22 @@
 		<pathelement path="picard-1.56.jar"/>
 	</path>
 
-	<target name="compile">
+	<target name="compile-custom">
+		<mkdir dir="${targetdir}"/>
+		<javac
+			srcdir="${srcdir}"
+			destdir="${targetdir}"
+			source="1.6" target="1.6"
+			encoding="UTF-8"
+			debug="on"
+			includeantruntime="yes"
+		>
+			<classpath refid="classpath"/>
+			<include name="fi/tkk/ics/hadoop/bam/custom/**/*.java"/>
+		</javac>
+	</target>
+
+	<target name="compile" depends="compile-custom">
 		<mkdir dir="${targetdir}"/>
 		<javac
 			srcdir="${srcdir}"
@@ -55,7 +70,6 @@
 			<include name="**/*.java"/>
 
 			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
-			<compilerarg value="-Xlint:-deprecation"/>
 		</javac>
 	</target>
 
