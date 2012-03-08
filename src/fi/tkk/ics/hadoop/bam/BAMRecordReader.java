@@ -104,8 +104,12 @@ public class BAMRecordReader
 		final SAMRecord r = codec.decode();
 		if (r == null)
 			return false;
-		key.set((long)r.getReferenceIndex() << 32
-		            | r.getAlignmentStart() - 1);
+
+		int idx = r.getReferenceIndex();
+		if (idx == -1)
+			idx = Integer.MAX_VALUE;
+
+		key.set((long)idx << 32 | r.getAlignmentStart() - 1);
 		record.set(r);
 		return true;
 	}
