@@ -327,8 +327,10 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     int last = -1;
     for(int i = 1; i < numPartitions; ++i) {
       int k = Math.round(stepSize * i);
-      while (last >= k && comparator.compare(samples[last], samples[k]) == 0) {
-        ++k;
+      if (last > 0) {
+        while (comparator.compare(samples[last], samples[k]) == 0) {
+          ++k;
+        }
       }
       writer.append(samples[k], nullValue);
       last = k;
