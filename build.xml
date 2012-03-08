@@ -7,13 +7,10 @@
 	<fileset id="srcfiles" dir="${srcdir}" includes="**/*.java"/>
 
 	<path id="classpath">
-		<pathelement path="${env.HADOOP_HOME}/hadoop-0.20.2-core.jar"/>
-		<pathelement path="${env.HADOOP_HOME}/hadoop-core-0.20.203.0.jar"/>
-		<pathelement path="${env.HADOOP_HOME}/hadoop-core-0.20.204.0.jar"/>
-		<pathelement path="${env.HADOOP_HOME}/hadoop-core-0.20.205.0.jar"/>
-		<pathelement path="${env.HADOOP_HOME}/hadoop-core-1.0.0.jar"/>
-		<pathelement path="${env.HADOOP_HOME}/lib/commons-cli-1.2.jar"/>
-
+		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}">
+			<include name="hadoop-*.jar"/>
+			<include name="lib/*.jar"/>
+		</fileset>
 		<pathelement path="sam-1.56.jar"/>
 		<pathelement path="picard-1.56.jar"/>
 	</path>
