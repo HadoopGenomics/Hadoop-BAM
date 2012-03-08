@@ -429,13 +429,16 @@ final class SortRecordReader
 
 		// Correct the reference indices, and thus the key, if necessary.
 		if (headerMerger.hasMergedSequenceDictionary()) {
-			final int ri = headerMerger.getMergedSequenceIndex(
+			int ri = headerMerger.getMergedSequenceIndex(
 				h, r.getReferenceIndex());
 
 			r.setReferenceIndex(ri);
 			if (r.getReadPairedFlag())
 				r.setMateReferenceIndex(headerMerger.getMergedSequenceIndex(
 					h, r.getMateReferenceIndex()));
+
+			if (ri == -1)
+				ri = Integer.MAX_VALUE;
 
 			getCurrentKey().set((long)ri << 32 | r.getAlignmentStart() - 1);
 		}

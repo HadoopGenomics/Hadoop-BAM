@@ -727,8 +727,12 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 
 		parseCIGAR(rec, rec.getReadNegativeStrandFlag());
 		rangeIdx = 0;
-		key.set((long)rec.getReferenceIndex() << 32 |
-		        getCurrentValue().getCentreOfMass());
+
+		int idx = rec.getReferenceIndex();
+		if (idx == -1)
+			idx = Integer.MAX_VALUE;
+
+		key.set((long)idx | getCurrentValue().getCentreOfMass());
 		return true;
 	}
 
