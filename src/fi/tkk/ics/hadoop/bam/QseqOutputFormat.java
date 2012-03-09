@@ -73,12 +73,12 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
 
 		protected StringBuilder sBuilder = new StringBuilder(800);
 		protected DataOutputStream out;
-		enum BaseQualityFormat { Illumina, Sanger };
-		BaseQualityFormat baseQualityFormat;
+		enum BaseQualityEncoding { Illumina, Sanger };
+		BaseQualityEncoding baseQualityFormat;
 
     public QseqRecordWriter(Configuration conf, DataOutputStream out)
 		{
-			baseQualityFormat = BaseQualityFormat.Illumina;
+			baseQualityFormat = BaseQualityEncoding.Illumina;
 			this.out = out;
 			setConf(conf);
 		}
@@ -87,9 +87,9 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
 		{
 			String setting = conf.get(CONF_BASE_QUALITY_ENCODING, CONF_BASE_QUALITY_ENCODING_DEFAULT);
 			if ("illumina".equals(setting))
-				baseQualityFormat = BaseQualityFormat.Illumina;
+				baseQualityFormat = BaseQualityEncoding.Illumina;
 			else if ("sanger".equals(setting))
-				baseQualityFormat = BaseQualityFormat.Sanger;
+				baseQualityFormat = BaseQualityEncoding.Sanger;
 			else
 				throw new RuntimeException("Invalid property value '" + setting + "' for " + CONF_BASE_QUALITY_ENCODING + ".  Valid values are 'illumina' or 'sanger'");
 		}
@@ -116,11 +116,11 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
 			{
 				int startPos = sBuilder.length();
 				sBuilder.append(seq.getQuality().toString());
-				if (baseQualityFormat == BaseQualityFormat.Sanger)
+				if (baseQualityFormat == BaseQualityEncoding.Sanger)
 				{
 					//  do nothing
 				}
-				else if (baseQualityFormat == BaseQualityFormat.Illumina)
+				else if (baseQualityFormat == BaseQualityEncoding.Illumina)
 				{
 					// recode the quality in-place
 					for (int i = startPos; i < sBuilder.length(); ++i)

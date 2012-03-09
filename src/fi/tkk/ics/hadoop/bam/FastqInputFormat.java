@@ -38,7 +38,7 @@ import java.io.EOFException;
 
 import java.util.regex.*;
 
-import fi.tkk.ics.hadoop.bam.SequencedFragment.BaseQualityEncoding;
+import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 
 public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 {

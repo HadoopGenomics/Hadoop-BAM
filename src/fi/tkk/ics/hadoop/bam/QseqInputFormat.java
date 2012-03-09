@@ -38,7 +38,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import java.io.IOException;
 import java.nio.charset.CharacterCodingException;
 
-import fi.tkk.ics.hadoop.bam.SequencedFragment.BaseQualityEncoding;
+import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 
 /**
  * Reads the Illumina qseq sequence format.

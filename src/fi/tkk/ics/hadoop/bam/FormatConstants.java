@@ -47,6 +47,10 @@ public class FormatConstants
 	 */
 	public static final int ILLUMINA_MAX = 62;
 
+	/**
+	 * Encodings for base quality formats.
+	 */
+	public enum BaseQualityEncoding { Illumina, Sanger };
 
 	private FormatConstants() {} // no instantiation
 }

@@ -26,6 +26,7 @@ import org.junit.*;
 import static org.junit.Assert.*;
 
 import fi.tkk.ics.hadoop.bam.SequencedFragment;
+import fi.tkk.ics.hadoop.bam.FormatConstants;
 import fi.tkk.ics.hadoop.bam.FormatException;
 
 import java.io.IOException;
@@ -283,7 +284,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("##############################"));
-		assertEquals(-1, SequencedFragment.verifyQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger));
+		assertEquals(-1, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger));
 	}
 
 	@Test
@@ -291,7 +292,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"));
-		assertEquals(-1, SequencedFragment.verifyQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Illumina));
+		assertEquals(-1, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Illumina));
 	}
 
 	@Test
@@ -299,10 +300,10 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("###z##########################")); // over range
-		assertEquals(3, SequencedFragment.verifyQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger));
+		assertEquals(3, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger));
 
 		frag.setQuality(new Text("##### ########################")); // under range
-		assertEquals(5, SequencedFragment.verifyQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger));
+		assertEquals(5, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger));
 	}
 
 	@Test
@@ -310,7 +311,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("zzz=zzzzzzzzzzzzzzzzzzzzzzzzzz"));
-		assertEquals(3, SequencedFragment.verifyQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Illumina));
+		assertEquals(3, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Illumina));
 	}
 
 	@Test
@@ -318,7 +319,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"));
-		SequencedFragment.convertQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Illumina, SequencedFragment.BaseQualityEncoding.Sanger);
+		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Illumina, FormatConstants.BaseQualityEncoding.Sanger);
 		assertEquals("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[", frag.getQuality().toString());
 	}
 
@@ -327,7 +328,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[["));
-		SequencedFragment.convertQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger, SequencedFragment.BaseQualityEncoding.Illumina);
+		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger, FormatConstants.BaseQualityEncoding.Illumina);
 		assertEquals("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", frag.getQuality().toString());
 	}
 
@@ -336,7 +337,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[["));
-		SequencedFragment.convertQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger, SequencedFragment.BaseQualityEncoding.Sanger);
+		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger, FormatConstants.BaseQualityEncoding.Sanger);
 	}
 
 	@Test(expected=FormatException.class)
@@ -344,7 +345,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("zzz=zzzzzzzzzzzzzzzzzzzzzzzzzz"));
-		SequencedFragment.convertQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Illumina, SequencedFragment.BaseQualityEncoding.Sanger);
+		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Illumina, FormatConstants.BaseQualityEncoding.Sanger);
 	}
 
 	@Test(expected=FormatException.class)
@@ -352,7 +353,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("###z##########################"));
-		SequencedFragment.convertQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger, SequencedFragment.BaseQualityEncoding.Illumina);
+		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger, FormatConstants.BaseQualityEncoding.Illumina);
 	}
 
 	@Test(expected=FormatException.class)
@@ -360,7 +361,7 @@ public class TestSequencedFragment
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("### ##########################"));
-		SequencedFragment.convertQuality(frag.getQuality(), SequencedFragment.BaseQualityEncoding.Sanger, SequencedFragment.BaseQualityEncoding.Illumina);
+		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger, FormatConstants.BaseQualityEncoding.Illumina);
 	}
 
 	public static void main(String args[]) {

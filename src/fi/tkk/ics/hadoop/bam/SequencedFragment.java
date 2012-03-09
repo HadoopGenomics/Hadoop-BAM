@@ -30,13 +30,10 @@ import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
 
+import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
+
 public class SequencedFragment implements Writable
 {
-	public static enum BaseQualityEncoding {
-		Illumina,
-		Sanger
-	};
-
 	protected Text sequence = new Text();
 	protected Text quality = new Text();
 
@@ -87,6 +84,8 @@ public class SequencedFragment implements Writable
 	 * Get sequence Text object.
 	 * Trade encapsulation for efficiency.  Here we expose the internal Text
 	 * object so that data may be read and written diretly from/to it.
+	 *
+	 * Sequence should always be written using CAPITAL letters and 'N' for unknown bases.
 	 */
 	public Text getSequence() { return sequence; }
 
@@ -94,6 +93,8 @@ public class SequencedFragment implements Writable
 	 * Get quality Text object.
 	 * Trade encapsulation for efficiency.  Here we expose the internal Text
 	 * object so that data may be read and written diretly from/to it.
+	 *
+	 * Quality should always be in ASCII-encoded Phred+33 format (sanger).
 	 */
 	public Text getQuality() { return quality; }
 
