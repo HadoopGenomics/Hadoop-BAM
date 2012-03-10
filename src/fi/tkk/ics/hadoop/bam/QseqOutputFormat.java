@@ -38,6 +38,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.util.Progressable;
 
+import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
+
 /**
  * Output format for Illumina qseq format.
  * Records are lines of tab-separated fields.  Each record consists of
@@ -73,7 +75,6 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
 
 		protected StringBuilder sBuilder = new StringBuilder(800);
 		protected DataOutputStream out;
-		enum BaseQualityEncoding { Illumina, Sanger };
 		BaseQualityEncoding baseQualityFormat;
 
     public QseqRecordWriter(Configuration conf, DataOutputStream out)
