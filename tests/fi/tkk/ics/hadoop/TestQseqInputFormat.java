@@ -96,7 +96,7 @@ public class TestQseqInputFormat
 	}
 
 	@After
-	public void teardDown()
+	public void tearDown()
 	{
 		tempQseq.delete();
 		split = null;
