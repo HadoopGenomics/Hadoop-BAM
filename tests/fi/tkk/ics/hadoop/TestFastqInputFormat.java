@@ -110,7 +110,7 @@ public class TestFastqInputFormat
 	}
 
 	@After
-	public void teardDown()
+	public void tearDown()
 	{
 		tempFastq.delete();
 		split = null;
