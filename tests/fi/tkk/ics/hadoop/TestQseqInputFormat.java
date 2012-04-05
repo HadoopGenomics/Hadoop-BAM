@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.BufferedOutputStream;
 
 import org.junit.*;
 import static org.junit.Assert.*;
@@ -39,6 +41,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
@@ -82,6 +85,7 @@ public class TestQseqInputFormat
 	private JobConf conf;
 	private FileSplit split;
 	private File tempQseq;
+	private File tempGz;
 
 	private Text key;
 	private SequencedFragment fragment;
@@ -90,6 +94,7 @@ public class TestQseqInputFormat
 	public void setup() throws IOException
 	{
 		tempQseq = File.createTempFile("test_qseq_input_format", "qseq");
+		tempGz = File.createTempFile("test_qseq_input_format", ".gz");
 		conf = new JobConf();
 		key = new Text();
 		fragment = new SequencedFragment();
@@ -99,6 +104,7 @@ public class TestQseqInputFormat
 	public void tearDown()
 	{
 		tempQseq.delete();
+		tempGz.delete();
 		split = null;
 	}
 
@@ -294,5 +300,43 @@ public class TestQseqInputFormat
 
 		QseqRecordReader reader = new QseqRecordReader(conf, split);
 		assertNotNull(reader.makePositionMessage());
+	}
+
+	@Test
+	public void testGzCompressedInput() throws IOException
+	{
+		// write gzip-compressed data
+		GzipCodec codec = new GzipCodec();
+		PrintWriter qseqOut = new PrintWriter( new BufferedOutputStream( codec.createOutputStream( new FileOutputStream(tempGz) ) ) );
+		qseqOut.write(twoQseq);
+		qseqOut.close();
+
+		// now try to read it
+		split = new FileSplit(new Path(tempGz.toURI().toString()), 0, twoQseq.length(), null);
+		QseqRecordReader reader = new QseqRecordReader(conf, split);
+
+		boolean retval = reader.next(key, fragment);
+		assertTrue(retval);
+		assertEquals("ERR020229:10880:1:1:1373:2042:1", key.toString());
+		assertEquals("TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT", fragment.getSequence().toString());
+
+		retval = reader.next(key, fragment);
+		assertTrue(retval);
+		assertEquals("ERR020229:10883:1:1:1796:2044:1", key.toString());
+		assertEquals("TGAGCAGATGTGCTAAAGCTGCTTCTCCCCTAGGATCATTTGTACCTACCAGACTCAGGGAAAGGGGTGAGAATTGGGCCGTGGGGCAAGG", fragment.getSequence().toString());
+	}
+
+	@Test(expected=RuntimeException.class)
+	public void testCompressedSplit() throws IOException
+	{
+		// write gzip-compressed data
+		GzipCodec codec = new GzipCodec();
+		PrintWriter qseqOut = new PrintWriter( new BufferedOutputStream( codec.createOutputStream( new FileOutputStream(tempGz) ) ) );
+		qseqOut.write(twoQseq);
+		qseqOut.close();
+
+		// now try to read it starting from the middle
+		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoQseq.length(), null);
+		QseqRecordReader reader = new QseqRecordReader(conf, split);
 	}
 }
