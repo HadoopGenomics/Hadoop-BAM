@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.*;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
@@ -33,6 +34,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import java.io.InputStream;
 import java.io.IOException;
 import java.io.EOFException;
 
@@ -74,7 +76,7 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 		private Path file;
 
 		private LineReader lineReader;
-		private FSDataInputStream inputStream;
+		private InputStream inputStream;
 		private Text currentKey = new Text();
 		private SequencedFragment currentValue = new SequencedFragment();
 
@@ -102,8 +104,25 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 			end = start + split.getLength();
 
 			FileSystem fs = file.getFileSystem(conf);
-			inputStream = fs.open(split.getPath());
-			positionAtFirstRecord(inputStream);
+			FSDataInputStream fileIn = fs.open(file);
+
+			CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
+			CompressionCodec        codec        = codecFactory.getCodec(file);
+
+			if (codec == null) // no codec.  Uncompressed file.
+			{
+				positionAtFirstRecord(fileIn);
+				inputStream = fileIn;
+			}
+			else
+			{ // compressed file
+				if (start != 0)
+					throw new RuntimeException("Start position for compressed file is not 0! (found " + start + ")");
+
+				inputStream = codec.createInputStream(fileIn);
+				end = Long.MAX_VALUE; // read until the end of the file
+			}
+
 			lineReader = new LineReader(inputStream);
 		}
 

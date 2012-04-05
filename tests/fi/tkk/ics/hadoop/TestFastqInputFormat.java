@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.BufferedOutputStream;
 
 import org.junit.*;
 import static org.junit.Assert.*;
@@ -38,6 +40,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
@@ -96,6 +99,7 @@ public class TestFastqInputFormat
 	private JobConf conf;
 	private FileSplit split;
 	private File tempFastq;
+	private File tempGz;
 
 	private Text key;
 	private SequencedFragment fragment;
@@ -104,6 +108,7 @@ public class TestFastqInputFormat
 	public void setup() throws IOException
 	{
 		tempFastq = File.createTempFile("test_fastq_input_format", "fastq");
+		tempGz = File.createTempFile("test_fastq_input_format", ".gz");
 		conf = new JobConf();
 		key = new Text();
 		fragment = new SequencedFragment();
@@ -113,6 +118,7 @@ public class TestFastqInputFormat
 	public void tearDown()
 	{
 		tempFastq.delete();
+		tempGz.delete();
 		split = null;
 	}
 
@@ -366,5 +372,43 @@ public class TestFastqInputFormat
 		boolean found = reader.next(key, fragment);
 		assertTrue(found);
 		assertEquals("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", fragment.getQuality().toString());
+	}
+
+	@Test
+	public void testGzCompressedInput() throws IOException
+	{
+		// write gzip-compressed data
+		GzipCodec codec = new GzipCodec();
+		PrintWriter fastqOut = new PrintWriter( new BufferedOutputStream( codec.createOutputStream( new FileOutputStream(tempGz) ) ) );
+		fastqOut.write(twoFastq);
+		fastqOut.close();
+
+		// now try to read it
+		split = new FileSplit(new Path(tempGz.toURI().toString()), 0, twoFastq.length(), null);
+		FastqRecordReader reader = new FastqRecordReader(conf, split);
+
+		boolean retval = reader.next(key, fragment);
+		assertTrue(retval);
+		assertEquals("ERR020229.10880 HWI-ST168_161:1:1:1373:2042/1", key.toString());
+		assertEquals("TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT", fragment.getSequence().toString());
+
+		retval = reader.next(key, fragment);
+		assertTrue(retval);
+		assertEquals("ERR020229.10883 HWI-ST168_161:1:1:1796:2044/1", key.toString());
+		assertEquals("TGAGCAGATGTGCTAAAGCTGCTTCTCCCCTAGGATCATTTGTACCTACCAGACTCAGGGAAAGGGGTGAGAATTGGGCCGTGGGGCAAGG", fragment.getSequence().toString());
+	}
+
+	@Test(expected=RuntimeException.class)
+	public void testCompressedSplit() throws IOException
+	{
+		// write gzip-compressed data
+		GzipCodec codec = new GzipCodec();
+		PrintWriter fastqOut = new PrintWriter( new BufferedOutputStream( codec.createOutputStream( new FileOutputStream(tempGz) ) ) );
+		fastqOut.write(twoFastq);
+		fastqOut.close();
+
+		// now try to read it starting from the middle
+		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoFastq.length(), null);
+		FastqRecordReader reader = new FastqRecordReader(conf, split);
 	}
 }
