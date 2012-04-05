@@ -27,9 +27,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -37,6 +39,7 @@ import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.ReflectionUtils;
 
 import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 
@@ -157,11 +160,26 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
   }
 
   public RecordWriter<NullWritable,SequencedFragment> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress)
-	 	throws IOException
+	  throws IOException
 	{
-    Path dir = getWorkOutputPath(job);
-    FileSystem fs = dir.getFileSystem(job);
-    FSDataOutputStream fileOut = fs.create(new Path(dir, name), progress);
-    return new QseqRecordWriter(job, fileOut);
-  }
+		Path dir = getWorkOutputPath(job);
+		FileSystem fs = dir.getFileSystem(job);
+
+		DataOutputStream output;
+
+		boolean isCompressed = getCompressOutput(job);
+
+		if (isCompressed)
+		{
+			Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(job, GzipCodec.class); // gzip default
+			CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, job);
+
+			FSDataOutputStream fileOut = fs.create(new Path(dir, name + codec.getDefaultExtension()), progress);
+			output = new DataOutputStream(codec.createOutputStream(fileOut));
+		}
+		else
+			output = fs.create(new Path(dir, name), progress);
+
+		return new QseqRecordWriter(job, output);
+	}
 }
