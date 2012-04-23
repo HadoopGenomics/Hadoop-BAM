@@ -34,10 +34,9 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -60,11 +59,11 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 
 	protected BaseQualityEncoding baseQualityFormat = BaseQualityEncoding.Sanger;
 
-	public static class FastqRecordWriter implements RecordWriter<Text,SequencedFragment>
+	public static class FastqRecordWriter extends RecordWriter<Text,SequencedFragment>
 	{
-		protected StringBuilder     sBuilder = new StringBuilder(800);
-		protected Text              buffer   = new Text();
-		protected DataOutputStream  out;
+		protected StringBuilder       sBuilder          = new StringBuilder(800);
+		protected Text                buffer            = new Text();
+		protected DataOutputStream    out;
 		protected BaseQualityEncoding baseQualityFormat;
 
     public FastqRecordWriter(Configuration conf, DataOutputStream out)
@@ -141,33 +140,41 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			out.writeByte('\n');
     }
 
-    public void close(Reporter report) throws IOException
+    public void close(TaskAttemptContext task) throws IOException
 		{
       out.close();
     }
   }
 
-  public RecordWriter<Text,SequencedFragment> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress)
+  public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
-		Path dir = getWorkOutputPath(job);
-		FileSystem fs = dir.getFileSystem(job);
+		Configuration conf = task.getConfiguration();
+		boolean isCompressed = getCompressOutput(task);
 
-		DataOutputStream output;
-
-		boolean isCompressed = getCompressOutput(job);
+		CompressionCodec codec = null;
+		String extension = "";
 
 		if (isCompressed)
 		{
-			Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(job, GzipCodec.class); // gzip default
-			CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, job);
+			Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(task, GzipCodec.class);
+			codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, conf);
+			extension = codec.getDefaultExtension();
+		}
 
-			FSDataOutputStream fileOut = fs.create(new Path(dir, name + codec.getDefaultExtension()), progress);
+		Path file = getDefaultWorkFile(task, extension);
+		FileSystem fs = file.getFileSystem(conf);
+
+		DataOutputStream output;
+
+		if (isCompressed)
+		{
+			FSDataOutputStream fileOut = fs.create(file, false);
 			output = new DataOutputStream(codec.createOutputStream(fileOut));
 		}
 		else
-			output = fs.create(new Path(dir, name), progress);
+			output = fs.create(file, false);
 
-		return new FastqRecordWriter(job, output);
+		return new FastqRecordWriter(conf, output);
 	}
 }

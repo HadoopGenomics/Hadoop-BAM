@@ -34,10 +34,9 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -64,7 +63,7 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.qseq-output.base-quality-encoding";
 	public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "illumina";
 
-	public static class QseqRecordWriter implements RecordWriter<NullWritable,SequencedFragment>
+	public static class QseqRecordWriter extends RecordWriter<NullWritable,SequencedFragment>
 	{
     protected static final byte[] newLine;
     protected static final String delim = "\t";
@@ -153,33 +152,41 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
       out.write(newLine, 0, newLine.length);
     }
 
-    public void close(Reporter report) throws IOException
+    public void close(TaskAttemptContext context) throws IOException
 		{
       out.close();
     }
   }
 
-  public RecordWriter<NullWritable,SequencedFragment> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress)
+  public RecordWriter<NullWritable,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
-		Path dir = getWorkOutputPath(job);
-		FileSystem fs = dir.getFileSystem(job);
+		Configuration conf = task.getConfiguration();
+		boolean isCompressed = getCompressOutput(task);
 
-		DataOutputStream output;
-
-		boolean isCompressed = getCompressOutput(job);
+		CompressionCodec codec = null;
+		String extension = "";
 
 		if (isCompressed)
 		{
-			Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(job, GzipCodec.class); // gzip default
-			CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, job);
+			Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(task, GzipCodec.class);
+			codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, conf);
+			extension = codec.getDefaultExtension();
+		}
 
-			FSDataOutputStream fileOut = fs.create(new Path(dir, name + codec.getDefaultExtension()), progress);
+		Path file = getDefaultWorkFile(task, extension);
+		FileSystem fs = file.getFileSystem(conf);
+
+		DataOutputStream output;
+
+		if (isCompressed)
+		{
+			FSDataOutputStream fileOut = fs.create(file, false);
 			output = new DataOutputStream(codec.createOutputStream(fileOut));
 		}
 		else
-			output = fs.create(new Path(dir, name), progress);
+			output = fs.create(file, false);
 
-		return new QseqRecordWriter(job, output);
+		return new QseqRecordWriter(conf, output);
 	}
 }
