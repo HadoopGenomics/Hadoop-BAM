@@ -76,6 +76,9 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 	/** Exclusive. */
 	public long   getEndVirtualOffset() { return vEnd;   }
 
+	public void setStartVirtualOffset(long vo) { vStart = vo; }
+	public void   setEndVirtualOffset(long vo) { vEnd   = vo; }
+
 	@Override public void write(DataOutput out) throws IOException {
 		Text.writeString(out, file.toString());
 		out.writeLong(vStart);
