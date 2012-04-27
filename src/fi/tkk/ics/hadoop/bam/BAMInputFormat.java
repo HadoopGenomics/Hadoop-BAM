@@ -161,6 +161,8 @@ public class BAMInputFormat
 
 		final BAMSplitGuesser guesser = new BAMSplitGuesser(sin);
 
+		FileVirtualSplit previousSplit = null;
+
 		for (; i < splits.size(); ++i) {
 			FileSplit fspl = (FileSplit)splits.get(i);
 			if (!fspl.getPath().equals(path))
@@ -176,8 +178,27 @@ public class BAMInputFormat
 			// Hence force the length to be 0xffff, the maximum possible.
 			long alignedEnd = end << 16 | 0xffff;
 
-			newSplits.add(new FileVirtualSplit(
-				path, alignedBeg, alignedEnd, fspl.getLocations()));
+			if (alignedBeg == end) {
+				// No records detected in this split: merge it to the previous one.
+				// This could legitimately happen e.g. if we have a split that is
+				// so small that it only contains the middle part of a BGZF block.
+				//
+				// Of course, if it's the first split, then this is simply not a
+				// valid BAM file.
+				//
+				// FIXME: In theory, any number of splits could only contain parts
+				// of the BAM header before we start to see splits that contain BAM
+				// records. For now, we require that the split size is at least as
+				// big as the header and don't handle that case.
+				if (previousSplit == null)
+					throw new IOException("'" + path + "': "+
+						"no reads in first split: bad BAM file or tiny split size?");
+
+				previousSplit.setEndVirtualOffset(alignedEnd);
+			} else {
+				newSplits.add(previousSplit = new FileVirtualSplit(
+					path, alignedBeg, alignedEnd, fspl.getLocations()));
+			}
 		}
 
 		sin.close();
