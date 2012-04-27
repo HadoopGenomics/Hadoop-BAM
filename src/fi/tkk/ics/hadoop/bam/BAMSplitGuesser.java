@@ -153,10 +153,8 @@ public class BAMSplitGuesser {
 
 	// Gives the compressed size on the side. Returns null if it doesn't find
 	// anything.
-	private PosSize guessNextBGZFPos(int p, int end)
-		throws IOException
-	{
-		for (;;) {
+	private PosSize guessNextBGZFPos(int p, int end) {
+		try { for (;;) {
 			for (;;) {
 				in.seek(p);
 				in.read(buf.array(), 0, 4);
@@ -228,6 +226,9 @@ public class BAMSplitGuesser {
 			// now, the previous block contained 0x1f8b0804 bytes of data: that
 			// seems... unlikely.)
 			p = p0 + 4;
+
+		}} catch (IOException e) {
+			return null;
 		}
 	}
 
