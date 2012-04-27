@@ -37,8 +37,6 @@ import org.junit.*;
 import static org.junit.Assert.*;
 
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.Text;
