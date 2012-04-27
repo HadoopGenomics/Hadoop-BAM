@@ -225,7 +225,7 @@ public class SequencedFragment implements Writable
 				{
 					throw new FormatException(
 							"base quality score out of range for Illumina Phred+64 format (found " + (bytes[i] - FormatConstants.ILLUMINA_OFFSET) +
-							" but acceptable range is [0," + FormatConstants.ILLUMINA_MAX + "].\n" +
+							" but acceptable range is [0," + FormatConstants.ILLUMINA_MAX + "]).\n" +
 							"Maybe qualities are encoded in Sanger format?\n");
 				}
 				bytes[i] -= illuminaSangerDistance;
@@ -239,7 +239,7 @@ public class SequencedFragment implements Writable
 				{
 					throw new FormatException(
 							"base quality score out of range for Sanger Phred+64 format (found " + (bytes[i] - FormatConstants.SANGER_OFFSET) +
-							" but acceptable range is [0," + FormatConstants.SANGER_MAX + "].\n" +
+							" but acceptable range is [0," + FormatConstants.SANGER_MAX + "]).\n" +
 							"Maybe qualities are encoded in Illumina format?\n");
 				}
 				bytes[i] += illuminaSangerDistance;
