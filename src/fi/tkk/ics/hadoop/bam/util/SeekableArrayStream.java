@@ -39,7 +39,7 @@ public class SeekableArrayStream extends SeekableStream {
 	@Override public void seek(long lp) throws IOException {
 		final int p = (int)lp;
 		if (p < 0 || p > arr.length)
-			throw new IOException("SeekableArrayStream.seek :: " +p+ " is OOB");
+			throw new IOException("position " +p+ " is out of bounds");
 		pos = p;
 	}
 
