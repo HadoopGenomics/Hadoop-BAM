@@ -24,6 +24,7 @@ package fi.tkk.ics.hadoop.bam;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -33,13 +34,23 @@ import java.nio.ByteOrder;
 import java.nio.LongBuffer;
 import java.util.Arrays;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
 import net.sf.samtools.util.BlockCompressedInputStream;
 
-/** An indexing tool for BAM files, making them palatable to {@link
- * BAMInputFormat}. Writes splitting BAM indices as understood by {@link
- * SplittingBAMIndex}.
+/**
+ * An indexing tool for BAM files, making them palatable to {@link
+ * fi.tkk.ics.hadoop.bam.BAMInputFormat}. Writes splitting BAM indices as
+ * understood by {@link fi.tkk.ics.hadoop.bam.SplittingBAMIndex}.
+ *
+ * Takes a configuration as input, and uses it to parse the "input" and
+ * "granularity" values directly from the configuration.
  */
 public final class SplittingBAMIndexer {
+	private static final String OUTPUT_FILE_EXTENSION = ".splitting-bai";
+
 	public static void main(String[] args) {
 		if (args.length <= 1) {
 			System.out.println(
@@ -68,19 +79,48 @@ public final class SplittingBAMIndexer {
 
 		for (final String arg : Arrays.asList(args).subList(1, args.length)) {
 			final File f = new File(arg);
-			if (f.isFile() && f.canRead()) {
-				System.out.printf("Indexing %s...", f);
-				try {
-					indexer.index(f);
-					System.out.println(" done.");
-				} catch (IOException e) {
-					System.out.println(" FAILED!");
-					e.printStackTrace();
-				}
-			} else
-				System.err.printf(
-					"%s does not look like a file, won't index!\n", f);
+			System.out.printf("Indexing %s...", f);
+			try {
+				indexer.index(
+					new FileInputStream(f),
+					new BufferedOutputStream(new FileOutputStream(f + OUTPUT_FILE_EXTENSION)),
+					f.length());
+				System.out.println(" done.");
+			} catch (IOException e) {
+				System.out.println(" FAILED!");
+				e.printStackTrace();
+			}
 		}
+	}
+
+	/**
+	 * Invoke a new SplittingBAMIndexer object, operating on the supplied {@link
+	 * org.apache.hadoop.conf.Configuration} object instead of a supplied
+	 * argument list
+	 *
+	 * @throws java.lang.IllegalArgumentException if the "input" property is not
+	 *                                            in the Configuration
+	 */
+	public static void run(final Configuration conf) throws IOException {
+		final String inputString = conf.get("input");
+		if (inputString == null)
+			throw new IllegalArgumentException(
+				"String property \"input\" path not found in given Configuration");
+
+		final FileSystem fs = FileSystem.get(conf);
+
+		// Default to a granularity level of 4096. This is generally sufficient
+		// for very large BAM files, relative to a maximum heap size in the
+		// gigabyte range.
+		final SplittingBAMIndexer indexer =
+			new SplittingBAMIndexer(conf.getInt("granularity", 4096));
+
+		final Path input = new Path(inputString);
+
+		indexer.index(
+			fs.open(input),
+			fs.create(input.suffix(OUTPUT_FILE_EXTENSION)),
+			fs.getFileStatus(input).getLen());
 	}
 
 	private final ByteBuffer byteBuffer;
@@ -88,17 +128,27 @@ public final class SplittingBAMIndexer {
 
 	private static final int PRINT_EVERY = 500*1024*1024;
 
+	/**
+	 * Constructor that allows immediate specification of the granularity level
+	 * for a new SplittingBAMIndexer.
+	 *
+	 * @param g granularity level
+	 */
 	public SplittingBAMIndexer(int g) {
 		granularity = g;
 		byteBuffer = ByteBuffer.allocate(8); // Enough to fit a long
 	}
 
-	private void index(final File file) throws IOException {
+	/**
+	 * Perform indexing on the given file, at the granularity level previously
+	 * specified.
+	 */
+	private void index(
+			final InputStream rawIn, final OutputStream out, final long inputSize)
+		throws IOException
+	{
 		final BlockCompressedInputStream in =
-			new BlockCompressedInputStream(file);
-
-		final OutputStream out = new BufferedOutputStream(
-			new FileOutputStream(file.getPath() + ".splitting-bai"));
+			new BlockCompressedInputStream(rawIn);
 
 		final LongBuffer lb =
 			byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
@@ -129,15 +179,13 @@ public final class SplittingBAMIndexer {
 			}
 			fullySkip(in, pair.skip);
 		}
-		lb.put(0, file.length() << 16);
+		lb.put(0, inputSize << 16);
 		out.write(byteBuffer.array());
 		out.close();
 		in.close();
 	}
 
-	private void skipToAlignmentList(final InputStream in)
-		throws IOException
-	{
+	private void skipToAlignmentList(final InputStream in) throws IOException {
 		// Check magic number
 		if (!readExactlyBytes(in, 4))
 			ioError("Invalid BAM header: too short, no magic");
