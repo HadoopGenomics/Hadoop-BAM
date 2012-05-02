@@ -25,6 +25,7 @@ package fi.tkk.ics.hadoop.bam.cli.plugins;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.fs.Path;
@@ -43,6 +44,7 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 
+import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
@@ -55,7 +57,7 @@ public final class View extends CLIPlugin {
 
 	private static final CmdLineParser.Option
 		headerOnlyOpt = new BooleanOption('H', "header-only"),
-		bamOpt        = new BooleanOption('b', "output-bam");
+		formatOpt     = new StringOption ('F', "format=FMT");
 
 	public View() {
 		super("view", "SAM and BAM viewing", "1.1", "PATH [regions...]",
@@ -74,7 +76,7 @@ public final class View extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			headerOnlyOpt, "print header only"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			bamOpt, "output in BAM instead of SAM format"));
+			formatOpt, "select the output format based on FMT: SAM or BAM"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -87,8 +89,7 @@ public final class View extends CLIPlugin {
 		final String       path    = args.get(0);
 		final List<String> regions = args.subList(1, args.size());
 
-		final boolean headerOnly = parser.getBoolean(headerOnlyOpt),
-		              useBAM     = parser.getBoolean(bamOpt);
+		final boolean headerOnly = parser.getBoolean(headerOnlyOpt);
 
 		final SAMFileReader reader;
 
@@ -124,9 +125,22 @@ public final class View extends CLIPlugin {
 			return 4;
 		}
 
-		final SAMFileWriterImpl writer =
-			useBAM ? new BAMFileWriter(System.out, new File("<stdout>"))
-			       : new SAMTextWriter(System.out);
+		final String fmt = (String)parser.getOptionValue(formatOpt);
+
+		final SAMFormat format =
+			fmt == null ? SAMFormat.SAM
+			            : SAMFormat.valueOf(fmt.toUpperCase(Locale.ENGLISH));
+
+		final SAMFileWriterImpl writer;
+		switch (format) {
+			case BAM:
+				writer = new BAMFileWriter(System.out, new File("<stdout>"));
+				break;
+			case SAM:
+				writer = new SAMTextWriter(System.out);
+				break;
+			default: writer = null; assert false;
+		}
 
 		if (regions.isEmpty() || headerOnly) {
 			writer.setSortOrder(header.getSortOrder(), true);
