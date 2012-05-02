@@ -31,6 +31,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ChecksumFileSystem;
@@ -89,7 +90,7 @@ public final class Sort extends CLIPlugin {
 	private static final CmdLineParser.Option
 		verboseOpt     = new BooleanOption('v', "verbose"),
 		outputFileOpt  = new  StringOption('o', "output-file=PATH"),
-		samOutputOpt   = new BooleanOption('s', "output-sam"),
+		formatOpt      = new  StringOption('F', "format=FMT"),
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Sort() {
@@ -106,12 +107,13 @@ public final class Sort extends CLIPlugin {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			outputFileOpt, "output a complete SAM/BAM file to the file PATH, "+
 			               "removing the parts from WORKDIR; SAM/BAM is chosen "+
-			               "by file extension, if appropriate (overrides -s)"));
+			               "by file extension, if appropriate (but -F takes "+
+			               "precedence)"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
 			                "never by file extension"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			samOutputOpt, "output SAM instead of BAM"));
+			formatOpt, "select the output format based on FMT: SAM or BAM"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -142,12 +144,21 @@ public final class Sort extends CLIPlugin {
 		final Configuration conf = getConf();
 
 		SAMFormat format = null;
-		if (out != null)
-			format = SAMFormat.inferFromFilePath(out);
+		final String fmt = (String)parser.getOptionValue(formatOpt);
+		if (fmt != null) {
+			try { format = SAMFormat.valueOf(fmt.toUpperCase(Locale.ENGLISH)); }
+			catch (IllegalArgumentException e) {
+				System.err.printf("sort :: invalid format '%s'\n", fmt);
+				return 3;
+			}
+		}
 
-		if (format == null)
-			format = parser.getBoolean(samOutputOpt)
-			         	? SAMFormat.SAM : SAMFormat.BAM;
+		if (format == null) {
+			if (out != null)
+				format = SAMFormat.inferFromFilePath(out);
+			if (format == null)
+				format = SAMFormat.BAM;
+		}
 
 		conf.set(AnySAMOutputFormat.OUTPUT_SAM_FORMAT_PROPERTY,
 		         format.toString());
