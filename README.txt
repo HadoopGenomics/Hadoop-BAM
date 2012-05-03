@@ -156,12 +156,17 @@ Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 SAM-JDK and Hadoop .jar files ("sam-1.56.jar" and "picard-1.56.jar" and
 "hadoop-0.20.2-core.jar" for versions 1.56 and 0.20.2 respectively) as well as
 the Apache Commons CLI .jar provided by Hadoop ("lib/commons-cli-1.2.jar" for
-version 0.20.2) are in the Java class path. A command such as the following:
+version 0.20.2) are in the Java class path. In addition, depending on the
+Hadoop version, there may be more dependencies from the Hadoop lib/ directory.
+A command such as the following:
 
 	java fi.tkk.ics.hadoop.bam.cli.Frontend
 
 Is equivalent to the "hadoop jar hadoop-bam.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.
+
+Note that the "-libjars" way of passing the paths to the Picard .jars will not
+work when running Hadoop-BAM like this.
 
 ------------------
 Summarizer plugins
