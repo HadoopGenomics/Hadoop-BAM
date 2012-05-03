@@ -135,9 +135,15 @@ Output of MapReduce-using commands
 
 An example of a MapReduce-using command is "sort". Like all such commands
 should, it takes a working directory argument in which to place its output in
-parts. Each part is the output of one reduce task. For convenience, a "-o"
-parameter is supported to output a single complete BAM file instead of the
-individual parts.
+parts. Each part is the output of one reduce task. By default, these parts are
+not complete and usable files! They are /not/ BAM files, they are only parts of
+BAM files containing reads, but they don't have headers or footers.
+
+For convenience, the provided MapReduce-using commands support a "-o" parameter
+to output single complete files instead of the individual parts.
+
+For concatenating the outputs of tools that wish to output complete SAM and BAM
+files from each reducer, the "cat" command is provided.
 
 Note that some commands, such as the provided "view" and "index" commands, do
 not use MapReduce: they are merely useful to operate directly on files stored
