@@ -1,3 +1,62 @@
+2012-05-03 --- 4.0:
+   - SAM input and output support. AnySAMInputFormat handles transparent
+     support of both SAM and BAM inputs even in the same Hadoop job. For
+     output, there is no SAMOutputFormat; only AnySAMOutputFormat, which can be
+     used to output either SAM or BAM. BAMOutputFormat will be deprecated in
+     the future.
+
+   - Fix longstanding regression in the embedded Picard library causing
+     end-of-file markers to be written into BAM files by every reduce task. For
+     this reason e.g. 'samtools view' refused to show the contents of BAM files
+     output by Hadoop-BAM.
+
+   - Fix crash on some inputs caused by a bug in
+     fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler.
+
+   - Fix possible crash-on-valid situations in heuristic BAM splitting.
+
+   - Various I/O classes from the Seal project are now incorporated. This
+     includes input formats for FASTQ and QSEQ and an output format for QSEQ.
+     Thanks to Luca Pireddu!
+
+   - Unmapped reads are now ordered after, not before, all other reads.
+
+   - Allow using Hadoop's "-libjars" command line argument instead of
+     HADOOP_CLASSPATH to specify the Picard .jars. This ended up being
+     fiendishly complicated and somewhat fragile.
+
+   - Partitioning files are now saved in the output, not input, directory.
+
+   - 'sort' plugin version 3.0:
+
+     * Important bug fix for merging: conflicting IDs from different files
+       weren't being properly corrected.
+     * SAM input and output support. Can input SAM and BAM files at the same
+       time and output to either format.
+     * When not using -o, each reducer now outputs headers into the BAM files.
+
+   - 'view' plugin version 1.1, with SAM input support.
+
+   - Add new 'cat' plugin version 1.0, for concatenating SAM/BAM files. The
+     main intended use case is joining the output of 'sort' when it is used
+     without -o.
+
+   - 'summarize' plugin version 2.0, with SAM input support.
+
+   - SplittingBAMIndexer can now be used from within the library as well as a
+     command line tool and can index files directly in HDFS. Thanks to Thomas
+     Robinson!
+
+   - Various minor bug fixes.
+   - Lots of documentation updates.
+   - Various clarifications in the README.
+   - Much quieter error messages when plugin loading fails.
+
+   - build.xml now looks in the HADOOP_HOME environment variable for Hadoop
+     .jars. As a result, the required minimum version of Ant is now 1.7.1.
+   - fi.tkk.ics.hadoop.bam.custom is now compiled with warnings off, for less
+     noisy builds.
+
 2012-01-18 --- 3.3:
    - Fix embedded Picard to not have an accidentally leftover dependency on
      Picard 1.47.
