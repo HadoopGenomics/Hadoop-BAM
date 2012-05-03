@@ -39,10 +39,11 @@ import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
  * <p>A {@link SAMFileHeader} must be provided via {@link #setSAMHeader} or
  * {@link #readSAMHeaderFrom} before {@link #getRecordWriter} is called.</p>
  *
- * <p>Optionally, the BAM header may be written to the output file(s). This
- * defaults to false, because in distributed usage one often ends up with (and,
- * for decent performance, wants to end up with) multiple files, and one does
- * not want the header in each file.</p>
+ * <p>By default, writes the SAM header to the output file(s). This
+ * can be disabled, because in distributed usage one often ends up with (and,
+ * for decent performance, wants to end up with) the output split into multiple
+ * parts, which are easier to concatenate if the header is not present in each
+ * file.</p>
  */
 public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 	protected SAMFileHeader header;
