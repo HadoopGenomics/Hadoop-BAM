@@ -13,14 +13,8 @@ Picard SAM-JDK. Version 1.56 is provided in the form of sam-1.56.jar and
 picard-1.56.jar. Later versions may also work but have not been tested.
 
 Availability:
-	Hadoop - http://hadoop.apache.org/
-	Picard - http://picard.sourceforge.net/
-
-In order to use all the functionality of Hadoop-BAM, you need to have Picard's
-"sam-1.56.jar" and "picard-1.56.jar" (assuming version 1.56) and Hadoop's
-"hadoop-0.20.2-core.jar" (assuming version 0.20.2) in the CLASSPATH environment
-variable. For running under Hadoop, the Picard .jars should also be in the
-HADOOP_CLASSPATH setting in hadoop-env.sh.
+   Hadoop - http://hadoop.apache.org/
+   Picard - http://picard.sourceforge.net/
 
 ------------
 Installation
@@ -30,22 +24,40 @@ A precompiled "hadoop-bam.jar" is provided. You may also build it yourself
 using the commands below.
 
 The easiest way to compile Hadoop-BAM is to use Apache Ant (version 1.7.1 or
-greater) with the following command and all relevant .jar files in CLASSPATH:
+greater) with the following simple command:
 
-	ant jar
+   ant
 
-Note that this building step depends on an additional .jar file, provided by
-Hadoop as "lib/commons-cli-1.2.jar" (assuming Hadoop 0.20.2). Ordinarily, when
-using Hadoop-BAM under Hadoop, this need not be provided in CLASSPATH or
-HADOOP_CLASSPATH, since Hadoop loads it by itself; but compilation does not
-happen under Hadoop, so here it is necessary.
+Note that for this to work, either the HADOOP_HOME environment variable should
+be set to point to the main Hadoop directory, or the relevant .jar files should
+be in the CLASSPATH environment variable. If one wants to use CLASSPATH
+directly, it should contain the following .jars:
+
+   - hadoop-0.20.2-core.jar   For Hadoop 0.20.2; the appropriate core .jar file
+                              for other releases.
+
+   - sam-1.56.jar             Part of Picard, provided in this Hadoop-BAM
+                              distribution; later versions may or may not work.
+
+   - picard-1.56.jar          Ditto.
+
+   - commons-cli-1.2.jar      Apache Commons CLI; provided by Hadoop in its
+                              lib/ subdirectory. Hadoop loads it when used so
+                              this should never be necessary when using
+                              Hadoop-BAM, but it is required in this build
+                              step.
 
 The previous command will create the 'hadoop-bam.jar' file. For Javadoc
 documentation, run:
 
-	ant javadoc
+   ant javadoc
 
 Documentation can then be found in the "doc" subdirectory.
+
+Finally, to run tests, which require version 4 of the JUnit test framework
+(available at http://junit.sourceforge.net/), run:
+
+   ant run-tests
 
 -------------
 Library usage
