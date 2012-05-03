@@ -118,7 +118,7 @@ message listing the Hadoop-BAM commands available. To run a command, give it as
 the first command-line argument. For example, the provided BAM sorting command,
 "sort":
 
-	hadoop jar hadoop-bam.jar sort
+   hadoop jar hadoop-bam.jar sort
 
 This will give a help message specific to that command.
 
@@ -160,7 +160,7 @@ version 0.20.2) are in the Java class path. In addition, depending on the
 Hadoop version, there may be more dependencies from the Hadoop lib/ directory.
 A command such as the following:
 
-	java fi.tkk.ics.hadoop.bam.cli.Frontend
+   java fi.tkk.ics.hadoop.bam.cli.Frontend
 
 Is equivalent to the "hadoop jar hadoop-bam.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.
@@ -192,7 +192,7 @@ Output format
 The summarizer's output format is tabix-compatible. It is composed of rows of
 tab-separated data:
 
-	<reference sequence ID>	<left coordinate> <right coordinate> <count>
+   <reference sequence ID> <left coordinate> <right coordinate> <count>
 
 The coordinate columns are 1-based and both ends are inclusive.
 
