@@ -73,9 +73,15 @@ Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 
 See the Javadoc as well as the command line plugins' source code (in
 src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for more information. In
-particular, for MapReduce usage examples, see for example
+particular, for MapReduce usage, recommended examples are
 src/fi/tkk/ics/hadoop/bam/cli/plugins/Sort.java and
 src/fi/tkk/ics/hadoop/bam/cli/plugins/chipster/Summarize.java.
+
+When using Hadoop-BAM as a library in your program, remember to have
+hadoop-bam.jar as well as the Picard .jars (sam-1.56.jar and picard-1.56.jar,
+assuming version 1.56) in your CLASSPATH and HADOOP_CLASSPATH; alternatively,
+use the "-libjars" argument and handle it properly, by using Hadoop's
+GenericOptionsParser or Tool class.
 
 ------------------
 Command-line usage
