@@ -95,17 +95,28 @@ class path will be used as well.
 Running under Hadoop
 ....................
 
-To use Hadoop-BAM under Hadoop, make sure that, in addition to hadoop-bam.jar,
-Picard's "sam-1.56.jar" and "picard-1.56.jar" (assuming version 1.56) have been
-added to the HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh,
-along with any plugin .jar files that provide other commands. Then, you may run
-Hadoop-BAM with a command like:
+To use Hadoop-BAM under Hadoop, the Picard .jar files need to be available.
+There are two alternative ways of accomplishing this. The most straightforward
+is to use the "-libjars" command line argument when running Hadoop-BAM, as
+follows:
 
-	hadoop jar hadoop-bam.jar
+   hadoop jar hadoop-bam.jar -libjars sam-1.56.jar,picard-1.56.jar
 
-This should print a brief help message listing the commands available. To run a
-command, give it as the first command-line argument. For example, the provided
-BAM sorting command, "sort":
+Specifying the appropriate paths to sam-1.56.jar and picard-1.56.jar (assuming
+version 1.56), of course.
+
+The other way is to make sure that Picard's "sam-1.56.jar" and
+"picard-1.56.jar" (assuming version 1.56) have been added to the
+HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh, along with any
+plugin .jar files that provide other commands. Then, you may run Hadoop-BAM
+simply with a command like:
+
+   hadoop jar hadoop-bam.jar
+
+No matter which method is chosen, the command used should print a brief help
+message listing the Hadoop-BAM commands available. To run a command, give it as
+the first command-line argument. For example, the provided BAM sorting command,
+"sort":
 
 	hadoop jar hadoop-bam.jar sort
 
