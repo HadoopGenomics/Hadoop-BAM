@@ -1,44 +1,44 @@
 2012-01-18 --- 3.3:
-	- Fix embedded Picard to not have an accidentally leftover dependency on
-	  Picard 1.47.
+   - Fix embedded Picard to not have an accidentally leftover dependency on
+     Picard 1.47.
 
-	- Clarify some .jar dependencies in the README.
+   - Clarify some .jar dependencies in the README.
 
 2011-12-07 --- 3.2:
-	- Important bug fix to avoid looping infinitely on some BAM files.
+   - Important bug fix to avoid looping infinitely on some BAM files.
 
 2011-12-05 --- 3.1:
-	- Important data loss bug fixes!
+   - Important data loss bug fixes!
 
-	- 'sort' plugin updated to 2.0: it can now take multiple input files,
-	  merging them together.
+   - 'sort' plugin updated to 2.0: it can now take multiple input files,
+     merging them together.
 
-	- New 'summary' and 'summarysort' command line plugins, respectively for
-	  creating and sorting Chipster summary files. Not very generically useful;
-	  intended more as example code.
+   - New 'summary' and 'summarysort' command line plugins, respectively for
+     creating and sorting Chipster summary files. Not very generically useful;
+     intended more as example code.
 
-	- Some minor command line argument handling bug fixes.
+   - Some minor command line argument handling bug fixes.
 
-	- Updated embedded and provided Picard from 1.47 to 1.56.
+   - Updated embedded and provided Picard from 1.47 to 1.56.
 
-	- As Hadoop-BAM now depends on Picard proper as well as the SAM-JDK, a
-	  compatible JAR, currently picard-1.56.jar, is distributed together with
-	  Hadoop-BAM.
+   - As Hadoop-BAM now depends on Picard proper as well as the SAM-JDK, a
+     compatible JAR, currently picard-1.56.jar, is distributed together with
+     Hadoop-BAM.
 
 2011-08-19 --- 3.0:
-	- Plugin-extensible command line interface.
-	- The 'view', 'sort', and 'index' command line plugins. These supersede the
-	  fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader and
-	  fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort classes, which have much less
-	  functionality than the new plugins and are considered deprecated.
-	- Embedded Picard SAM-JDK parts updated from version 1.27 to 1.47.
-	- A compatible Picard SAM-JDK JAR, currently sam-1.47.jar, is now
-	  distributed together with Hadoop-BAM.
+   - Plugin-extensible command line interface.
+   - The 'view', 'sort', and 'index' command line plugins. These supersede the
+     fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader and
+     fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort classes, which have much less
+     functionality than the new plugins and are considered deprecated.
+   - Embedded Picard SAM-JDK parts updated from version 1.27 to 1.47.
+   - A compatible Picard SAM-JDK JAR, currently sam-1.47.jar, is now
+     distributed together with Hadoop-BAM.
 
 2011-06-01 --- 2.0:
-	- Heuristic splitting of BAM and BGZF files: indexing is no longer required.
-	- build.xml now defaults to making a .jar file, no need for explicit 'ant
-	  jar'.
+   - Heuristic splitting of BAM and BGZF files: indexing is no longer required.
+   - build.xml now defaults to making a .jar file, no need for explicit 'ant
+     jar'.
 
 2010-12-10 --- 1.0:
-	- Initial release.
+   - Initial release.
