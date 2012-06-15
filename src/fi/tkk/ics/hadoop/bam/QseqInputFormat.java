@@ -358,6 +358,13 @@ public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 		}
 	}
 
+	@Override
+	public boolean isSplitable(JobContext context, Path path)
+	{
+		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
+		return codec == null;
+	}
+
 	public RecordReader<Text, SequencedFragment> createRecordReader(
 	                                        InputSplit genericSplit,
 	                                        TaskAttemptContext context) throws IOException, InterruptedException

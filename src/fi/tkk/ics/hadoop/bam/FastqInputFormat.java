@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.*;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -361,6 +362,13 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 			pos += bytesRead;
 			return bytesRead;
 		}
+	}
+
+	@Override
+	public boolean isSplitable(JobContext context, Path path)
+	{
+		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
+		return codec == null;
 	}
 
 	public RecordReader<Text, SequencedFragment> createRecordReader(
