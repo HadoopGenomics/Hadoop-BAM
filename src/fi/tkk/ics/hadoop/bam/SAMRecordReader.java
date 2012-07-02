@@ -22,7 +22,11 @@
 
 package fi.tkk.ics.hadoop.bam;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,9 +40,13 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import net.sf.samtools.SAMFormatException;
+
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
+import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
 
 /** See {@link BAMRecordReader} for the meaning of the key. */
 public class SAMRecordReader
@@ -51,10 +59,16 @@ public class SAMRecordReader
 	private SAMRecordIterator iterator;
 	private long start, end;
 
+   private WorkaroundingStream waInput;
+
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
 		final FileSplit split = (FileSplit)spl;
+
+		this.start =         split.getStart();
+		this.end   = start + split.getLength();
+
 		final Configuration conf = ctx.getConfiguration();
 
 		final Path file = split.getPath();
@@ -62,28 +76,60 @@ public class SAMRecordReader
 
 		input = fs.open(file);
 
-		// Create this reader before seeking so that it gets the file header.
-		final SAMFileReader reader = new SAMFileReader(input);
+		// SAMFileReader likes to make our life difficult, so complexity ensues.
+		// The basic problem is that SAMFileReader buffers its input internally,
+		// which causes two issues.
+		//
+		// Issue #1 is that SAMFileReader requires that its input begins with a
+		// SAM header. This is not fine for reading from the middle of a file.
+		// Because of the buffering, if we have the reader read the header from
+		// the beginning of the file and then seek to where we want to read
+		// records from, it'll have buffered some records from immediately after
+		// the header, which is no good. Thus we need to read the header
+		// separately and then use a custom stream that wraps the input stream,
+		// inserting the header at the beginning of it. (Note the spurious
+		// re-encoding of the header so that the reader can decode it.)
+		//
+		// Issue #2 is handling the boundary between two input splits. The best
+		// way seems to be the classic "in later splits, skip the first line, and
+		// in every split finish reading a partial line at the end of the split",
+		// but that latter part is a bit complicated here. Due to the buffering,
+		// we can easily overshoot: as soon as the stream moves past the end of
+		// the split, SAMFileReader has buffered some records past the end. The
+		// basic fix here is to have our custom stream count the number of bytes
+		// read and to stop after the split size. Unfortunately this prevents us
+		// from reading the last partial line, so our stream actually allows
+		// reading to the next newline after the actual end.
 
-		start =         split.getStart();
-		end   = start + split.getLength();
+		final SAMFileHeader header =
+			new SAMFileReader(input, false).getFileHeader();
 
-		// We need to skip to the start of the next line.
-		if (start > 0) {
-			// If we're exactly at the start of a line, we don't want to skip the
-			// line, so back up into a line break. If we're in the middle of a
-			// line this won't make a difference.
-			--start;
+		waInput = new WorkaroundingStream(input, header);
 
-			input.seek(start);
+		final boolean firstSplit = this.start == 0;
 
-			// For simplicity, use a LineReader to skip over the first line. And
-			// most definitely don't close it, as we want to keep the stream open
-			// for the SAMFileReader.
-			start += new LineReader(input, conf).readLine(
-				new Text(), 0, (int)Math.min(end - start, Integer.MAX_VALUE));
+      if (firstSplit) {
+			// Skip the header because we already have it, and adjust the start to
+			// match.
+			final int headerLength = waInput.getHeaderLength();
+			input.seek(headerLength);
+			this.start += headerLength;
+		} else
+         input.seek(--this.start);
+
+		// Creating the iterator causes reading from the stream, so make sure
+		// to start counting this early.
+		waInput.setLength(this.end - this.start);
+
+		iterator = new SAMFileReader(waInput, false).iterator();
+
+		if (!firstSplit) {
+			// Skip the first line, it'll be handled with the previous split.
+			try  {
+				if (iterator.hasNext())
+					iterator.next();
+			} catch (SAMFormatException e) {}
 		}
-		iterator = reader.iterator();
 	}
 	@Override public void close() throws IOException { iterator.close(); }
 
@@ -102,9 +148,123 @@ public class SAMRecordReader
 			return false;
 
 		final SAMRecord r = iterator.next();
-
 		key.set(BAMRecordReader.getKey(r));
 		record.set(r);
 		return true;
+	}
+}
+
+// See the long comment in SAMRecordReader.initialize() for what this does.
+class WorkaroundingStream extends InputStream {
+	private final InputStream stream, headerStream;
+	private boolean headerRemaining;
+	private long length;
+	private int headerLength;
+
+	private boolean lookingForEOL = false,
+	                foundEOL;
+
+	public WorkaroundingStream(InputStream stream, SAMFileHeader header) {
+		this.stream = stream;
+
+		String text = header.getTextHeader();
+		if (text == null) {
+			StringWriter writer = new StringWriter();
+			new SAMTextHeaderCodec().encode(writer, header);
+			text = writer.toString();
+		}
+		byte[] b;
+		try {
+			b = text.getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			b = null;
+			assert false;
+		}
+		headerRemaining = true;
+		headerLength    = b.length;
+		headerStream    = new ByteArrayInputStream(b);
+
+		this.length = Long.MAX_VALUE;
+	}
+
+	public void setLength(long length) {
+		this.length = length;
+	}
+
+	public int getHeaderLength() {
+		return headerLength;
+	}
+
+	@Override public int read() throws IOException {
+		if (headerRemaining) {
+			final int b = headerStream.read();
+			if (b != -1)
+				return b;
+			headerRemaining = false;
+			headerStream.close();
+		}
+
+		if (length == 0 && (!lookingForEOL || foundEOL))
+			return -1;
+
+		final int b = stream.read();
+		if (b != -1) {
+			if (!lookingForEOL && --length == 0)
+				lookingForEOL = true;
+			if (lookingForEOL)
+				foundEOL = b == '\n';
+		}
+		return b;
+	}
+
+	@Override public int read(byte[] buf, int off, int len) throws IOException {
+		if (headerRemaining) {
+			final int h = headerStream.read(buf, off, len);
+			if (h != -1)
+				return h + Math.max(0, streamRead(buf, off + h, len - h));
+			headerRemaining = false;
+			headerStream.close();
+		}
+		return streamRead(buf, off, len);
+	}
+	private int streamRead(byte[] buf, int off, int len) throws IOException {
+		if (len > length) {
+			if (foundEOL)
+				return 0;
+			lookingForEOL = true;
+		}
+		int n = stream.read(buf, off, len);
+		if (n > 0) {
+			n = tryFindEOL(buf, off, n);
+			length -= n;
+		}
+		return n;
+	}
+	private int tryFindEOL(byte[] buf, int off, int len) {
+		assert !foundEOL;
+
+		if (!lookingForEOL || len < length)
+			return len;
+
+		// Find the first EOL between length and len.
+
+		// len >= length so length fits in an int.
+		int i = Math.max(0, (int)length - 1);
+
+		for (; i < len; ++i) {
+			if (buf[off + i] == '\n') {
+				foundEOL = true;
+				break;
+			}
+		}
+		return i + 1;
+	}
+
+	@Override public void close() throws IOException {
+		stream.close();
+	}
+
+	@Override public int available() throws IOException {
+		return headerRemaining ? headerStream.available() : stream.available();
 	}
 }
