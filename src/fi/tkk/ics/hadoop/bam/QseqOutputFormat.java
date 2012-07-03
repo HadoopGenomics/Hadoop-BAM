@@ -32,7 +32,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -58,12 +57,12 @@ import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
  *   - Filter
  */
 
-public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFragment>
+public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.qseq-output.base-quality-encoding";
 	public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "illumina";
 
-	public static class QseqRecordWriter extends RecordWriter<NullWritable,SequencedFragment>
+	public static class QseqRecordWriter extends RecordWriter<Text,SequencedFragment>
 	{
     protected static final byte[] newLine;
     protected static final String delim = "\t";
@@ -97,7 +96,7 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
 				throw new RuntimeException("Invalid property value '" + setting + "' for " + CONF_BASE_QUALITY_ENCODING + ".  Valid values are 'illumina' or 'sanger'");
 		}
 
-    public void write(NullWritable ignored_key, SequencedFragment seq) throws IOException
+    public void write(Text ignored_key, SequencedFragment seq) throws IOException
 		{
 			sBuilder.delete(0, sBuilder.length()); // clear
 
@@ -158,7 +157,7 @@ public class QseqOutputFormat extends TextOutputFormat<NullWritable, SequencedFr
     }
   }
 
-  public RecordWriter<NullWritable,SequencedFragment> getRecordWriter(TaskAttemptContext task)
+  public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
 		Configuration conf = task.getConfiguration();
