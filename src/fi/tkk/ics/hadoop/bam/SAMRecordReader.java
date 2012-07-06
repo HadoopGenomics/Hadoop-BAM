@@ -111,7 +111,7 @@ public class SAMRecordReader
       if (firstSplit) {
 			// Skip the header because we already have it, and adjust the start to
 			// match.
-			final int headerLength = waInput.getHeaderLength();
+			final int headerLength = waInput.getRemainingHeaderLength();
 			input.seek(headerLength);
 			this.start += headerLength;
 		} else
@@ -191,7 +191,7 @@ class WorkaroundingStream extends InputStream {
 		this.length = length;
 	}
 
-	public int getHeaderLength() {
+	public int getRemainingHeaderLength() {
 		return headerLength;
 	}
 
@@ -207,10 +207,33 @@ class WorkaroundingStream extends InputStream {
 	@Override public int read(byte[] buf, int off, int len) throws IOException {
 		if (headerRemaining) {
 			final int h = headerStream.read(buf, off, len);
-			if (h != -1)
-				return h + Math.max(0, streamRead(buf, off + h, len - h));
+			if (h < headerLength && h != -1) {
+				headerLength -= h;
+				return h;
+			}
+
 			headerRemaining = false;
 			headerStream.close();
+
+			int s = streamRead(buf, off + h, len - h);
+
+			// HACK HACK HACK.
+			//
+			// We gave all of the header, which means that SAMFileReader is still
+			// trying to read more header lines. If we're in a split that isn't at
+			// the start of the SAM file, we could be in the middle of a line and
+			// thus see @ characters at the start of our data. Then SAMFileReader
+			// would try to understand those as header lines and the end result is
+			// that it throws an error, since they aren't actually header lines,
+			// they're just part of a SAM record.
+			//
+			// So, if we're done with the header, strip all @ characters we see.
+			// Thus SAMFileReader will stop reading the header there and won't
+			// throw an exception until we use its SAMRecordIterator, at which
+			// point we can catch it, because we know to expect it.
+			for (int i = 0; s > 0 && buf[off + h + i++] == '@'; --s) {}
+
+			return h + Math.max(0, s);
 		}
 		return streamRead(buf, off, len);
 	}
