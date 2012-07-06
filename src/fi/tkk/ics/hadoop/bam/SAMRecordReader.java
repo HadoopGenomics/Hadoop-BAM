@@ -195,26 +195,13 @@ class WorkaroundingStream extends InputStream {
 		return headerLength;
 	}
 
+	private byte[] readBuf = new byte[1];
 	@Override public int read() throws IOException {
-		if (headerRemaining) {
-			final int b = headerStream.read();
-			if (b != -1)
-				return b;
-			headerRemaining = false;
-			headerStream.close();
+		for (;;) switch (read(readBuf)) {
+			case  0: continue;
+			case  1: return readBuf[0];
+			case -1: return -1;
 		}
-
-		if (length == 0 && (!lookingForEOL || foundEOL))
-			return -1;
-
-		final int b = stream.read();
-		if (b != -1) {
-			if (!lookingForEOL && --length == 0)
-				lookingForEOL = true;
-			if (lookingForEOL)
-				foundEOL = b == '\n';
-		}
-		return b;
 	}
 
 	@Override public int read(byte[] buf, int off, int len) throws IOException {
