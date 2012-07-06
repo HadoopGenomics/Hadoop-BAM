@@ -162,7 +162,7 @@ class WorkaroundingStream extends InputStream {
 	private int headerLength;
 
 	private boolean lookingForEOL = false,
-	                foundEOL;
+	                foundEOL = false;
 
 	public WorkaroundingStream(InputStream stream, SAMFileHeader header) {
 		this.stream = stream;
