@@ -241,10 +241,10 @@ class WorkaroundingStream extends InputStream {
 		for (; i < len; ++i) {
 			if (buf[off + i] == '\n') {
 				foundEOL = true;
-				break;
+				return i + 1;
 			}
 		}
-		return i + 1;
+		return len;
 	}
 
 	@Override public void close() throws IOException {
