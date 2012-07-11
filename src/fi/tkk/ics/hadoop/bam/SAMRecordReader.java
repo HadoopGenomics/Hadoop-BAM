@@ -162,7 +162,8 @@ class WorkaroundingStream extends InputStream {
 	private int headerLength;
 
 	private boolean lookingForEOL = false,
-	                foundEOL = false;
+	                foundEOL      = false,
+	                strippingAts  = false; // HACK, see read(byte[], int, int).
 
 	public WorkaroundingStream(InputStream stream, SAMFileHeader header) {
 		this.stream = stream;
@@ -206,16 +207,24 @@ class WorkaroundingStream extends InputStream {
 
 	@Override public int read(byte[] buf, int off, int len) throws IOException {
 		if (headerRemaining) {
-			final int h = headerStream.read(buf, off, len);
-			if (h < headerLength && h != -1) {
-				headerLength -= h;
-				return h;
+			final int h;
+			if (strippingAts)
+				h = 0;
+			else {
+				h = headerStream.read(buf, off, len);
+				if (h < headerLength && h != -1) {
+					headerLength -= h;
+					return h;
+				}
+				strippingAts = true;
+				headerStream.close();
 			}
 
-			headerRemaining = false;
-			headerStream.close();
+			final int newOff = off + h;
+			int s = streamRead(buf, newOff, len - h);
 
-			int s = streamRead(buf, off + h, len - h);
+			if (s <= 0)
+				return strippingAts ? s : h;
 
 			// HACK HACK HACK.
 			//
@@ -231,9 +240,18 @@ class WorkaroundingStream extends InputStream {
 			// Thus SAMFileReader will stop reading the header there and won't
 			// throw an exception until we use its SAMRecordIterator, at which
 			// point we can catch it, because we know to expect it.
-			for (int i = 0; s > 0 && buf[off + h + i++] == '@'; --s) {}
+			//
+			// headerRemaining remains true while it's possible that there are
+			// still @ characters coming.
 
-			return h + Math.max(0, s);
+			int i = newOff-1;
+			while (buf[++i] == '@' && --s > 0);
+
+			if (i != newOff)
+				System.arraycopy(buf, i, buf, newOff, s);
+
+			headerRemaining = s == 0;
+			return h + s;
 		}
 		return streamRead(buf, off, len);
 	}
