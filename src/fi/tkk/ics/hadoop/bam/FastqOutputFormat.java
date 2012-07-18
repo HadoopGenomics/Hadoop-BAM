@@ -89,6 +89,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 
 			sBuilder.append( seq.getInstrument() == null ? "" : seq.getInstrument() ).append(delim);
 			sBuilder.append( seq.getRunNumber()  == null ? "" : seq.getRunNumber().toString() ).append(delim);
+			sBuilder.append( seq.getFlowcellId()  == null ? "" : seq.getFlowcellId() ).append(delim);
 			sBuilder.append( seq.getLane()       == null ? "" : seq.getLane().toString() ).append(delim);
 			sBuilder.append( seq.getTile()       == null ? "" : seq.getTile().toString() ).append(delim);
 			sBuilder.append( seq.getXpos()       == null ? "" : seq.getXpos().toString() ).append(delim);
