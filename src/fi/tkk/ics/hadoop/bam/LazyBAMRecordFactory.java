@@ -22,10 +22,10 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordFactory;
+import net.sf.samtools.BAMRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordFactory;
 
 /** A factory for the kind of lazy {@link BAMRecord} used internally. */
 public class LazyBAMRecordFactory implements SAMRecordFactory {
@@ -76,18 +76,7 @@ class LazyBAMRecord extends BAMRecord {
 	@Override public String getReferenceName() {
 		if (mReferenceIndex != null && !decodedRefIdx) {
 			decodedRefIdx = true;
-			if (mReferenceIndex == NO_ALIGNMENT_REFERENCE_INDEX) {
-				mReferenceName = NO_ALIGNMENT_REFERENCE_NAME;
-			} else {
-				try {
-					mReferenceName = getHeader()
-						.getSequence(mReferenceIndex).getSequenceName();
-				} catch (NullPointerException e) {
-					throw new IllegalArgumentException(
-						"Reference index " + mReferenceIndex +
-						" not found in sequence dictionary.", e);
-				}
-			}
+			super.setReferenceIndex(mReferenceIndex);
 		}
 		return super.getReferenceName();
 	}
@@ -95,18 +84,7 @@ class LazyBAMRecord extends BAMRecord {
 	@Override public String getMateReferenceName() {
 		if (mMateReferenceIndex != null && !decodedMateRefIdx) {
 			decodedMateRefIdx = true;
-			if (mMateReferenceIndex == NO_ALIGNMENT_REFERENCE_INDEX) {
-				mMateReferenceName = NO_ALIGNMENT_REFERENCE_NAME;
-			} else {
-				try {
-					mMateReferenceName = getHeader()
-						.getSequence(mMateReferenceIndex).getSequenceName();
-				} catch (NullPointerException e) {
-					throw new IllegalArgumentException(
-						"Reference index " + mMateReferenceIndex +
-						" not found in sequence dictionary.", e);
-				}
-			}
+			super.setReferenceIndex(mReferenceIndex);
 		}
 		return super.getMateReferenceName();
 	}

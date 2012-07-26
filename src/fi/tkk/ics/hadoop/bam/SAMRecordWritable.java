@@ -28,8 +28,8 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
+import net.sf.samtools.BAMRecordCodec;
+import net.sf.samtools.SAMRecord;
 
 import fi.tkk.ics.hadoop.bam.util.DataInputWrapper;
 import fi.tkk.ics.hadoop.bam.util.DataOutputWrapper;

@@ -27,14 +27,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import net.sf.samtools.BAMRecordCodec;
 import net.sf.samtools.FileTruncatedException;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
 import net.sf.samtools.util.SeekableStream;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
 
 /** A class for heuristically finding BAM record positions inside an area of

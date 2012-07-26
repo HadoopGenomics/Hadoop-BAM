@@ -28,8 +28,8 @@ import java.io.OutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
 
 /** A convenience class that you can use as a RecordWriter for SAM files.
  *

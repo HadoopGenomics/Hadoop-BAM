@@ -38,8 +38,8 @@
 			<include name="hadoop-*.jar"/>
 			<include name="lib/*.jar"/>
 		</fileset>
-		<pathelement path="sam-1.56.jar"/>
-		<pathelement path="picard-1.56.jar"/>
+		<pathelement path="sam-1.73.jar"/>
+		<pathelement path="picard-1.73.jar"/>
 	</path>
 
 	<target name="compile-custom">

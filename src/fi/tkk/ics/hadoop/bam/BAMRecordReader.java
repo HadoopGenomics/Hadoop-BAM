@@ -32,11 +32,11 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import net.sf.samtools.BAMRecordCodec;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits

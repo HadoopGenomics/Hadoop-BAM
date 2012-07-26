@@ -52,19 +52,19 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import net.sf.picard.sam.ReservedTagConstants;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
-
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SamFileHeaderMerger;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
+import net.sf.picard.sam.ReservedTagConstants;
+import net.sf.picard.sam.SamFileHeaderMerger;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMTextHeaderCodec;
+import net.sf.samtools.SAMTextWriter;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.BlockCompressedStreamConstants;
+
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;

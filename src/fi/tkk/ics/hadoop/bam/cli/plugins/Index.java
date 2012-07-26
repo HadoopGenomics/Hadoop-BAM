@@ -26,14 +26,14 @@ import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 
-import net.sf.samtools.SAMFormatException;
+import net.sf.samtools.BAMIndexer;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMFormatException;
+import net.sf.samtools.SAMRecordIterator;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMIndexer;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
 
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;

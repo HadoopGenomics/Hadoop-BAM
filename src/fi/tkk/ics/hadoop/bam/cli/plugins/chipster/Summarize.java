@@ -60,6 +60,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
@@ -67,8 +68,6 @@ import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.MultipleOutputs;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
-
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;

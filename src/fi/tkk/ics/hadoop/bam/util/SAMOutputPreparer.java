@@ -31,11 +31,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
 
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 

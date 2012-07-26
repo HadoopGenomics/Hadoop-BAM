@@ -40,7 +40,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileReader;
 
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM and BAM files.
  * Values are the individual records; see {@link BAMRecordReader} for the

@@ -26,8 +26,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 

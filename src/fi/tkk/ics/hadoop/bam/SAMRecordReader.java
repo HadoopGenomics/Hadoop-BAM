@@ -40,13 +40,12 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFormatException;
-
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMTextHeaderCodec;
 
 /** See {@link BAMRecordReader} for the meaning of the key. */
 public class SAMRecordReader
