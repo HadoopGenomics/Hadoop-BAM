@@ -1,7 +1,7 @@
-// Copied to use our custom BlockCompressedOutputStream. Excludes indexing
-// support to massively reduce dependencies.
+// Copied because we have a custom SAMRecord. Excludes indexing support to
+// massively reduce dependencies.
 //
-// Required for GetSortedBAMHeader.
+// Required for cli.plugins.View.
 
 /*
  * The MIT License
