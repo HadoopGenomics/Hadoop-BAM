@@ -31,10 +31,10 @@ package fi.tkk.ics.hadoop.bam.custom.samtools;
 import net.sf.samtools.SAMException;
 
 import net.sf.samtools.util.BinaryCodec;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileConstants;
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriterImpl;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
