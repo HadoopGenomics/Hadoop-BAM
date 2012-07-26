@@ -125,7 +125,7 @@ public class SAMRecordReader
 
 		if (!firstSplit) {
 			// Skip the first line, it'll be handled with the previous split.
-			try  {
+			try {
 				if (iterator.hasNext())
 					iterator.next();
 			} catch (SAMFormatException e) {}
