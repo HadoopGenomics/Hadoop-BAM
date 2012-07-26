@@ -23,6 +23,7 @@ package fi.tkk.ics.hadoop.bam.cli.plugins.chipster;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
+import java.io.FilterOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -60,12 +61,12 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.MultipleOutputs;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
@@ -788,7 +789,15 @@ final class SummarizeOutputFormat
 
 		return new TextOutputFormat.LineRecordWriter<NullWritable,RangeCount>(
 			new DataOutputStream(
-				new BlockCompressedOutputStream(fs.create(path))));
+				new FilterOutputStream(
+					new BlockCompressedOutputStream(fs.create(path), null))
+				{
+					@Override public void close() throws IOException {
+						// Don't close the BlockCompressedOutputStream, so we don't
+						// get an end-of-file sentinel.
+						this.out.flush();
+					}
+				}));
 	}
 
 	@Override public Path getDefaultWorkFile(

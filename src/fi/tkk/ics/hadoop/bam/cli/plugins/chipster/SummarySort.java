@@ -21,6 +21,7 @@
 package fi.tkk.ics.hadoop.bam.cli.plugins.chipster;
 
 import java.io.DataOutputStream;
+import java.io.FilterOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -55,12 +56,12 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.LineReader;
 
 import net.sf.samtools.util.BlockCompressedInputStream;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
@@ -382,7 +383,15 @@ final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 
 		return new TextOutputFormat.LineRecordWriter<NullWritable,Text>(
 			new DataOutputStream(
-				new BlockCompressedOutputStream(fs.create(path))));
+				new FilterOutputStream(
+					new BlockCompressedOutputStream(fs.create(path), null))
+				{
+					@Override public void close() throws IOException {
+						// Don't close the BlockCompressedOutputStream, so we don't
+						// get an end-of-file sentinel.
+						this.out.flush();
+					}
+				}));
 	}
 
 	@Override public Path getDefaultWorkFile(

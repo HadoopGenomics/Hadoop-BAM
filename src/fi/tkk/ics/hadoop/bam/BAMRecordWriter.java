@@ -33,9 +33,9 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import net.sf.samtools.util.BinaryCodec;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 
 import fi.tkk.ics.hadoop.bam.custom.samtools.BAMRecordCodec;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
@@ -98,7 +98,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		final OutputStream compressedOut =
-			new BlockCompressedOutputStream(output);
+			new BlockCompressedOutputStream(output, null);
 
 		binaryCodec = new BinaryCodec(compressedOut);
 		recordCodec = new BAMRecordCodec(header);
@@ -108,8 +108,10 @@ public abstract class BAMRecordWriter<K>
 			this.writeHeader(header);
 	}
 
-	@Override public void close(TaskAttemptContext ctx) {
-		binaryCodec.close();
+	@Override public void close(TaskAttemptContext ctx) throws IOException {
+		// Don't close the codec, we don't want BlockCompressedOutputStream's
+		// file terminator to be output. But do flush the stream.
+		binaryCodec.getOutputStream().flush();
 	}
 
 	protected void writeAlignment(final SAMRecord rec) {
