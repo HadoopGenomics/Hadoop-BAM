@@ -23,13 +23,16 @@
 package fi.tkk.ics.hadoop.bam.util;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 
+import fi.tkk.ics.hadoop.bam.SAMFormat;
+
 public final class GetSortedBAMHeader {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		if (args.length < 2) {
 			System.err.println(
 				"Usage: GetSortedBAMHeader input output\n\n"+
@@ -41,9 +44,11 @@ public final class GetSortedBAMHeader {
 			System.exit(1);
 		}
 
-		final BAMFileWriter w = new BAMFileWriter(new File(args[1]));
-		w.setSortOrder(SAMFileHeader.SortOrder.coordinate, true);
-		w.setHeader(new SAMFileReader(new File(args[0])).getFileHeader());
-		w.close();
+		final SAMFileHeader h =
+			new SAMFileReader(new File(args[0])).getFileHeader();
+		h.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+
+		new SAMOutputPreparer().prepareForRecords(
+			new FileOutputStream(args[1]), SAMFormat.BAM, h);
 	}
 }

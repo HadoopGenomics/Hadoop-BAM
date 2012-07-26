@@ -22,13 +22,9 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
-import java.io.File;
-import java.io.FilterOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -62,7 +58,6 @@ import net.sf.samtools.util.BlockCompressedStreamConstants;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
 import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SamFileHeaderMerger;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
@@ -81,6 +76,7 @@ import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class Sort extends CLIPlugin {
@@ -263,29 +259,9 @@ public final class Sort extends CLIPlugin {
 
 			final OutputStream outs = dstFS.create(outPath);
 
-			switch (format) {
-				case BAM: {
-					// With BAM, use the BAMFileWriter, but make sure that it
-					// doesn't close the underlying stream.
-					final OutputStream openOuts = new FilterOutputStream(outs) {
-						@Override public void close() {}
-					};
-					final BAMFileWriter w =
-						new BAMFileWriter(openOuts, new File(""));
-					w.setSortOrder(header.getSortOrder(), true);
-					w.setHeader(header);
-					w.close();
-					break;
-				}
-				case SAM: {
-					// With SAM, we can just encode the header directly to the file.
-					final Writer sw = new OutputStreamWriter(outs);
-					new SAMTextHeaderCodec().encode(sw, header);
-					sw.flush();
-					break;
-				}
-				default: assert false;
-			}
+			// Don't use the returned stream, because we're concatenating directly
+			// and don't want to apply another layer of compression to BAM.
+			new SAMOutputPreparer().prepareForRecords(outs, format, header);
 
 			// Then, the actual SAM or BAM contents.
 

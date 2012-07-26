@@ -23,13 +23,9 @@
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FilterOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -42,11 +38,10 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 
 import net.sf.samtools.util.BlockCompressedInputStream;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BlockCompressedOutputStream;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
 import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextHeaderCodec;
@@ -56,6 +51,7 @@ import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 
 public final class Cat extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
@@ -170,29 +166,10 @@ public final class Cat extends CLIPlugin {
 		// Output the header.
 
 		try {
-			switch (format) {
-				case BAM: {
-					// With BAM, use the BAMFileWriter, but make sure that it
-					// doesn't close the underlying stream.
-					final OutputStream openOut = new FilterOutputStream(out) {
-						@Override public void close() {}
-					};
-					final BAMFileWriter w =
-						new BAMFileWriter(openOut, new File(""));
-					w.setSortOrder(header.getSortOrder(), true);
-					w.setHeader(header);
-					w.close();
-					break;
-				}
-				case SAM: {
-					// With SAM, we can just encode the header directly to the file.
-					final Writer sw = new OutputStreamWriter(out);
-					new SAMTextHeaderCodec().encode(sw, header);
-					sw.flush();
-					break;
-				}
-				default: assert false;
-			}
+			// Don't use the returned stream, because we're concatenating directly
+			// and don't want to apply another layer of compression to BAM.
+			new SAMOutputPreparer().prepareForRecords(out, format, header);
+
 		} catch (IOException e) {
 			System.err.printf("cat :: Outputting header failed: %s\n",
 									e.getMessage());
