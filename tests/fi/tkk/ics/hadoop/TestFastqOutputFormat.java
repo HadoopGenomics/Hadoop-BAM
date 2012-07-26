@@ -88,6 +88,40 @@ public class TestFastqOutputFormat
 	}
 
 	@Test
+	public void testNullControlNumber() throws IOException
+	{
+		fragment.setControlNumber(null);
+		writer.write(null, fragment);
+		writer.close(null);
+
+		String[] lines = new String(outputBuffer.toByteArray(), "US-ASCII").split("\n");
+		assertEquals(4, lines.length);
+
+		String idLine = lines[0];
+		assertTrue(idLine.startsWith("@"));
+
+		fragment.setControlNumber(0); // when null 0 should be written
+		compareMetadata(fragment, idLine);
+	}
+
+	@Test
+	public void testNullFilter() throws IOException
+	{
+		fragment.setFilterPassed(null);
+		writer.write(null, fragment);
+		writer.close(null);
+
+		String[] lines = new String(outputBuffer.toByteArray(), "US-ASCII").split("\n");
+		assertEquals(4, lines.length);
+
+		String idLine = lines[0];
+		assertTrue(idLine.startsWith("@"));
+
+		fragment.setFilterPassed(true); // when filter not available then it passes
+		compareMetadata(fragment, idLine);
+	}
+
+	@Test
 	public void testCustomId() throws IOException
 	{
 		String customKey = "hello";

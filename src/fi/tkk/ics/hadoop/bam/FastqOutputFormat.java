@@ -95,16 +95,13 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			sBuilder.append( seq.getXpos()       == null ? "" : seq.getXpos().toString() ).append(delim);
 			sBuilder.append( seq.getYpos()       == null ? "" : seq.getYpos().toString() );
 
-			sBuilder.append(" ");
+			sBuilder.append(" "); // space
 
 			sBuilder.append( seq.getRead()       == null ? "" : seq.getRead().toString() ).append(delim);
-			if (seq.getFilterPassed() == null)
-				sBuilder.append("");
-			else
-				sBuilder.append(seq.getFilterPassed() ? "N" : "Y");
+			sBuilder.append(seq.getFilterPassed() == null || seq.getFilterPassed() ? "N" : "Y");
 			sBuilder.append(delim);
 
-			sBuilder.append( seq.getControlNumber() == null ? "" : seq.getControlNumber().toString()).append(delim);
+			sBuilder.append( seq.getControlNumber() == null ? "0" : seq.getControlNumber().toString()).append(delim);
 			sBuilder.append( seq.getIndexSequence() == null ? "" : seq.getIndexSequence());
 
 			return sBuilder.toString();
