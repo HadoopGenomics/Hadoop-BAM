@@ -66,10 +66,30 @@ public class AnySAMInputFormat
 	private final SAMInputFormat samIF = new SAMInputFormat();
 
 	private final Map<Path,SAMFormat> formatMap;
+	private final boolean              givenMap;
 
-	private final Configuration conf;
-	private final boolean trustExts,
-	                      givenMap;
+	private Configuration conf;
+	private boolean trustExts;
+
+
+	/** Creates a new input format, which will use the
+	 * <code>Configuration</code> from the first public method called. Thus this
+	 * will behave as though constructed with a <code>Configuration</code>
+	 * directly, but only after it has received it in
+	 * <code>createRecordReader</code> (via the <code>TaskAttemptContext</code>)
+	 * or <code>isSplitable</code> or <code>getSplits</code> (via the
+	 * <code>JobContext</code>). Until then, other methods will throw an {@link
+	 * IllegalStateException}.
+	 *
+	 * This constructor exists mainly as a convenience, e.g. so that
+	 * <code>AnySAMInputFormat</code> can be used directly in
+	 * <code>Job.setInputFormatClass</code>.
+	 */
+	public AnySAMInputFormat() {
+		this.formatMap = new HashMap<Path,SAMFormat>();
+		this.givenMap  = false;
+		this.conf      = null;
+	}
 
 	/** Creates a new input format, reading {@link #TRUST_EXTS_PROPERTY} from
 	 * the given <code>Configuration</code>.
@@ -115,6 +135,9 @@ public class AnySAMInputFormat
 			throw new IllegalArgumentException(
 				"SAM format for '"+path+"' not in given map");
 
+		if (this.conf == null)
+			throw new IllegalStateException("Don't have a Configuration yet");
+
 		if (trustExts) {
 			final SAMFormat f = SAMFormat.inferFromFilePath(path);
 			if (f != null) {
@@ -153,6 +176,9 @@ public class AnySAMInputFormat
 			throw new IllegalArgumentException(
 				"split '"+split+"' has unknown type: cannot extract path");
 
+		if (this.conf == null)
+			this.conf = ctx.getConfiguration();
+
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
 			throw new IllegalArgumentException(
@@ -169,6 +195,9 @@ public class AnySAMInputFormat
 	 * appropriate for the given path.
 	 */
 	@Override public boolean isSplitable(JobContext job, Path path) {
+		if (this.conf == null)
+			this.conf = job.getConfiguration();
+
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
 			return super.isSplitable(job, path);
@@ -187,6 +216,9 @@ public class AnySAMInputFormat
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
+		if (this.conf == null)
+			this.conf = job.getConfiguration();
+
 		final List<InputSplit> origSplits = super.getSplits(job);
 
 		// We have to partition the splits by input format and hand them over to
