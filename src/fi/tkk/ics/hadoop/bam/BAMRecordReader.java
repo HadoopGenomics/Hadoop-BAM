@@ -53,11 +53,13 @@ public class BAMRecordReader
 	private long fileStart, virtualEnd;
 
 	public static long getKey(final SAMRecord rec) {
-		// Put unmapped reads at the end.
-		if (rec.getReadUnmappedFlag())
-			return Long.MAX_VALUE;
+		int refIdx = rec.getReferenceIndex();
 
-		return getKey(rec.getReferenceIndex(), rec.getAlignmentStart());
+		// Pass on the fact that this is an unmapped read.
+		if (rec.getReadUnmappedFlag())
+			refIdx = -1;
+
+		return getKey(refIdx, rec.getAlignmentStart());
 	}
 
 	/** @param alignmentStart 1-based leftmost coordinate. */
@@ -67,9 +69,10 @@ public class BAMRecordReader
 
 	/** @param alignmentStart0 0-based leftmost coordinate. */
 	public static long getKey0(int refIdx, int alignmentStart0) {
-		// Put unmapped reads at the end here, too.
+		// Put unmapped reads at the end, but don't give them all the exact same
+		// key so that they can be distributed to different reducers.
 		if (refIdx < 0 || alignmentStart0 < 0)
-			return Long.MAX_VALUE;
+			refIdx = Integer.MAX_VALUE;
 
 		return (long)refIdx << 32 | alignmentStart0;
 	}
