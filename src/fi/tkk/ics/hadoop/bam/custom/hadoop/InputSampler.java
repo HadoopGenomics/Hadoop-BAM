@@ -5,6 +5,14 @@
 // Fixed https://issues.apache.org/jira/browse/MAPREDUCE-1987 at least
 // partially, by changing int numPartitions to take the min with the number of
 // unique samples
+//
+// Fixed the loop in writePartitionFile in two ways:
+//
+// 1. The last/k checking was completely nonsensical: last was always less than
+//    k, so the loop intended to avoid duplicates in the output never did
+//    anything.
+// 2. With proper duplicate avoidance, we could run over the end of the samples
+//    array. It seems to be okay to write too few partitions, so simply do that.
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -328,9 +336,12 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     for(int i = 1; i < numPartitions; ++i) {
       int k = Math.round(stepSize * i);
       if (last > 0) {
-        while (comparator.compare(samples[last], samples[k]) == 0) {
+        while (k < samples.length &&
+               comparator.compare(samples[last], samples[k]) == 0) {
           ++k;
         }
+        if (k >= samples.length)
+          break;
       }
       writer.append(samples[k], nullValue);
       last = k;
