@@ -50,6 +50,7 @@ import net.sf.samtools.util.BlockCompressedOutputStream;
 public abstract class BAMRecordWriter<K>
 	extends RecordWriter<K,SAMRecordWritable>
 {
+	private OutputStream   origOutput;
 	private BinaryCodec    binaryCodec;
 	private BAMRecordCodec recordCodec;
 
@@ -96,8 +97,10 @@ public abstract class BAMRecordWriter<K>
 			OutputStream output, SAMFileHeader header, boolean writeHeader)
 		throws IOException
 	{
+		origOutput = output;
+
 		final OutputStream compressedOut =
-			new BlockCompressedOutputStream(output, null);
+			new BlockCompressedOutputStream(origOutput, null);
 
 		binaryCodec = new BinaryCodec(compressedOut);
 		recordCodec = new BAMRecordCodec(header);
@@ -111,6 +114,9 @@ public abstract class BAMRecordWriter<K>
 		// Don't close the codec, we don't want BlockCompressedOutputStream's
 		// file terminator to be output. But do flush the stream.
 		binaryCodec.getOutputStream().flush();
+
+		// And close the original output.
+		origOutput.close();
 	}
 
 	protected void writeAlignment(final SAMRecord rec) {

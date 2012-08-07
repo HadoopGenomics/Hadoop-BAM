@@ -786,15 +786,19 @@ final class SummarizeOutputFormat
 		Path path = getDefaultWorkFile(ctx, "");
 		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
 
+		final OutputStream file = fs.create(path);
+
 		return new TextOutputFormat.LineRecordWriter<NullWritable,RangeCount>(
 			new DataOutputStream(
-				new FilterOutputStream(
-					new BlockCompressedOutputStream(fs.create(path), null))
+				new FilterOutputStream(new BlockCompressedOutputStream(file, null))
 				{
 					@Override public void close() throws IOException {
 						// Don't close the BlockCompressedOutputStream, so we don't
 						// get an end-of-file sentinel.
 						this.out.flush();
+
+						// Instead, close the file stream directly.
+						file.close();
 					}
 				}));
 	}
