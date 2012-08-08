@@ -65,14 +65,15 @@ public final class Cat extends CLIPlugin {
 			optionDescs,
 			"Reads the SAM or BAM files in the given INPATHs and outputs "+
 			"the reads contained within them directly to OUTPATH. Performs no "+
-			"format conversions: simply concatenates the files."+
+			"format conversions: simply concatenates the files. Note that BAM "+
+			"files should not have terminator blocks in them, as they will also "+
+			"be copied, which could confuse some tools."+
 			"\n\n"+
 			"Each INPATH can be a glob pattern as understood by Hadoop."+
 			"\n\n"+
-			"By default, the header used in OUTPATH is selected from the first "+
-			"INPATH. The output format is always the same as that of the "+
-			"INPATHs, and thus is selected based on the first INPATH or its "+
-			"contents.");
+			"The header used in OUTPATH is selected from the first INPATH. The "+
+			"output format is always the same as that of the INPATHs, and thus "+
+			"is selected based on the first INPATH or its contents.");
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
