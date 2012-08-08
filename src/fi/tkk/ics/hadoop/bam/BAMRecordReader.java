@@ -23,6 +23,7 @@
 package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
+import java.util.Random;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -52,6 +53,8 @@ public class BAMRecordReader
 	private BAMRecordCodec codec;
 	private long fileStart, virtualEnd;
 
+	private static final Random random = new Random();
+
 	public static long getKey(final SAMRecord rec) {
 		int refIdx = rec.getReferenceIndex();
 
@@ -71,8 +74,10 @@ public class BAMRecordReader
 	public static long getKey0(int refIdx, int alignmentStart0) {
 		// Put unmapped reads at the end, but don't give them all the exact same
 		// key so that they can be distributed to different reducers.
-		if (refIdx < 0 || alignmentStart0 < 0)
+		if (refIdx < 0 || alignmentStart0 < 0) {
 			refIdx = Integer.MAX_VALUE;
+			alignmentStart0 = random.nextInt();
+		}
 
 		return (long)refIdx << 32 | alignmentStart0;
 	}
