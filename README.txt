@@ -6,11 +6,12 @@ tools in the vein of SAMtools.
 Dependencies
 ------------
 
-Hadoop 0.20.2 or later in the 0.20 or 1.0 series. The unstable 0.21, 0.22, and
-0.23 releases will not work with this version of Hadoop-BAM.
+Hadoop 0.20.2 or later in the 0.20.x or 1.0.x series. The latest stable
+release, 1.0.3, is recommended. The unstable 0.22.x, 1.1.x, and 2.x.x releases
+are not supported by this version of Hadoop-BAM.
 
-Picard SAM-JDK. Version 1.56 is provided in the form of sam-1.56.jar and
-picard-1.56.jar. Later versions may also work but have not been tested.
+Picard SAM-JDK. Version 1.76 is provided in the form of sam-1.76.jar and
+picard-1.76.jar. Later versions may also work but have not been tested.
 
 Availability:
    Hadoop - http://hadoop.apache.org/
@@ -36,10 +37,10 @@ directly, it should contain the following .jars:
    - hadoop-0.20.2-core.jar   For Hadoop 0.20.2; the appropriate core .jar file
                               for other releases.
 
-   - sam-1.56.jar             Part of Picard, provided in this Hadoop-BAM
+   - sam-1.76.jar             Part of Picard, provided in this Hadoop-BAM
                               distribution; later versions may or may not work.
 
-   - picard-1.56.jar          Ditto.
+   - picard-1.76.jar          Ditto.
 
    - commons-cli-1.2.jar      Apache Commons CLI; provided by Hadoop in its
                               lib/ subdirectory. Hadoop loads it when used so
@@ -78,8 +79,8 @@ src/fi/tkk/ics/hadoop/bam/cli/plugins/Sort.java and
 src/fi/tkk/ics/hadoop/bam/cli/plugins/chipster/Summarize.java.
 
 When using Hadoop-BAM as a library in your program, remember to have
-hadoop-bam.jar as well as the Picard .jars (sam-1.56.jar and picard-1.56.jar,
-assuming version 1.56) in your CLASSPATH and HADOOP_CLASSPATH; alternatively,
+hadoop-bam.jar as well as the Picard .jars (sam-1.76.jar and picard-1.76.jar,
+assuming version 1.76) in your CLASSPATH and HADOOP_CLASSPATH; alternatively,
 use the "-libjars" argument and handle it properly, by using Hadoop's
 GenericOptionsParser or Tool class.
 
@@ -100,13 +101,13 @@ There are two alternative ways of accomplishing this. The most straightforward
 is to use the "-libjars" command line argument when running Hadoop-BAM, as
 follows:
 
-   hadoop jar hadoop-bam.jar -libjars sam-1.56.jar,picard-1.56.jar
+   hadoop jar hadoop-bam.jar -libjars sam-1.76.jar,picard-1.76.jar
 
-Specifying the appropriate paths to sam-1.56.jar and picard-1.56.jar (assuming
-version 1.56), of course.
+Specifying the appropriate paths to sam-1.76.jar and picard-1.76.jar (assuming
+version 1.76), of course.
 
-The other way is to make sure that Picard's "sam-1.56.jar" and
-"picard-1.56.jar" (assuming version 1.56) have been added to the
+The other way is to make sure that Picard's "sam-1.76.jar" and
+"picard-1.76.jar" (assuming version 1.76) have been added to the
 HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh, along with any
 plugin .jar files that provide other commands. Then, you may run Hadoop-BAM
 simply with a command like:
@@ -153,8 +154,8 @@ Running without Hadoop
 ......................
 
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
-SAM-JDK and Hadoop .jar files ("sam-1.56.jar" and "picard-1.56.jar" and
-"hadoop-0.20.2-core.jar" for versions 1.56 and 0.20.2 respectively) as well as
+SAM-JDK and Hadoop .jar files ("sam-1.76.jar" and "picard-1.76.jar" and
+"hadoop-0.20.2-core.jar" for versions 1.76 and 0.20.2 respectively) as well as
 the Apache Commons CLI .jar provided by Hadoop ("lib/commons-cli-1.2.jar" for
 version 0.20.2) are in the Java class path. In addition, depending on the
 Hadoop version, there may be more dependencies from the Hadoop lib/ directory.
