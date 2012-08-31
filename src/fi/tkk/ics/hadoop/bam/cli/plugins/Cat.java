@@ -60,7 +60,7 @@ public final class Cat extends CLIPlugin {
 		verboseOpt = new BooleanOption('v', "verbose");
 
 	public Cat() {
-		super("cat", "concatenation of partial SAM and BAM files", "1.0",
+		super("cat", "concatenation of partial SAM and BAM files", "1.0.1",
 			"OUTPATH INPATH [INPATH...]",
 			optionDescs,
 			"Reads the SAM or BAM files in the given INPATHs and outputs "+
