@@ -30,19 +30,19 @@ import java.util.StringTokenizer;
 
 import org.apache.hadoop.fs.Path;
 
-import net.sf.samtools.SAMFormatException;
+import net.sf.samtools.BAMFileWriter;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMFileWriterImpl;
+import net.sf.samtools.SAMFormatException;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.util.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMFileWriter;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriterImpl;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMSequenceRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;

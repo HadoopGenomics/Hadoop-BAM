@@ -32,16 +32,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import net.sf.samtools.BAMIndex;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileSpan;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.util.SeekableStream;
-
-import fi.tkk.ics.hadoop.bam.custom.samtools.BAMIndex;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileHeader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileReader;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileSpan;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMFileWriter;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecord;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMRecordIterator;
-import fi.tkk.ics.hadoop.bam.custom.samtools.SAMTextWriter;
 
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
