@@ -107,14 +107,14 @@ public class SAMRecordReader
 
 		final boolean firstSplit = this.start == 0;
 
-      if (firstSplit) {
+		if (firstSplit) {
 			// Skip the header because we already have it, and adjust the start to
 			// match.
 			final int headerLength = waInput.getRemainingHeaderLength();
 			input.seek(headerLength);
 			this.start += headerLength;
 		} else
-         input.seek(--this.start);
+			input.seek(--this.start);
 
 		// Creating the iterator causes reading from the stream, so make sure
 		// to start counting this early.
