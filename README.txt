@@ -2,6 +2,14 @@ Hadoop-BAM: a library for manipulation of BAM (Binary Alignment/Map) and
 BGZF-compressed files using the Hadoop MapReduce framework, and command line
 tools in the vein of SAMtools.
 
+For a longer high-level description, refer to the article "Hadoop-BAM: directly
+manipulating next generation sequencing data in the cloud" in Bioinformatics
+Volume 28 Issue 6 pp. 876-877, also available online at:
+http://dx.doi.org/10.1093/bioinformatics/bts054
+
+If you are interested in using Apache Pig (http://pig.apache.org/) with
+Hadoop-BAM, refer to SeqPig at: http://sourceforge.net/projects/seqpig/
+
 ------------
 Dependencies
 ------------
