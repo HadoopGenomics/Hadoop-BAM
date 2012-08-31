@@ -1,3 +1,32 @@
+2012-08-31 --- 5.0:
+   - MAJOR CHANGE: Hadoop-BAM no longer depends on, or even provides,
+     fi.tkk.ics.hadoop.bam.custom.samtools. In other words, users should now
+     import Picard classes from Picard itself, i.e. net.sf.samtools.
+
+   - Fix data loss/duplication and crash-on-valid issues in SAM input.
+
+   - Fix FASTQ record writer to also write the flow cell ID and to emit null
+     fields correctly.
+
+   - Fix crash on some inputs caused by a bug in
+     fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler. (Not the same bug as was
+     fixed in 4.0.)
+
+   - Updated provided Picard from 1.56 to 1.76.
+
+   - BAMRecordReader.getKey now randomizes the order of unmapped reads instead
+     of giving them all the same key, improving performance since they can now
+     be sent to different reduce tasks.
+
+   - AnySAMInputFormat now has a nullary constructor, allowing it to be used
+     directly in Job.setInputFormatClass.
+
+   - FASTQ and QSEQ input formats now report isSplitable correctly for
+     compressed files.
+
+   - QSEQ output format and record writer now use a Text instead of a
+     NullWritable key.
+
 2012-05-03 --- 4.0:
    - SAM input and output support. AnySAMInputFormat handles transparent
      support of both SAM and BAM inputs even in the same Hadoop job. For
