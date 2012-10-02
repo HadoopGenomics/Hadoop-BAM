@@ -724,7 +724,8 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 				return false;
 
 			rec = baseRR.getCurrentValue().get();
-		} while (rec.getReadUnmappedFlag());
+		} while (rec.getReadUnmappedFlag()
+		      || rec.getReferenceIndex() < 0 || rec.getAlignmentStart() < 0);
 
 		parseCIGAR(rec, rec.getReadNegativeStrandFlag());
 		rangeIdx = 0;
