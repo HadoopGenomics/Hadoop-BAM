@@ -191,7 +191,8 @@ public final class Sort extends CLIPlugin {
 				new JobClient(new JobConf(conf)).getClusterStatus()
 				.getMaxReduceTasks();
 
-			conf.setInt("mapred.reduce.tasks", Math.max(1, maxReduceTasks*9/10));
+			final int reduceTasks = Math.max(1, maxReduceTasks*9/10);
+			conf.setInt("mapred.reduce.tasks", reduceTasks);
 
 			final Job job = new Job(conf);
 
@@ -219,7 +220,7 @@ public final class Sort extends CLIPlugin {
 			InputSampler.<LongWritable,SAMRecordWritable>writePartitionFile(
 				job,
 				new InputSampler.IntervalSampler<LongWritable,SAMRecordWritable>(
-					0.01, 100));
+					0.01, Math.max(100, reduceTasks)));
 
 			System.out.printf("sort :: Sampling complete in %d.%03d s.\n",
 			                  t.stopS(), t.fms());
