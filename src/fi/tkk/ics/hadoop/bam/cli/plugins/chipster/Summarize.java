@@ -179,14 +179,15 @@ public final class Summarize extends CLIPlugin {
 				//   reducers go.
 				//
 				// - mergedTmpDir (defined further below) is $wrkDir/sort.tmp: if
-				//   we are sorting, the summaries output in the first Hadoop job are
-				//   merged in there.
+				//   we are sorting, the summaries output in the first Hadoop job
+				//   are merged in there.
 				//
 				// - mainSortOutputDir is $wrkDir/sorted.tmp: getSortOutputDir()
 				//   gives a per-level/strand directory under it, which is used by
-				//   sortMerged() and mergeOne(). This is necessary because we cannot
-				//   have multiple Hadoop jobs outputting into the same directory at
-				//   the same time, as explained in the comment in sortMerged().
+				//   sortMerged() and mergeOne(). This is necessary because we
+				//   cannot have multiple Hadoop jobs outputting into the same
+				//   directory at the same time, as explained in the comment in
+				//   sortMerged().
 
 				// Required for path ".", for example.
 				wrkDir = wrkDir.getFileSystem(conf).makeQualified(wrkDir);
