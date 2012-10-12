@@ -22,8 +22,7 @@
  * limitations under the License.
  */
 
-//package org.apache.hadoop.mapreduce.lib.partition;
-package fi.tkk.ics.hadoop.bam.custom.hadoop;
+package org.apache.hadoop.mapreduce.lib.partition;
 
 import java.io.IOException;
 import java.lang.reflect.Array;

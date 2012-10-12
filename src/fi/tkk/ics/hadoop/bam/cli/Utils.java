@@ -33,8 +33,7 @@ import java.util.Scanner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
-
-import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
+import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
 public final class Utils {
 	public static void printWrapped(PrintStream out, String str) {

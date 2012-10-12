@@ -42,6 +42,51 @@
 		<pathelement path="picard-1.76.jar"/>
 	</path>
 
+	<!-- Check for whether we need to use our custom back-ported compatibility
+		  versions of some Hadoop classes.
+	  -->
+	<available classname="org.apache.hadoop.mapreduce.lib.partition.InputSampler"
+	           property="exists.InputSampler" classpathref="classpath"/>
+	<available classname="org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner"
+	           property="exists.TotalOrderPartitioner" classpathref="classpath"/>
+	<available classname="org.apache.hadoop.mapreduce.lib.output.MultipleOutputs"
+	           property="exists.MultipleOutputs" classpathref="classpath"/>
+
+	<condition property="custom_hadoop_classpath" value="${srcdir}/hadoop">
+		<or>
+			<isset property="exists.InputSampler"/>
+			<isset property="exists.MultipleOutputs"/>
+			<isset property="exists.TotalOrderPartitioner"/>
+		</or>
+	</condition>
+
+	<target name="compile-hadoop">
+		<mkdir dir="${targetdir}"/>
+		<javac
+			srcdir="${srcdir}/hadoop"
+			destdir="${targetdir}"
+			source="1.6" target="1.6"
+			encoding="UTF-8"
+			debug="on"
+			includeantruntime="yes"
+		>
+			<classpath refid="classpath"/>
+			<include name="org/**/*.java"/>
+
+			<exclude
+				name="org/apache/hadoop/mapreduce/lib/partition/InputSampler.java"
+				if="exists.InputSampler"/>
+			<exclude
+				name="org/apache/hadoop/mapreduce/lib/partition/TotalOrderPartitioner.java"
+				if="exists.TotalOrderPartitioner"/>
+			<exclude
+				name="org/apache/hadoop/mapreduce/lib/output/MultipleOutputs.java"
+				if="exists.MultipleOutputs"/>
+
+			<compilerarg compiler="modern" value="-Xlint:none"/>
+		</javac>
+	</target>
+
 	<target name="compile-custom">
 		<mkdir dir="${targetdir}"/>
 		<javac
@@ -57,7 +102,7 @@
 		</javac>
 	</target>
 
-	<target name="compile" depends="compile-custom">
+	<target name="compile" depends="compile-custom,compile-hadoop">
 		<mkdir dir="${targetdir}"/>
 		<javac
 			srcdir="${srcdir}"
@@ -68,7 +113,7 @@
 			includeantruntime="yes"
 		>
 			<classpath refid="classpath"/>
-			<include name="**/*.java"/>
+			<include name="fi/**/*.java"/>
 
 			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
 		</javac>

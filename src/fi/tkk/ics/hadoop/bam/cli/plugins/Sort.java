@@ -51,9 +51,8 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-
-import fi.tkk.ics.hadoop.bam.custom.hadoop.InputSampler;
-import fi.tkk.ics.hadoop.bam.custom.hadoop.TotalOrderPartitioner;
+import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
+import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
 import net.sf.picard.sam.ReservedTagConstants;
 import net.sf.picard.sam.SamFileHeaderMerger;
