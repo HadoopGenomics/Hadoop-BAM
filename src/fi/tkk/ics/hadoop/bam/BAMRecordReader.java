@@ -23,7 +23,6 @@
 package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
-import java.util.Random;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -38,6 +37,7 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
+import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
@@ -53,16 +53,39 @@ public class BAMRecordReader
 	private BAMRecordCodec codec;
 	private long fileStart, virtualEnd;
 
-	private static final Random random = new Random();
-
+	/** Note: this is the only getKey function that handles unmapped reads
+	 * specially!
+	 */
 	public static long getKey(final SAMRecord rec) {
-		int refIdx = rec.getReferenceIndex();
+		final int refIdx = rec.getReferenceIndex();
+		final int start  = rec.getAlignmentStart();
 
-		// Pass on the fact that this is an unmapped read.
-		if (rec.getReadUnmappedFlag())
-			refIdx = -1;
+		if (!(rec.getReadUnmappedFlag() || refIdx < 0 || start < 0))
+			return getKey(refIdx, start);
 
-		return getKey(refIdx, rec.getAlignmentStart());
+		// Put unmapped reads at the end, but don't give them all the exact same
+		// key so that they can be distributed to different reducers.
+		//
+		// A random number would probably be best, but to ensure that the same
+		// record always gets the same key we use a fast hash instead.
+		//
+		// We avoid using hashCode(), because it's not guaranteed to have the
+		// same value across different processes.
+
+		int hash = 0;
+		byte[] var;
+		if ((var = rec.getVariableBinaryRepresentation()) != null) {
+			// Undecoded BAM record: just hash its raw data.
+			hash = (int)MurmurHash3.murmurhash3(var, hash);
+		} else {
+			// Decoded BAM record or any SAM record: hash a few representative
+			// fields together.
+			hash = (int)MurmurHash3.murmurhash3(rec.getReadName(), hash);
+			hash = (int)MurmurHash3.murmurhash3(rec.getReadBases(), hash);
+			hash = (int)MurmurHash3.murmurhash3(rec.getBaseQualities(), hash);
+			hash = (int)MurmurHash3.murmurhash3(rec.getCigarString(), hash);
+		}
+		return getKey0(Integer.MAX_VALUE, hash);
 	}
 
 	/** @param alignmentStart 1-based leftmost coordinate. */
@@ -72,13 +95,6 @@ public class BAMRecordReader
 
 	/** @param alignmentStart0 0-based leftmost coordinate. */
 	public static long getKey0(int refIdx, int alignmentStart0) {
-		// Put unmapped reads at the end, but don't give them all the exact same
-		// key so that they can be distributed to different reducers.
-		if (refIdx < 0 || alignmentStart0 < 0) {
-			refIdx = Integer.MAX_VALUE;
-			alignmentStart0 = random.nextInt();
-		}
-
 		return (long)refIdx << 32 | alignmentStart0;
 	}
 
