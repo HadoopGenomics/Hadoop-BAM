@@ -6,6 +6,7 @@
 // - Cleared warnings due to lack of generics and redundant casts.
 // - Added getBoolean() convenience method.
 // - Added Option.setLongForm().
+// - Added getInt() convenience method.
 
 package fi.tkk.ics.hadoop.bam.custom.jargs.gnu;
 
@@ -32,6 +33,10 @@ import java.util.ArrayList;
 public class CmdLineParser {
     public final boolean getBoolean(Option opt) {
         return Boolean.TRUE.equals(getOptionValue(opt));
+    }
+    public final int getInt(Option opt, int def) {
+        Integer i = (Integer)getOptionValue(opt);
+        return i == null ? def : i;
     }
 
     /**

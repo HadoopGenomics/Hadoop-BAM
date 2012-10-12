@@ -38,8 +38,6 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -77,11 +75,12 @@ public final class SummarySort extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
+		reducersOpt  = new IntegerOption('r', "reducers=N"),
 		  verboseOpt = new BooleanOption('v', "verbose"),
 		outputDirOpt = new  StringOption('o', "output-dir=PATH");
 
 	public SummarySort() {
-		super("summarysort", "sort summary file for zooming", "1.0",
+		super("summarysort", "sort summary file for zooming", "2.0",
 			"WORKDIR INPATH", optionDescs,
 			"Sorts the summary file in INPATH in a distributed fashion using "+
 			"Hadoop. Output parts are placed in WORKDIR."+
@@ -90,6 +89,9 @@ public final class SummarySort extends CLIPlugin {
 			"plugin, if sorting is requested of it.");
 	}
 	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			reducersOpt, "use N reduce tasks (default: 1), i.e. produce N "+
+			             "outputs in parallel"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			verboseOpt, "tell Hadoop jobs to be more verbose"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
@@ -116,18 +118,13 @@ public final class SummarySort extends CLIPlugin {
 
 		final boolean verbose = parser.getBoolean(verboseOpt);
 
+		final int reduceTasks = parser.getInt(reducersOpt, 1);
+
 		final Configuration conf = getConf();
 		final Timer t = new Timer();
 
 		try {
-			// As far as I can tell there's no non-deprecated way of getting this
-			// info. We can silence this warning but not the import.
-			@SuppressWarnings("deprecation")
-			final int maxReduceTasks =
-				new JobClient(new JobConf(conf)).getClusterStatus()
-				.getMaxReduceTasks();
-
-			conf.setInt("mapred.reduce.tasks", Math.max(1, maxReduceTasks*9/10));
+			conf.setInt("mapred.reduce.tasks", reduceTasks);
 
 			final Job job = sortOne(conf, in, wrkDir, "summarysort", "");
 

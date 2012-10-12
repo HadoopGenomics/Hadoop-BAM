@@ -42,8 +42,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -82,13 +80,14 @@ public final class Summarize extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
+		reducersOpt    = new IntegerOption('r', "reducers=N"),
 		verboseOpt     = new BooleanOption('v', "verbose"),
 		sortOpt        = new BooleanOption('s', "sort"),
 		outputDirOpt   = new  StringOption('o', "output-dir=PATH"),
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Summarize() {
-		super("summarize", "summarize SAM or BAM for zooming", "2.0",
+		super("summarize", "summarize SAM or BAM for zooming", "3.0",
 			"WORKDIR LEVELS INPATH", optionDescs,
 			"Outputs, for each level in LEVELS, a summary file describing the "+
 			"average number of alignments at various positions in the SAM or "+
@@ -100,6 +99,9 @@ public final class Summarize extends CLIPlugin {
 			"one group.");
 	}
 	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			reducersOpt, "use N reduce tasks (default: 1), i.e. produce N "+
+			             "outputs in parallel"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			verboseOpt, "tell Hadoop jobs to be more verbose"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
@@ -115,6 +117,7 @@ public final class Summarize extends CLIPlugin {
 	private final Timer    t = new Timer();
 	private       String[] levels;
 	private       Path     wrkDir, mainSortOutputDir;
+	private       int      reduceTasks;
 	private       boolean  verbose;
 	private       boolean  sorted = false;
 
@@ -141,6 +144,8 @@ public final class Summarize extends CLIPlugin {
 		final boolean sort = parser.getBoolean(sortOpt);
 
 		verbose = parser.getBoolean(verboseOpt);
+
+		reduceTasks = parser.getInt(reducersOpt, 1);
 
 		levels = args.get(1).split(",");
 		for (String l : levels) {
@@ -194,15 +199,7 @@ public final class Summarize extends CLIPlugin {
 
 				mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
 
-				// As far as I can tell there's no non-deprecated way of getting
-				// this info. We can silence this warning but not the import.
-				@SuppressWarnings("deprecation")
-				final int maxReduceTasks =
-					new JobClient(new JobConf(conf)).getClusterStatus()
-					.getMaxReduceTasks();
-
-				conf.setInt("mapred.reduce.tasks",
-				            Math.max(1, maxReduceTasks*9/10));
+				conf.setInt("mapred.reduce.tasks", reduceTasks);
 
 				if (!runSummary(bam))
 					return 4;
@@ -315,7 +312,8 @@ public final class Summarize extends CLIPlugin {
 		t.start();
 
 		InputSampler.<LongWritable,Range>writePartitionFile(
-			job, new InputSampler.SplitSampler<LongWritable,Range>(1 << 16, 10));
+			job, new InputSampler.SplitSampler<LongWritable,Range>(
+				Math.max(1 << 16, reduceTasks), 10));
 
 		System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());

@@ -38,8 +38,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -82,13 +80,14 @@ public final class Sort extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
+		reducersOpt    = new IntegerOption('r', "reducers=N"),
 		verboseOpt     = new BooleanOption('v', "verbose"),
 		outputFileOpt  = new  StringOption('o', "output-file=PATH"),
 		formatOpt      = new  StringOption('F', "format=FMT"),
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Sort() {
-		super("sort", "BAM and SAM sorting and merging", "3.0",
+		super("sort", "BAM and SAM sorting and merging", "4.0",
 			"WORKDIR INPATH [INPATH...]",
 			optionDescs,
 			"Merges together the BAM and SAM files in the INPATHs, sorting the "+
@@ -96,6 +95,9 @@ public final class Sort extends CLIPlugin {
 			"placed in WORKDIR in, by default, headerless BAM format.");
 	}
 	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			reducersOpt, "use N reduce tasks (default: 1), i.e. produce N "+
+			              "outputs in parallel"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			verboseOpt, "tell the Hadoop job to be more verbose"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
@@ -175,6 +177,8 @@ public final class Sort extends CLIPlugin {
 
 		Path wrkDirPath = new Path(wrkDir);
 
+		final int reduceTasks = parser.getInt(reducersOpt, 1);
+
 		final Timer t = new Timer();
 		try {
 			// Required for path ".", for example.
@@ -182,14 +186,6 @@ public final class Sort extends CLIPlugin {
 
 			Utils.configureSampling(wrkDirPath, intermediateOutName, conf);
 
-			// As far as I can tell there's no non-deprecated way of getting this
-			// info. We can silence this warning but not the import.
-			@SuppressWarnings("deprecation")
-			final int maxReduceTasks =
-				new JobClient(new JobConf(conf)).getClusterStatus()
-				.getMaxReduceTasks();
-
-			final int reduceTasks = Math.max(1, maxReduceTasks*9/10);
 			conf.setInt("mapred.reduce.tasks", reduceTasks);
 
 			final Job job = new Job(conf);
