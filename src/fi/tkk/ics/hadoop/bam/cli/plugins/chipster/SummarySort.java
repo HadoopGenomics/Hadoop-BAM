@@ -220,7 +220,8 @@ public final class SummarySort extends CLIPlugin {
 		t.start();
 
 		InputSampler.<LongWritable,Text>writePartitionFile(
-			job, new InputSampler.SplitSampler<LongWritable,Text>(1 << 16, 10));
+			job, new InputSampler.SplitSampler<LongWritable,Text>(
+				Math.max(1 << 16, conf.getInt("mapred.reduce.tasks", 1)), 10));
 
 		System.out.printf("%s :: Sampling complete in %d.%03d s.\n",
 			               commandName, t.stopS(), t.fms());
