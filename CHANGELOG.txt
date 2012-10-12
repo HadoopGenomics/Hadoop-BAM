@@ -1,3 +1,23 @@
+git master --- probably 5.1:
+   - Removed the fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader and
+     fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort classes, which were deprecated
+     back in 3.0.
+
+   - The command line plugins 'sort', 'summarize', and 'summarysort' now
+     default to 1 reduce task. The amount can be customized with the
+     -r/--reducers command line argument. This bumps up the versions of the
+     plugins to 4.0, 3.0, and 2.0 respectively.
+
+   - BAMRecordReader.getKey now hashes unmapped keys instead of randomizing
+     them, to ensure consistent results.
+
+   - For compatibility with Hadoop 2.0 and any future Hadoop releases, custom
+     Hadoop classes are now only built and used when using a Hadoop release
+     that does not provide them. This means that bugs MAPREDUCE-1987 and
+     MAPREDUCE-2538, which were previously fixed internally, may cause problems
+     when using the MapReduce-using command line plugins with certain reducer
+     counts.
+
 2012-08-31 --- 5.0:
    - MAJOR CHANGE: Hadoop-BAM no longer depends on, or even provides,
      fi.tkk.ics.hadoop.bam.custom.samtools. In other words, users should now
