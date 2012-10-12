@@ -161,7 +161,7 @@ public final class BAMSort extends Configured implements Tool {
 		throws IOException
 	{
 		Path inputDir = inputFile.getParent();
-		inputDir = inputDir.makeQualified(inputDir.getFileSystem(conf));
+		inputDir = inputDir.getFileSystem(conf).makeQualified(inputDir);
 
 		String name = inputFile.getName();
 

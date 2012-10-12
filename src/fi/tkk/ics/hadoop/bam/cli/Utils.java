@@ -131,8 +131,8 @@ public final class Utils {
 		throws IOException
 	{
 		final Path partition =
-			new Path(workDir, "_partitioning" + outName)
-			.makeQualified(workDir.getFileSystem(conf));
+			workDir.getFileSystem(conf).makeQualified(
+				new Path(workDir, "_partitioning" + outName));
 
 		TotalOrderPartitioner.setPartitionFile(conf, partition);
 		try {
