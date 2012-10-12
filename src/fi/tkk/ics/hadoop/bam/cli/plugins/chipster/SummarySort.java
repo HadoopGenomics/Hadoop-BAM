@@ -38,7 +38,6 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -410,7 +409,5 @@ final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 	}
 
 	// Allow the output directory to exist.
-	@Override public void checkOutputSpecs(JobContext job)
-		throws FileAlreadyExistsException, IOException
-	{}
+	@Override public void checkOutputSpecs(JobContext job) {}
 }

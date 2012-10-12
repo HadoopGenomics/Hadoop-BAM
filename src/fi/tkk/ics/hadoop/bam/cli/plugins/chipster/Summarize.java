@@ -42,7 +42,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -835,9 +834,7 @@ final class SummarizeOutputFormat
 	}
 
 	// Allow the output directory to exist.
-	@Override public void checkOutputSpecs(JobContext job)
-		throws FileAlreadyExistsException, IOException
-	{}
+	@Override public void checkOutputSpecs(JobContext job) {}
 }
 
 final class SummaryGroup {
