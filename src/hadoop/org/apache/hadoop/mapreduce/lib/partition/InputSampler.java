@@ -1,18 +1,6 @@
 // From https://issues.apache.org/jira/secure/attachment/12406879/patch-5668-3.txt
 //
 // Removed logging since it requires apache-commons
-//
-// Fixed https://issues.apache.org/jira/browse/MAPREDUCE-1987 at least
-// partially, by changing int numPartitions to take the min with the number of
-// unique samples
-//
-// Fixed the loop in writePartitionFile in two ways:
-//
-// 1. The last/k checking was completely nonsensical: last was always less than
-//    k, so the loop intended to avoid duplicates in the output never did
-//    anything.
-// 2. With proper duplicate avoidance, we could run over the end of the samples
-//    array. It seems to be okay to write too few partitions, so simply do that.
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -313,6 +301,7 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     Configuration conf = job.getConfiguration();
     final InputFormat inf = 
         ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
+    int numPartitions = job.getNumReduceTasks();
     K[] samples = sampler.getSample(inf, job);
     RawComparator<K> comparator =
       (RawComparator<K>) job.getSortComparator();
@@ -325,22 +314,12 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     SequenceFile.Writer writer = SequenceFile.createWriter(fs, 
       conf, dst, job.getMapOutputKeyClass(), NullWritable.class);
     NullWritable nullValue = NullWritable.get();
-    int uniques = 1;
-    for (int i = 1; i < samples.length; ++i)
-      if (comparator.compare(samples[i], samples[i-1]) != 0)
-        ++uniques;
-    int numPartitions = Math.min(job.getNumReduceTasks(), uniques);
     float stepSize = samples.length / (float) numPartitions;
     int last = -1;
     for(int i = 1; i < numPartitions; ++i) {
       int k = Math.round(stepSize * i);
-      if (last > 0) {
-        while (k < samples.length &&
-               comparator.compare(samples[last], samples[k]) == 0) {
-          ++k;
-        }
-        if (k >= samples.length)
-          break;
+      while (last >= k && comparator.compare(samples[last], samples[k]) == 0) {
+        ++k;
       }
       writer.append(samples[k], nullValue);
       last = k;
