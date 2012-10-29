@@ -139,6 +139,7 @@ public class BAMSplitGuesser {
 				} catch (SAMFormatException     e) { continue; }
 				  catch (RuntimeEOFException    e) { continue; }
 				  catch (FileTruncatedException e) { continue; }
+				  catch (OutOfMemoryError       e) { continue; }
 
 				return beg+cp0 << 16 | up0;
 			}
