@@ -52,14 +52,6 @@
 	<available classname="org.apache.hadoop.mapreduce.lib.output.MultipleOutputs"
 	           property="exists.MultipleOutputs" classpathref="classpath"/>
 
-	<condition property="custom_hadoop_classpath" value="${srcdir}/hadoop">
-		<or>
-			<isset property="exists.InputSampler"/>
-			<isset property="exists.MultipleOutputs"/>
-			<isset property="exists.TotalOrderPartitioner"/>
-		</or>
-	</condition>
-
 	<target name="compile-hadoop">
 		<mkdir dir="${targetdir}"/>
 		<javac
