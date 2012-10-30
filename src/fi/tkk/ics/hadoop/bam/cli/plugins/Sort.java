@@ -267,14 +267,17 @@ public final class Sort extends CLIPlugin {
 			{int i = 0;
 			final Timer t2 = new Timer();
 			for (final FileStatus part : parts) {
+				System.out.printf("sort :: Merging part %d (size %d)...",
+						            ++i, part.getLen());
+				System.out.flush();
+
 				t2.start();
 
 				final InputStream ins = srcFS.open(part.getPath());
 				IOUtils.copyBytes(ins, outs, conf, false);
 				ins.close();
 
-				System.out.printf("sort :: Merged part %d in %d.%03d s.\n",
-				                  ++i, t2.stopS(), t2.fms());
+				System.out.printf(" done in %d.%03d s.\n", t2.stopS(), t2.fms());
 			}}
 			for (final FileStatus part : parts)
 				srcFS.delete(part.getPath(), false);
