@@ -312,8 +312,8 @@ public final class Summarize extends CLIPlugin {
 		t.start();
 
 		InputSampler.<LongWritable,Range>writePartitionFile(
-			job, new InputSampler.SplitSampler<LongWritable,Range>(
-				Math.max(1 << 16, reduceTasks), 10));
+			job, new InputSampler.RandomSampler<LongWritable,Range>(
+				0.01, 10000, Math.max(100, reduceTasks)));
 
 		System.out.printf("summarize :: Sampling complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());

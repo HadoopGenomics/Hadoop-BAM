@@ -213,8 +213,8 @@ public final class Sort extends CLIPlugin {
 
 			InputSampler.<LongWritable,SAMRecordWritable>writePartitionFile(
 				job,
-				new InputSampler.IntervalSampler<LongWritable,SAMRecordWritable>(
-					0.01, Math.max(100, reduceTasks)));
+				new InputSampler.RandomSampler<LongWritable,SAMRecordWritable>(
+					0.01, 10000, Math.max(100, reduceTasks)));
 
 			System.out.printf("sort :: Sampling complete in %d.%03d s.\n",
 			                  t.stopS(), t.fms());
