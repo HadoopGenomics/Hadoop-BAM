@@ -279,7 +279,7 @@ public class TestFastqInputFormat
         public void testIlluminaMetaInfoNegativeXYpos() throws IOException
         {
                 writeToTempFastq(illuminaFastqNegativeXYPos);
-                split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNegativeXYpos.length(), null);
+                split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNegativeXYPos.length(), null);
 
                 FastqRecordReader reader = new FastqRecordReader(conf, split);
                 boolean found = reader.next(key, fragment);
