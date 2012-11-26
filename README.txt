@@ -29,8 +29,9 @@ Dependencies
 ------------
 
 Hadoop 0.20.2 or later in the 0.20.x or 1.0.x series. The latest stable
-release, 1.0.3, is recommended. The unstable 0.22.x, 1.1.x, and 2.x.x releases
-are not supported by this version of Hadoop-BAM.
+release, 1.0.4, is recommended. The unstable 0.22.x, 0.23.x, 1.1.x, and 2.x.x
+releases are not supported by this version of Hadoop-BAM: use them at your own
+risk.
 
 Picard SAM-JDK. Version 1.76 is provided in the form of sam-1.76.jar and
 picard-1.76.jar. Later versions may also work but have not been tested.
