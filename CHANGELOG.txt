@@ -1,15 +1,15 @@
-git master --- probably 5.1:
+2012-11-26 --- 5.1:
    - Removed the fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader and
      fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort classes, which were deprecated
      back in 3.0.
 
-   - The command line plugins 'sort', 'summarize', and 'summarysort' now
-     default to 1 reduce task. The amount can be customized with the
-     -r/--reducers command line argument. This bumps up the versions of the
-     plugins to 4.0, 3.0, and 2.0 respectively.
+   - MAJOR CHANGE: The command line plugins 'sort', 'summarize', and
+     'summarysort' now default to 1 reduce task. The amount can be customized
+     with the -r/--reducers command line argument. This bumps up the versions
+     of the plugins to 4.0, 3.0, and 2.0 respectively.
 
-   - BAMRecordReader.getKey now hashes unmapped keys instead of randomizing
-     them, to ensure consistent results.
+   - Fix: BAMRecordReader.getKey now hashes unmapped keys instead of
+     randomizing them, to ensure consistent results.
 
    - For compatibility with Hadoop 2.0 and any future Hadoop releases, custom
      Hadoop classes are now only built and used when using a Hadoop release
@@ -17,6 +17,16 @@ git master --- probably 5.1:
      MAPREDUCE-2538, which were previously fixed internally, may cause problems
      when using the MapReduce-using command line plugins with certain reducer
      counts.
+
+   - Fixed crash on some BAM inputs caused by a bug in
+     fi.tkk.ics.hadoop.bam.BAMSplitGuesser.
+
+   - Fixed some Illumina identifier scanning issues in the FASTQ input format.
+
+   - Added FASTA input format.
+
+   - The command line plugins 'sort' and 'summarize' now use RandomSamplers for
+     input partitioning, as they probably should have all along.
 
 2012-08-31 --- 5.0:
    - MAJOR CHANGE: Hadoop-BAM no longer depends on, or even provides,
