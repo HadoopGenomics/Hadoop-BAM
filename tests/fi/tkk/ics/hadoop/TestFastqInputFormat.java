@@ -264,7 +264,7 @@ public class TestFastqInputFormat
 
 		assertEquals("EAS139", fragment.getInstrument());
 		assertEquals(136, fragment.getRunNumber().intValue());
-		assertEquals(null, fragment.getFlowcellId());
+		assertEquals("", fragment.getFlowcellId());
 		assertEquals(2, fragment.getLane().intValue());
 		assertEquals(5, fragment.getTile().intValue());
 		assertEquals(1000, fragment.getXpos().intValue());
@@ -287,7 +287,7 @@ public class TestFastqInputFormat
 
 		assertEquals("EAS139", fragment.getInstrument());
 		assertEquals(136, fragment.getRunNumber().intValue());
-		assertEquals(null, fragment.getFlowcellId());
+		assertEquals("FC706VJ", fragment.getFlowcellId());
 		assertEquals(2, fragment.getLane().intValue());
 		assertEquals(5, fragment.getTile().intValue());
 		assertEquals(-1000, fragment.getXpos().intValue());

@@ -187,10 +187,11 @@ public class TestFastqOutputFormat
 		String[] pieces = idLine.split(" ")[0].split(":"); // first part: location on flowcell
 		assertEquals(fragment.getInstrument(), pieces[0]);
 		assertEquals(fragment.getRunNumber().toString(), pieces[1]);
-		assertEquals(fragment.getLane().toString(), pieces[2]);
-		assertEquals(fragment.getTile().toString(), pieces[3]);
-		assertEquals(fragment.getXpos().toString(), pieces[4]);
-		assertEquals(fragment.getYpos().toString(), pieces[5]);
+		assertEquals(fragment.getFlowcellId(), pieces[2]);
+		assertEquals(fragment.getLane().toString(), pieces[3]);
+		assertEquals(fragment.getTile().toString(), pieces[4]);
+		assertEquals(fragment.getXpos().toString(), pieces[5]);
+		assertEquals(fragment.getYpos().toString(), pieces[6]);
 
 		pieces = idLine.split(" ")[1].split(":"); // second part
 		assertEquals(fragment.getRead().toString(), pieces[0]);
