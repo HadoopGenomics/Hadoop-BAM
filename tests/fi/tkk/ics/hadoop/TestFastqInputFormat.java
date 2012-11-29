@@ -94,16 +94,16 @@ public class TestFastqInputFormat
 		"###########################################################################################";
 
 	public static final String illuminaFastqNoFlowCellID =
-                "@EAS139:136::2:5:1000:12850 1:Y:18:ATCACG\n" +
-                "TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
-                "+\n" +
-                "###########################################################################################";
+	  "@EAS139:136::2:5:1000:12850 1:Y:18:ATCACG\n" +
+	  "TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
+	  "+\n" +
+	  "###########################################################################################";
 
 	public static final String illuminaFastqNegativeXYPos =
-                "@EAS139:136:FC706VJ:2:5:-1000:-12850 1:Y:18:ATCACG\n" +
-                "TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
-                "+\n" +
-                "###########################################################################################";
+	  "@EAS139:136:FC706VJ:2:5:-1000:-12850 1:Y:18:ATCACG\n" +
+	  "TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
+	  "+\n" +
+	  "###########################################################################################";
 
 
 	private JobConf conf;
@@ -252,51 +252,51 @@ public class TestFastqInputFormat
 		assertEquals("ATCACG", fragment.getIndexSequence());
 	}
 
-        @Test
-        public void testIlluminaMetaInfoNullFC() throws IOException
-        {
-                writeToTempFastq(illuminaFastqNoFlowCellID);
-                split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNoFlowCellID.length(), null);
+	@Test
+	public void testIlluminaMetaInfoNullFC() throws IOException
+	{
+		writeToTempFastq(illuminaFastqNoFlowCellID);
+		split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNoFlowCellID.length(), null);
 
-                FastqRecordReader reader = new FastqRecordReader(conf, split);
-                boolean found = reader.next(key, fragment);
-                assertTrue(found);
+		FastqRecordReader reader = new FastqRecordReader(conf, split);
+		boolean found = reader.next(key, fragment);
+		assertTrue(found);
 
-                assertEquals("EAS139", fragment.getInstrument());
-                assertEquals(136, fragment.getRunNumber().intValue());
-                assertEquals(null, fragment.getFlowcellId());
-                assertEquals(2, fragment.getLane().intValue());
-                assertEquals(5, fragment.getTile().intValue());
-                assertEquals(1000, fragment.getXpos().intValue());
-                assertEquals(12850, fragment.getYpos().intValue());
-                assertEquals(1, fragment.getRead().intValue());
-                assertEquals(false, fragment.getFilterPassed().booleanValue());
-                assertEquals(18, fragment.getControlNumber().intValue());
-                assertEquals("ATCACG", fragment.getIndexSequence());
-        }
+		assertEquals("EAS139", fragment.getInstrument());
+		assertEquals(136, fragment.getRunNumber().intValue());
+		assertEquals(null, fragment.getFlowcellId());
+		assertEquals(2, fragment.getLane().intValue());
+		assertEquals(5, fragment.getTile().intValue());
+		assertEquals(1000, fragment.getXpos().intValue());
+		assertEquals(12850, fragment.getYpos().intValue());
+		assertEquals(1, fragment.getRead().intValue());
+		assertEquals(false, fragment.getFilterPassed().booleanValue());
+		assertEquals(18, fragment.getControlNumber().intValue());
+		assertEquals("ATCACG", fragment.getIndexSequence());
+	}
 
 	@Test
-        public void testIlluminaMetaInfoNegativeXYpos() throws IOException
-        {
-                writeToTempFastq(illuminaFastqNegativeXYPos);
-                split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNegativeXYPos.length(), null);
+	public void testIlluminaMetaInfoNegativeXYpos() throws IOException
+	{
+		writeToTempFastq(illuminaFastqNegativeXYPos);
+		split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNegativeXYPos.length(), null);
 
-                FastqRecordReader reader = new FastqRecordReader(conf, split);
-                boolean found = reader.next(key, fragment);
-                assertTrue(found);
+		FastqRecordReader reader = new FastqRecordReader(conf, split);
+		boolean found = reader.next(key, fragment);
+		assertTrue(found);
 
-                assertEquals("EAS139", fragment.getInstrument());
-                assertEquals(136, fragment.getRunNumber().intValue());
-                assertEquals(null, fragment.getFlowcellId());
-                assertEquals(2, fragment.getLane().intValue());
-                assertEquals(5, fragment.getTile().intValue());
-                assertEquals(-1000, fragment.getXpos().intValue());
-                assertEquals(-12850, fragment.getYpos().intValue());
-                assertEquals(1, fragment.getRead().intValue());
-                assertEquals(false, fragment.getFilterPassed().booleanValue());
-                assertEquals(18, fragment.getControlNumber().intValue());
-                assertEquals("ATCACG", fragment.getIndexSequence());
-        }
+		assertEquals("EAS139", fragment.getInstrument());
+		assertEquals(136, fragment.getRunNumber().intValue());
+		assertEquals(null, fragment.getFlowcellId());
+		assertEquals(2, fragment.getLane().intValue());
+		assertEquals(5, fragment.getTile().intValue());
+		assertEquals(-1000, fragment.getXpos().intValue());
+		assertEquals(-12850, fragment.getYpos().intValue());
+		assertEquals(1, fragment.getRead().intValue());
+		assertEquals(false, fragment.getFilterPassed().booleanValue());
+		assertEquals(18, fragment.getControlNumber().intValue());
+		assertEquals("ATCACG", fragment.getIndexSequence());
+	}
 
 	@Test
 	public void testOneIlluminaThenNot() throws IOException
