@@ -22,9 +22,6 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.commons.logging.Log;
-
 public class FormatConstants
 {
 	/**
