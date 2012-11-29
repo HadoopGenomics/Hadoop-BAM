@@ -4,6 +4,7 @@
 	<property name="srcdir"    value="src"/>
 	<property name="test.dir" value="tests" />
 	<property name="test.class.dir" value="test-classes" />
+	<property name="build.jar" value="hadoop-bam.jar" />
 
 	<property environment="env"/>
 
@@ -112,7 +113,7 @@
 	</target>
 
 	<target name="jar" depends="compile">
-		<jar destfile="hadoop-bam.jar" basedir="${targetdir}">
+		<jar destfile="${build.jar}" basedir="${targetdir}">
 			<include name="**/*.class"/>
 			<manifest>
 				<attribute name="Main-Class"
@@ -130,10 +131,11 @@
 	</target>
 
 	<target name="clean">
+		<delete failonerror="false" dir="${test.class.dir}"/>
+		<delete failonerror="false" file="${build.jar}"/>
 		<delete>
 			<fileset dir="${targetdir}" includes="**/*.class"/>
 		</delete>
-		<delete failonerror="false" dir="${test.class.dir}"/>
 	</target>
 
 	<target name="javadoc">
