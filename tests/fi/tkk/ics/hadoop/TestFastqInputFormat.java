@@ -467,4 +467,8 @@ public class TestFastqInputFormat
 		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoFastq.length(), null);
 		FastqRecordReader reader = new FastqRecordReader(conf, split);
 	}
+
+	public static void main(String args[]) {
+		org.junit.runner.JUnitCore.main(TestFastqInputFormat.class.getName());
+	}
 }

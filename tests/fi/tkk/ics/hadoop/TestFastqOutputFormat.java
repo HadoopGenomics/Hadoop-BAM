@@ -198,4 +198,8 @@ public class TestFastqOutputFormat
 		assertEquals(fragment.getControlNumber().toString(), pieces[2]);
 		assertEquals(fragment.getIndexSequence().toString(), pieces[3]);
 	}
+
+	public static void main(String args[]) {
+		org.junit.runner.JUnitCore.main(TestFastqOutputFormat.class.getName());
+	}
 }
