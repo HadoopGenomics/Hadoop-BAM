@@ -88,7 +88,7 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 		 * set to false and no further scanning will be done.
 		 */
 		private boolean lookForIlluminaIdentifier = true;
-		private static final Pattern ILLUMINA_PATTERN = Pattern.compile("([^:]+):(\\d+):([^:]*):(\\d+):(\\d+):(-?\\d+):(-?\\d+)\\s+([123]):([YN]):(\\d+):(.+)");
+		private static final Pattern ILLUMINA_PATTERN = Pattern.compile("([^:]+):(\\d+):([^:]*):(\\d+):(\\d+):(-?\\d+):(-?\\d+)\\s+([123]):([YN]):(\\d+):(.*)");
 
 		private Text buffer = new Text();
 

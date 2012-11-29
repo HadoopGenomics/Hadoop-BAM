@@ -105,6 +105,11 @@ public class TestFastqInputFormat
 	  "+\n" +
 	  "###########################################################################################";
 
+	public static final String illuminaFastqNoIndex =
+	  "@EAS139:136::2:5:1000:12850 1:Y:18:\n" +
+	  "TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
+	  "+\n" +
+	  "###########################################################################################";
 
 	private JobConf conf;
 	private FileSplit split;
@@ -466,6 +471,23 @@ public class TestFastqInputFormat
 		// now try to read it starting from the middle
 		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoFastq.length(), null);
 		FastqRecordReader reader = new FastqRecordReader(conf, split);
+	}
+
+	@Test
+	public void testIlluminaNoIndex() throws IOException
+	{
+		writeToTempFastq(illuminaFastqNoIndex);
+		split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqNoIndex.length(), null);
+
+		FastqRecordReader reader = new FastqRecordReader(conf, split);
+		boolean found = reader.next(key, fragment);
+		assertTrue(found);
+
+		// ensure all meta-data was picked up
+		assertEquals("EAS139", fragment.getInstrument());
+		assertEquals(136, fragment.getRunNumber().intValue());
+		// now verify the index
+		assertEquals("", fragment.getIndexSequence());
 	}
 
 	public static void main(String args[]) {
