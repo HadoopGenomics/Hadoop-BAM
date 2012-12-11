@@ -230,3 +230,4 @@ terminating block which would make them valid BGZF files. This is to avoid
 having to remove it from the end of each output file in distributed usage (when
 not using the "-o" convenience parameter): it's much simpler to put an empty
 gzip block to the end of the output.
+
