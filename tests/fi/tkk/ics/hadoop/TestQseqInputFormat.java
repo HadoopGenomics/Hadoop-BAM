@@ -354,4 +354,8 @@ public class TestQseqInputFormat
 		found = reader.next(key, fragment);
 		assertFalse(found);
 	}
+
+	public static void main(String args[]) {
+		org.junit.runner.JUnitCore.main(TestQseqInputFormat.class.getName());
+	}
 }
