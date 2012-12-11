@@ -439,12 +439,24 @@ public class TestFastqInputFormat
 	}
 
 	@Test
-	public void testFastqWithPhred64() throws IOException
+	public void testFastqWithIlluminaEncoding() throws IOException
+	{
+		conf.set("hbam.fastq-input.base-quality-encoding", "illumina");
+		verifyInputQualityConfig();
+	}
+
+	@Test
+	public void testFastqWithIlluminaEncodingAndGenericInputConfig() throws IOException
+	{
+		conf.set("hbam.input.base-quality-encoding", "illumina");
+		verifyInputQualityConfig();
+	}
+
+	private void verifyInputQualityConfig() throws IOException
 	{
 		writeToTempFastq(illuminaFastqWithPhred64Quality);
 		split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, illuminaFastqWithPhred64Quality.length(), null);
 
-		conf.set("hbam.fastq-input.base-quality-encoding", "illumina");
 		FastqRecordReader reader = new FastqRecordReader(conf, split);
 		boolean found = reader.next(key, fragment);
 		assertTrue(found);
@@ -509,9 +521,21 @@ public class TestFastqInputFormat
 	@Test
 	public void testSkipFailedQC() throws IOException
 	{
+		conf.set("hbam.fastq-input.filter-failed-qc", "true");
+		verifySkipFailedQC();
+	}
+
+	@Test
+	public void testSkipFailedQCGenericConfig() throws IOException
+	{
+		conf.set("hbam.input.filter-failed-qc", "true");
+		verifySkipFailedQC();
+	}
+
+	private void verifySkipFailedQC() throws IOException
+	{
 		writeToTempFastq(twoFastqWithIllumina);
 		split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, twoFastqWithIllumina.length(), null);
-		conf.set("hbam.fastq-input.filter-failed-qc", "true");
 
 		FastqRecordReader reader = new FastqRecordReader(conf, split);
 		boolean found = reader.next(key, fragment);

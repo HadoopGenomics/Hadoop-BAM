@@ -244,10 +244,22 @@ public class TestQseqInputFormat
 	@Test
 	public void testConfigureForSangerQualities() throws IOException
 	{
+		conf.set("hbam.qseq-input.base-quality-encoding", "sanger");
+		qualityConfigTest();
+	}
+
+	@Test
+	public void testGenericInputConfigureForSangerQualities() throws IOException
+	{
+		conf.set("hbam.input.base-quality-encoding", "sanger");
+		qualityConfigTest();
+	}
+
+	private void qualityConfigTest() throws IOException
+	{
 		writeToTempQseq(sangerQseq);
 		split = new FileSplit(new Path(tempQseq.toURI().toString()), 0, sangerQseq.length(), null);
 
-		conf.set("hbam.qseq-input.base-quality-encoding", "sanger");
 		QseqRecordReader reader = new QseqRecordReader(conf, split);
 		assertTrue(reader.next(key, fragment));
 		assertEquals("###########################################################################################", fragment.getQuality().toString());
@@ -338,11 +350,22 @@ public class TestQseqInputFormat
 		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoQseq.length(), null);
 		QseqRecordReader reader = new QseqRecordReader(conf, split);
 	}
-
 	@Test
 	public void testSkipFailedQC() throws IOException
 	{
 		conf.set("hbam.qseq-input.filter-failed-qc", "t");
+		verifySkipFailedQC();
+	}
+
+	@Test
+	public void testSkipFailedQCGenericConfig() throws IOException
+	{
+		conf.set("hbam.input.filter-failed-qc", "t");
+		verifySkipFailedQC();
+	}
+
+	private void verifySkipFailedQC() throws IOException
+	{
 		writeToTempQseq(twoQseq);
 		split = new FileSplit(new Path(tempQseq.toURI().toString()), 0, twoQseq.length(), null);
 		QseqRecordReader reader = new QseqRecordReader(conf, split);

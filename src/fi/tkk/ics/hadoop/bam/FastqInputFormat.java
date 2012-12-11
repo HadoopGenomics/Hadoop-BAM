@@ -132,16 +132,22 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 
 		protected void setConf(Configuration conf)
 		{
-			String encoding = conf.get(FastqInputFormat.CONF_BASE_QUALITY_ENCODING, FastqInputFormat.CONF_BASE_QUALITY_ENCODING_DEFAULT);
+			String encoding =
+			  conf.get(FastqInputFormat.CONF_BASE_QUALITY_ENCODING,
+			    conf.get(FormatConstants.CONF_INPUT_BASE_QUALITY_ENCODING,
+			      FastqInputFormat.CONF_BASE_QUALITY_ENCODING_DEFAULT));
 
 			if ("illumina".equals(encoding))
 				qualityEncoding = BaseQualityEncoding.Illumina;
 			else if ("sanger".equals(encoding))
 				qualityEncoding = BaseQualityEncoding.Sanger;
 			else
-				throw new RuntimeException("Unknown " + FastqInputFormat.CONF_BASE_QUALITY_ENCODING + " value " + encoding);
+				throw new RuntimeException("Unknown input base quality encoding value " + encoding);
 
-			filterFailedQC = ConfHelper.parseBoolean(conf, FastqInputFormat.CONF_FILTER_FAILED_QC, false);
+			filterFailedQC = ConfHelper.parseBoolean(
+			  conf.get(FastqInputFormat.CONF_FILTER_FAILED_QC,
+			    conf.get(FormatConstants.CONF_INPUT_FILTER_FAILED_QC)),
+			      false);
 		}
 
 		/*
