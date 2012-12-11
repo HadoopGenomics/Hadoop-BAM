@@ -111,6 +111,22 @@ public class TestFastqInputFormat
 	  "+\n" +
 	  "###########################################################################################";
 
+	public static final String twoFastqWithIllumina =
+		"@EAS139:136:FC706VJ:2:5:1000:12850 1:Y:18:ATCACG\n" +
+		"TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
+		"+\n" +
+		"###########################################################################################\n" +
+
+		"@EAS139:136:FC706VJ:2:5:1000:12850 2:N:18:ATCACG\n" +
+		"TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
+		"+\n" +
+		"###########################################################################################\n" +
+
+		"@EAS139:136:FC706VJ:2:5:1000:12850 3:N:18:ATCACG\n" +
+		"TGAGCAGATGTGCTAAAGCTGCTTCTCCCCTAGGATCATTTGTACCTACCAGACTCAGGGAAAGGGGTGAGAATTGGGCCGTGGGGCAAGG\n" +
+		"+\n" +
+		"BDDCDBDD?A=?=:=7,7*@A;;53/53.:@>@@4=>@@@=?1?###############################################";
+
 	private JobConf conf;
 	private FileSplit split;
 	private File tempFastq;
@@ -488,6 +504,26 @@ public class TestFastqInputFormat
 		assertEquals(136, fragment.getRunNumber().intValue());
 		// now verify the index
 		assertEquals("", fragment.getIndexSequence());
+	}
+
+	@Test
+	public void testSkipFailedQC() throws IOException
+	{
+		writeToTempFastq(twoFastqWithIllumina);
+		split = new FileSplit(new Path(tempFastq.toURI().toString()), 0, twoFastqWithIllumina.length(), null);
+		conf.set("hbam.fastq-input.filter-failed-qc", "true");
+
+		FastqRecordReader reader = new FastqRecordReader(conf, split);
+		boolean found = reader.next(key, fragment);
+		assertTrue(found);
+		assertEquals(2, (int)fragment.getRead());
+
+		found = reader.next(key, fragment);
+		assertTrue(found);
+		assertEquals(3, (int)fragment.getRead());
+
+		found = reader.next(key, fragment);
+		assertFalse(found);
 	}
 
 	public static void main(String args[]) {

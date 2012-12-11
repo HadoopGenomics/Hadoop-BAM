@@ -42,10 +42,12 @@ import java.io.EOFException;
 import java.util.regex.*;
 
 import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
+import fi.tkk.ics.hadoop.bam.util.ConfHelper;
 
 public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.fastq-input.base-quality-encoding";
+	public static final String CONF_FILTER_FAILED_QC      = "hbam.fastq-input.filter-failed-qc";
 	public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "sanger";
 
 	public static class FastqRecordReader extends RecordReader<Text,SequencedFragment>
@@ -93,6 +95,7 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 		private Text buffer = new Text();
 
 		private BaseQualityEncoding qualityEncoding;
+		private boolean filterFailedQC = false;
 
 		// How long can a read get?
 		private static final int MAX_LINE_LENGTH = 10000;
@@ -137,6 +140,8 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 				qualityEncoding = BaseQualityEncoding.Sanger;
 			else
 				throw new RuntimeException("Unknown " + FastqInputFormat.CONF_BASE_QUALITY_ENCODING + " value " + encoding);
+
+			filterFailedQC = ConfHelper.parseBoolean(conf, FastqInputFormat.CONF_FILTER_FAILED_QC, false);
 		}
 
 		/*
@@ -262,6 +267,32 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 			return file.toString() + ":" + pos;
 		}
 
+		protected boolean lowLevelFastqRead(Text key, SequencedFragment value) throws IOException
+		{
+			// ID line
+			long skipped = lineReader.skip(1); // skip @
+			pos += skipped;
+			if (skipped == 0)
+				return false; // EOF
+
+			// ID
+			readLineInto(key);
+			// sequence
+			value.clear();
+			readLineInto(value.getSequence());
+			readLineInto(buffer);
+			if (buffer.getLength() == 0 || buffer.getBytes()[0] != '+')
+				throw new RuntimeException("unexpected fastq line separating sequence and quality at " + makePositionMessage() + ". Line: " + buffer + ". \nSequence ID: " + key);
+			readLineInto(value.getQuality());
+
+			// look for the Illumina-formatted name.  Once it isn't found lookForIlluminaIdentifier will be set to false
+			lookForIlluminaIdentifier = lookForIlluminaIdentifier && scanIlluminaId(key, value);
+			if (!lookForIlluminaIdentifier)
+				scanNameForReadNumber(key, value);
+			return true;
+		}
+
+
 		/**
 		 * Reads the next key/value pair from the input for processing.
 		 */
@@ -269,55 +300,44 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 		{
 			if (pos >= end)
 				return false; // past end of slice
-
-			// ID line
-			long skipped = lineReader.skip(1); // skip @
-			pos += skipped;
-			if (skipped == 0)
-				return false; // EOF
 			try
 			{
-				// ID
-				readLineInto(key);
-				// sequence
-				value.clear();
-				readLineInto(value.getSequence());
-				readLineInto(buffer);
-				if (buffer.getLength() == 0 || buffer.getBytes()[0] != '+')
-					throw new RuntimeException("unexpected fastq line separating sequence and quality at " + makePositionMessage() + ". Line: " + buffer + ". \nSequence ID: " + key);
-				readLineInto(value.getQuality());
+				boolean gotData;
+				boolean goodRecord;
+				do {
+					gotData = lowLevelFastqRead(key, value);
+					goodRecord = gotData && (!filterFailedQC || value.getFilterPassed() == null || value.getFilterPassed());
+				} while (gotData && !goodRecord);
 
-				if (qualityEncoding == BaseQualityEncoding.Illumina)
+				if (goodRecord) // goodRecord falso also when we couldn't read any more data
 				{
-					try
+					if (qualityEncoding == BaseQualityEncoding.Illumina)
 					{
-						// convert illumina to sanger scale
-						SequencedFragment.convertQuality(value.getQuality(), BaseQualityEncoding.Illumina, BaseQualityEncoding.Sanger);
-					} catch (FormatException e) {
-						throw new FormatException(e.getMessage() + " Position: " + makePositionMessage() + "; Sequence ID: " + key);
+						try
+						{
+							// convert illumina to sanger scale
+							SequencedFragment.convertQuality(value.getQuality(), BaseQualityEncoding.Illumina, BaseQualityEncoding.Sanger);
+						} catch (FormatException e) {
+							throw new FormatException(e.getMessage() + " Position: " + makePositionMessage() + "; Sequence ID: " + key);
+						}
+					}
+					else // sanger qualities.
+					{
+						int outOfRangeElement = SequencedFragment.verifyQuality(value.getQuality(), BaseQualityEncoding.Sanger);
+						if (outOfRangeElement >= 0)
+						{
+							throw new FormatException("fastq base quality score out of range for Sanger Phred+33 format (found " +
+									(value.getQuality().getBytes()[outOfRangeElement] - FormatConstants.SANGER_OFFSET) + ").\n" +
+									"Although Sanger format has been requested, maybe qualities are in Illumina Phred+64 format?\n" +
+									"Position: " + makePositionMessage() + "; Sequence ID: " + key);
+						}
 					}
 				}
-				else // sanger qualities.
-				{
-					int outOfRangeElement = SequencedFragment.verifyQuality(value.getQuality(), BaseQualityEncoding.Sanger);
-					if (outOfRangeElement >= 0)
-					{
-						throw new FormatException("fastq base quality score out of range for Sanger Phred+33 format (found " +
-						    (value.getQuality().getBytes()[outOfRangeElement] - FormatConstants.SANGER_OFFSET) + ").\n" +
-						    "Although Sanger format has been requested, maybe qualities are in Illumina Phred+64 format?\n" +
-						    "Position: " + makePositionMessage() + "; Sequence ID: " + key);
-					}
-				}
-
-				// look for the Illumina-formatted name.  Once it isn't found lookForIlluminaIdentifier will be set to false
-				lookForIlluminaIdentifier = lookForIlluminaIdentifier && scanIlluminaId(key, value);
-				if (!lookForIlluminaIdentifier)
-					scanNameForReadNumber(key, value);
+				return goodRecord;
 			}
 			catch (EOFException e) {
 				throw new RuntimeException("unexpected end of file in fastq record at " + makePositionMessage() + ".  Id: " + key.toString());
 			}
-			return true;
 		}
 
 		private void scanNameForReadNumber(Text name, SequencedFragment fragment)
