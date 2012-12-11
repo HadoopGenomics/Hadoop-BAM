@@ -55,8 +55,8 @@ public class TestQseqInputFormat
 	public static final String twoQseq =
 		"ERR020229	10880	1	1	1373	2042	0	1	" +
 		"TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\t" +
-		"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB	1\n" +
-		"ERR020229	10883	1	1	1796	2044	0	1	" +
+		"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB	0\n" +
+		"ERR020229	10883	1	1	1796	2044	0	2	" +
 		"TGAGCAGATGTGCTAAAGCTGCTTCTCCCCTAGGATCATTTGTACCTACCAGACTCAGGGAAAGGGGTGAGAATTGGGCCGTGGGGCAAGG\t" +
 		"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD	1";
 
@@ -80,7 +80,6 @@ public class TestQseqInputFormat
 		"EAS139	136	2	5	1000	12850	ATC..G	1	" +
 		"TTGGATGATAGGGATTATTTGACTCGAATAT\t" +
 		"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\t0";
-
 
 	private JobConf conf;
 	private FileSplit split;
@@ -158,7 +157,7 @@ public class TestQseqInputFormat
 
 		boolean retval = reader.next(key, fragment);
 		assertTrue(retval);
-		assertEquals("ERR020229:10883:1:1:1796:2044:1", key.toString());
+		assertEquals("ERR020229:10883:1:1:1796:2044:2", key.toString());
 		assertEquals("TGAGCAGATGTGCTAAAGCTGCTTCTCCCCTAGGATCATTTGTACCTACCAGACTCAGGGAAAGGGGTGAGAATTGGGCCGTGGGGCAAGG", fragment.getSequence().toString());
 		assertEquals("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%", fragment.getQuality().toString());
 
@@ -322,7 +321,7 @@ public class TestQseqInputFormat
 
 		retval = reader.next(key, fragment);
 		assertTrue(retval);
-		assertEquals("ERR020229:10883:1:1:1796:2044:1", key.toString());
+		assertEquals("ERR020229:10883:1:1:1796:2044:2", key.toString());
 		assertEquals("TGAGCAGATGTGCTAAAGCTGCTTCTCCCCTAGGATCATTTGTACCTACCAGACTCAGGGAAAGGGGTGAGAATTGGGCCGTGGGGCAAGG", fragment.getSequence().toString());
 	}
 
@@ -338,5 +337,21 @@ public class TestQseqInputFormat
 		// now try to read it starting from the middle
 		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoQseq.length(), null);
 		QseqRecordReader reader = new QseqRecordReader(conf, split);
+	}
+
+	@Test
+	public void testSkipFailedQC() throws IOException
+	{
+		conf.set("hbam.qseq-input.filter-failed-qc", "t");
+		writeToTempQseq(twoQseq);
+		split = new FileSplit(new Path(tempQseq.toURI().toString()), 0, twoQseq.length(), null);
+		QseqRecordReader reader = new QseqRecordReader(conf, split);
+
+		boolean found = reader.next(key, fragment);
+		assertTrue(found);
+		assertEquals(2, (int)fragment.getRead());
+
+		found = reader.next(key, fragment);
+		assertFalse(found);
 	}
 }
