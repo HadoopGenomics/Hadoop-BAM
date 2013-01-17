@@ -208,12 +208,19 @@ class WorkaroundingStream extends InputStream {
 		if (!headerRemaining)
 			return streamRead(buf, off, len);
 
-		final int h;
+		int h;
 		if (strippingAts)
 			h = 0;
 		else {
 			h = headerStream.read(buf, off, len);
-			if (h < headerLength && h != -1) {
+			if (h == -1) {
+				// This should only happen when there was no header at all, in
+				// which case Picard doesn't throw an error until trying to read
+				// a record, for some reason. (Perhaps an oversight.) Thus we
+				// need to handle that case here.
+				assert (headerLength == 0);
+				h = 0;
+			} else if (h < headerLength) {
 				headerLength -= h;
 				return h;
 			}
