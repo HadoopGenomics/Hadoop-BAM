@@ -375,7 +375,10 @@ public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 				fragment.setRead( Integer.parseInt(Text.decode(line.getBytes(), fieldPositions[7], fieldLengths[7])) );
 				fragment.setFilterPassed( line.getBytes()[fieldPositions[10]] != '0' );
 				//fragment.setControlNumber();
-				fragment.setIndexSequence(Text.decode(line.getBytes(), fieldPositions[6], fieldLengths[6]).replace('.', 'N'));
+				if (fieldLengths[6] > 0 && line.getBytes()[fieldPositions[6]] == '0') // 0 is a null index sequence
+					fragment.setIndexSequence(null);
+				else
+					fragment.setIndexSequence(Text.decode(line.getBytes(), fieldPositions[6], fieldLengths[6]).replace('.', 'N'));
 			}
 			catch (CharacterCodingException e) {
 				throw new FormatException("Invalid character format at " + makePositionMessage(this.pos - line.getLength()) + "; line: " + line);
