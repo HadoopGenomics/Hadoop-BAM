@@ -156,4 +156,17 @@ public class TestQseqOutputFormat
 		// doesn't really do anything but exercise the code
 		writer.close(null);
 	}
+
+	@Test
+	public void testNoIndex() throws IOException
+	{
+		fragment.setIndexSequence(null);
+		writer.write(null, fragment);
+		writer.close(null);
+
+		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+		assertEquals(11, fields.length);
+
+		assertEquals("0", fields[6]);
+	}
 }
