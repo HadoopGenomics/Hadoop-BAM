@@ -106,7 +106,14 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			sBuilder.append( seq.getTile() == null ? "" : seq.getTile().toString() ).append(delim);
 			sBuilder.append( seq.getXpos() == null ? "" : seq.getXpos().toString() ).append(delim);
 			sBuilder.append( seq.getYpos() == null ? "" : seq.getYpos().toString() ).append(delim);
-			sBuilder.append( seq.getIndexSequence() == null ? "0" : seq.getIndexSequence().replace('N', '.') ).append(delim);
+
+			String index;
+			if (seq.getIndexSequence() == null || seq.getIndexSequence().isEmpty())
+				index = "0";
+			else
+				index = seq.getIndexSequence().replace('N', '.');
+			sBuilder.append( index ).append(delim);
+
 			sBuilder.append( seq.getRead() == null ? "" : seq.getRead().toString() ).append(delim);
 			// here we also replace 'N' with '.'
 			sBuilder.append( seq.getSequence() == null ? "" : seq.getSequence().toString().replace('N', '.')).append(delim);
