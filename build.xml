@@ -38,6 +38,8 @@
 		         erroronmissingdir="false">
 			<include name="hadoop-*.jar"/>
 			<include name="lib/*.jar"/>
+			<include name="share/hadoop/*/*.jar"/>
+			<include name="share/hadoop/*/lib/*.jar"/>
 		</fileset>
 		<pathelement path="sam-1.76.jar"/>
 		<pathelement path="picard-1.76.jar"/>
