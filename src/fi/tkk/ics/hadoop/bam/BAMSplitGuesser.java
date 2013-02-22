@@ -127,7 +127,7 @@ public class BAMSplitGuesser {
 			if (psz == null)
 				return end;
 
-			final int cp0      = cp = psz.pos;
+			final int  cp0     = cp = psz.pos;
 			final long cp0Virt = (long)cp0 << 16;
 			try {
 				bgzf.seek(cp0Virt);
@@ -143,20 +143,23 @@ public class BAMSplitGuesser {
 			for (int up = 0;; ++up) {
 				final int up0 = up = guessNextBAMPos(cp0Virt, up, psz.size);
 
-				if (up < 0) {
+				if (up0 < 0) {
 					// No BAM records found in the BGZF block: try the next BGZF
 					// block.
 					break;
 				}
 
-				bgzf.seek(cp0Virt | up);
-				cp = cp0;
+				// Verify that we can actually decode BLOCKS_NEEDED_FOR_GUESS worth
+				// of records starting at (cp0,up0).
+				bgzf.seek(cp0Virt | up0);
 				try {
 					for (byte b = 0; cp < arr.length & b < BLOCKS_NEEDED_FOR_GUESS;)
 					{
 						bamCodec.decode();
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
 						if (cp2 != cp) {
+							// The compressed position changed so we must be in a new
+							// block.
 							assert cp2 > cp;
 							cp = cp2;
 							++b;
