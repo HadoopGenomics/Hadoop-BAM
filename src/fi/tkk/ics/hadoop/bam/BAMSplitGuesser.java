@@ -75,6 +75,12 @@ public class BAMSplitGuesser {
 	 */
 	public BAMSplitGuesser(SeekableStream ss) throws IOException {
 		this(ss, ss);
+
+		// Secondary check that the header points to a BAM file: Picard can get
+		// things wrong due to its autodetection.
+		ss.seek(0);
+		if (ss.read(buf.array(), 0, 4) != 4 || buf.getInt(0) != BGZF_MAGIC)
+			throw new SAMFormatException("Does not seem like a BAM file");
 	}
 
 	public BAMSplitGuesser(SeekableStream ss, InputStream headerStream)
