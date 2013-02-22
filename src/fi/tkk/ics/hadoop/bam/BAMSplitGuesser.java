@@ -22,6 +22,7 @@
 
 package fi.tkk.ics.hadoop.bam;
 
+import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -57,14 +58,24 @@ public class BAMSplitGuesser {
 
 	private final static int SHORTEST_POSSIBLE_BAM_RECORD = 4*9 + 1 + 1 + 1;
 
-	public BAMSplitGuesser(SeekableStream ss) {
+	/** The stream must point to a valid BAM file, because the header is read
+	 * from it.
+	 */
+	public BAMSplitGuesser(SeekableStream ss) throws IOException {
+		this(ss, ss);
+	}
+
+	public BAMSplitGuesser(SeekableStream ss, InputStream headerStream)
+		throws IOException
+	{
 		inFile = ss;
 
 		buf = ByteBuffer.allocate(8);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 
 		referenceSequenceCount =
-			new SAMFileReader(ss).getFileHeader().getSequenceDictionary().size();
+			new SAMFileReader(headerStream).getFileHeader()
+			.getSequenceDictionary().size();
 
 		bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());
 	}
