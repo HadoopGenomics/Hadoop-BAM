@@ -294,7 +294,7 @@ public class BAMSplitGuesser {
 				bgzf.read(buf.array(), 0, 8);
 
 				final int nid  = buf.getInt(0);
-				final int npos = buf.getInt(0);
+				final int npos = buf.getInt(4);
 				if (nid < -1 || nid > referenceSequenceCount || npos < -1) {
 					++up;
 					continue;
