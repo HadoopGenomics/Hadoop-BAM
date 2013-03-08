@@ -153,7 +153,7 @@ public class BAMSplitGuesser {
 				// of records starting at (cp0,up0).
 				bgzf.seek(cp0Virt | up0);
 				try {
-					for (byte b = 0; cp < arr.length & b < BLOCKS_NEEDED_FOR_GUESS;)
+					for (byte b = 0; b < BLOCKS_NEEDED_FOR_GUESS;)
 					{
 						bamCodec.decode();
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
@@ -166,9 +166,16 @@ public class BAMSplitGuesser {
 						}
 					}
 				} catch (SAMFormatException     e) { continue; }
-				  catch (RuntimeEOFException    e) { continue; }
 				  catch (FileTruncatedException e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
+				  catch (RuntimeEOFException    e) {
+					// If we couldn't read enough blocks to support proper
+					// verification, EOF is fine. Otherwise it shouldn't even
+					// happen... but just in case it does happen, have this check
+					// here to handle that correctly.
+					if (arr.length >= MAX_BYTES_READ)
+						continue;
+				}
 
 				return beg+cp0 << 16 | up0;
 			}
