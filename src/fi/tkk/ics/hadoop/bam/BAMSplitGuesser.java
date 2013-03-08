@@ -109,8 +109,15 @@ public class BAMSplitGuesser {
 		byte[] arr = new byte[MAX_BYTES_READ];
 
 		this.inFile.seek(beg);
-		arr = Arrays.copyOf(arr, inFile.read(arr, 0, Math.min((int)(end - beg),
-		                                                      arr.length)));
+		int totalRead = 0;
+		for (int left = Math.min((int)(end - beg), arr.length); left > 0;) {
+			final int r = inFile.read(arr, totalRead, left);
+			if (r < 0)
+				break;
+			totalRead += r;
+			left -= r;
+		}
+		arr = Arrays.copyOf(arr, totalRead);
 
 		this.in = new SeekableArrayStream(arr);
 
