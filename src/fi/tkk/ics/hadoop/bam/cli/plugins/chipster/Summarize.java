@@ -507,9 +507,9 @@ final class SummarizeReducer
 		for (String s : ctx.getConfiguration().getStrings(SUMMARY_LEVELS_PROP)) {
 			int lvl = Integer.parseInt(s);
 			summaryGroupsR.add(
-				new SummaryGroup(lvl, Summarize.getOutputName(s, false)));
-			summaryGroupsF.add(
 				new SummaryGroup(lvl, Summarize.getOutputName(s,  true)));
+			summaryGroupsF.add(
+				new SummaryGroup(lvl, Summarize.getOutputName(s, false)));
 		}
 	}
 
