@@ -6,6 +6,8 @@
 	<property name="test.class.dir" value="test-classes" />
 	<property name="build.jar" value="hadoop-bam.jar" />
 
+	<property name="cloudera.cdh.parcel" value="/opt/cloudera/parcels/CDH" />
+
 	<property environment="env"/>
 
 	<!-- look for junit jars on the various platforms -->
@@ -40,7 +42,13 @@
 			<include name="lib/*.jar"/>
 			<include name="share/hadoop/*/*.jar"/>
 			<include name="share/hadoop/*/lib/*.jar"/>
+<!-- <include name="**/*.jar" /> -->
+
 		</fileset>
+		<!-- CDH4 installed with Cloudera Manager  -->
+		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client-0.20" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
+		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
+
 		<pathelement path="sam-1.76.jar"/>
 		<pathelement path="picard-1.76.jar"/>
 	</path>
