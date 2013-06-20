@@ -30,10 +30,8 @@ import java.util.List;
 import java.util.Locale;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ChecksumFileSystem;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
@@ -55,8 +53,6 @@ import net.sf.picard.sam.ReservedTagConstants;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMTextHeaderCodec;
-import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
