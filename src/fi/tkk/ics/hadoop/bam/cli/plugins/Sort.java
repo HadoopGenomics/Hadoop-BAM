@@ -87,8 +87,9 @@ public final class Sort extends CLIPlugin {
 			"WORKDIR INPATH [INPATH...]",
 			optionDescs,
 			"Merges together the BAM and SAM files in the INPATHs, sorting the "+
-			"result, in a distributed fashion using Hadoop. Output parts are "+
-			"placed in WORKDIR in, by default, headerless BAM format.");
+			"result in standard coordinate order, all in a distributed fashion "+
+			"using Hadoop MapReduce. Output parts are placed in WORKDIR in, by "+
+			"default, headerless and unterminated BAM format.");
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
