@@ -36,7 +36,7 @@ import fi.tkk.ics.hadoop.bam.util.Pair;
 public abstract class CLIPlugin extends Configured {
 	protected final String command, desc, usageTail, version, longDesc;
 
-	protected final List<Pair<CmdLineParser.Option, String>> optionDescs;
+	protected final List<Pair<CmdLineParser.Option, String>> optionDescriptions;
 
 	protected CLIPlugin(
 		String commandName, String description, String version,
@@ -44,12 +44,12 @@ public abstract class CLIPlugin extends Configured {
 		List<Pair<CmdLineParser.Option, String>> optionDescriptions,
 		String longDescription)
 	{
-		this.command     = commandName;
-		this.desc        = description;
-		this.version     = version;
-		this.usageTail   = usageParams;
-		this.optionDescs = optionDescriptions;
-		this.longDesc    = longDescription;
+		this.command            = commandName;
+		this.desc               = description;
+		this.version            = version;
+		this.usageTail          = usageParams;
+		this.optionDescriptions = optionDescriptions;
+		this.longDesc           = longDescription;
 	}
 
 	public final String getCommandName() { return command; }
@@ -62,7 +62,7 @@ public abstract class CLIPlugin extends Configured {
 
 		out.printf("Usage: %s %s ", Utils.getArgv0(), command);
 
-		if (optionDescs != null && !optionDescs.isEmpty())
+		if (optionDescriptions != null && !optionDescriptions.isEmpty())
 			out.print("[options] ");
 
 		out.println(usageTail);
@@ -72,10 +72,10 @@ public abstract class CLIPlugin extends Configured {
 			Utils.printWrapped(out, longDesc);
 		}
 
-		if (optionDescs == null || optionDescs.isEmpty())
+		if (optionDescriptions == null || optionDescriptions.isEmpty())
 			return;
 
-		Collections.sort(optionDescs,
+		Collections.sort(optionDescriptions,
 			new Comparator<Pair<CmdLineParser.Option, String>>() {
 				public int compare(
 					Pair<CmdLineParser.Option, String> ap,
@@ -120,7 +120,8 @@ public abstract class CLIPlugin extends Configured {
 
 		int optLen = 0;
 		boolean anyShortForms = false;
-		for (final Pair<CmdLineParser.Option, String> pair : optionDescs) {
+		for (final Pair<CmdLineParser.Option, String> pair : optionDescriptions)
+		{
 			final CmdLineParser.Option opt = pair.fst;
 			if (opt.shortForm() != null)
 				anyShortForms = true;
@@ -136,7 +137,8 @@ public abstract class CLIPlugin extends Configured {
 		                  + (anyShortForms ? "-x, ".length() : 0);
 
 		boolean first = true;
-		for (final Pair<CmdLineParser.Option, String> pair : optionDescs) {
+		for (final Pair<CmdLineParser.Option, String> pair : optionDescriptions)
+		{
 			if (first)
 				first = false;
 			else
@@ -171,8 +173,8 @@ public abstract class CLIPlugin extends Configured {
 		}
 
 		final CmdLineParser parser = new CmdLineParser();
-		if (optionDescs != null) {
-			for (final Pair<CmdLineParser.Option, String> pair : optionDescs) {
+		if (optionDescriptions != null) {
+			for (final Pair<CmdLineParser.Option, String> pair : optionDescriptions) {
 				final String lf = pair.fst.longForm();
 				final int    eq = lf.lastIndexOf('=');
 				pair.fst.setLongForm(eq == -1 ? lf : lf.substring(0, eq));
