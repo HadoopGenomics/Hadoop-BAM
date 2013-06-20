@@ -161,8 +161,7 @@ public class BAMSplitGuesser {
 				boolean decodedAny = false;
 				bgzf.seek(cp0Virt | up0);
 				try {
-					for (byte b = 0; b < BLOCKS_NEEDED_FOR_GUESS;)
-					{
+					for (byte b = 0; b < BLOCKS_NEEDED_FOR_GUESS;) {
 						bamCodec.decode();
 						decodedAny = true;
 

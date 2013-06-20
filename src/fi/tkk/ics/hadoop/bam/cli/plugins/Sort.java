@@ -484,8 +484,8 @@ final class SortOutputFormat
 			conf.getBoolean(WRITE_HEADER_PROP, baseOF.getWriteHeader()));
 	}
 
-	@Override public RecordWriter<NullWritable,SAMRecordWritable>
-		getRecordWriter(TaskAttemptContext context)
+	@Override public RecordWriter<NullWritable,SAMRecordWritable> getRecordWriter(
+			TaskAttemptContext context)
 		throws IOException
 	{
 		initBaseOF(context.getConfiguration());
@@ -497,15 +497,14 @@ final class SortOutputFormat
 		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));
 	}
 
-	@Override public Path getDefaultWorkFile(
-			TaskAttemptContext context, String ext)
+	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
 		throws IOException
 	{
-		initBaseOF(context.getConfiguration());
-		String filename  = context.getConfiguration().get(OUTPUT_NAME_PROP);
+		initBaseOF(ctx.getConfiguration());
+		String filename  = ctx.getConfiguration().get(OUTPUT_NAME_PROP);
 		String extension = ext.isEmpty() ? ext : "." + ext;
-		int    part      = context.getTaskAttemptID().getTaskID().getId();
-		return new Path(baseOF.getDefaultWorkFile(context, ext).getParent(),
+		int    part      = ctx.getTaskAttemptID().getTaskID().getId();
+		return new Path(baseOF.getDefaultWorkFile(ctx, ext).getParent(),
 			filename + "-" + String.format("%06d", part) + extension);
 	}
 
