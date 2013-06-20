@@ -48,7 +48,13 @@ import net.sf.samtools.SAMFileHeader;
 public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 
 	protected SAMFileHeader header;
-	private boolean writeHeader = true;
+	private boolean writeHeader_ = true;
+
+	/** Whether the header will be written, defaults to true. If set, overrides
+	 * the deprecated setWriteHeader() setting.
+	 */
+	public static final String WRITE_HEADER_PROPERTY =
+		"hadoopbam.anysam.write-header";
 
 	public KeyIgnoringAnySAMOutputFormat(SAMFormat fmt) {
 		super(fmt);
@@ -72,11 +78,17 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 		}
 	}
 
-	/** Whether the header will be written or not. */
-	public boolean getWriteHeader()          { return writeHeader; }
+	/** Whether the header will be written or not. Deprecated: use your
+	 * Configuration and get WRITE_HEADER_PROPERTY instead.
+	 */
+	@Deprecated
+	public boolean getWriteHeader() { return writeHeader_; }
 
-	/** Set whether the header will be written or not. */
-	public void    setWriteHeader(boolean b) { writeHeader = b; }
+	/** Set whether the header will be written or not. Deprecated: use your
+	 * Configuration and set WRITE_HEADER_PROPERTY instead.
+	 */
+	@Deprecated
+	public void setWriteHeader(boolean b) { writeHeader_ = b; }
 
 	public SAMFileHeader getSAMHeader() { return header; }
 	public void setSAMHeader(SAMFileHeader header) { this.header = header; }
@@ -108,6 +120,9 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 		if (this.header == null)
 			throw new IOException(
 				"Can't create a RecordWriter without the SAM header");
+
+		final boolean writeHeader = ctx.getConfiguration().getBoolean(
+			WRITE_HEADER_PROPERTY, writeHeader_);
 
 		switch (format) {
 			case BAM:

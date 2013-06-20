@@ -60,27 +60,20 @@ import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
-
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.BGZFSplitFileInputFormat;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
-public final class SummarySort extends CLIPlugin {
+public final class SummarySort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
-	private static final CmdLineParser.Option
-		reducersOpt  = new IntegerOption('r', "reducers=N"),
-		  verboseOpt = new BooleanOption('v', "verbose"),
-		outputDirOpt = new  StringOption('o', "output-dir=PATH");
-
 	public SummarySort() {
-		super("summarysort", "sort summary file for zooming", "2.0",
+		super("summarysort", "sort summary file for zooming", "2.1",
 			"WORKDIR INPATH", optionDescs,
 			"Sorts the summary file in INPATH in a distributed fashion using "+
 			"Hadoop. Output parts are placed in WORKDIR."+
@@ -90,13 +83,8 @@ public final class SummarySort extends CLIPlugin {
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			reducersOpt, "use N reduce tasks (default: 1), i.e. produce N "+
-			             "outputs in parallel"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			verboseOpt, "tell Hadoop jobs to be more verbose"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputDirOpt, "output complete summary files to the file PATH, "+
-			              "removing the parts from WORKDIR"));
+			outputPathOpt, "output a complete summary file to the file PATH, "+
+			               "removing the parts from WORKDIR"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -110,22 +98,16 @@ public final class SummarySort extends CLIPlugin {
 			System.err.println("summarysort :: INPATH not given.");
 			return 3;
 		}
+		if (!cacheAndSetProperties(parser))
+			return 3;
 
-		final String outS = (String)parser.getOptionValue(outputDirOpt);
 		final Path wrkDir = new Path(args.get(0)),
-		           in     = new Path(args.get(1)),
-		           out    = outS == null ? null : new Path(outS);
-
-		final boolean verbose = parser.getBoolean(verboseOpt);
-
-		final int reduceTasks = parser.getInt(reducersOpt, 1);
+		           in     = new Path(args.get(1));
 
 		final Configuration conf = getConf();
 		final Timer t = new Timer();
 
 		try {
-			conf.setInt("mapred.reduce.tasks", reduceTasks);
-
 			final Job job = sortOne(conf, in, wrkDir, "summarysort", "");
 
 			System.out.printf("summarysort :: Waiting for job completion...\n");
@@ -144,14 +126,14 @@ public final class SummarySort extends CLIPlugin {
 		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
-		if (out != null) try {
+		if (outPath != null) try {
 			System.out.println("summarysort :: Merging output...");
 			t.start();
 
-			final FileSystem srcFS = wrkDir.getFileSystem(conf);
-			final FileSystem dstFS =    out.getFileSystem(conf);
+			final FileSystem srcFS =  wrkDir.getFileSystem(conf);
+			final FileSystem dstFS = outPath.getFileSystem(conf);
 
-			final OutputStream outs = dstFS.create(out);
+			final OutputStream outs = dstFS.create(outPath);
 
 			final FileStatus[] parts = srcFS.globStatus(new Path(
 				wrkDir, in.getName() + "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));

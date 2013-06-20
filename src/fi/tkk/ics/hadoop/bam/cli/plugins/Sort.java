@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -57,56 +56,25 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
-import fi.tkk.ics.hadoop.bam.AnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
-public final class Sort extends CLIPlugin {
-	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
-		= new ArrayList<Pair<CmdLineParser.Option, String>>();
-
-	private static final CmdLineParser.Option
-		reducersOpt    = new IntegerOption('r', "reducers=N"),
-		verboseOpt     = new BooleanOption('v', "verbose"),
-		outputFileOpt  = new  StringOption('o', "output-file=PATH"),
-		formatOpt      = new  StringOption('F', "format=FMT"),
-		noTrustExtsOpt = new BooleanOption("no-trust-exts");
-
+public final class Sort extends CLIMRBAMPlugin {
 	public Sort() {
-		super("sort", "BAM and SAM sorting and merging", "4.0",
-			"WORKDIR INPATH [INPATH...]",
-			optionDescs,
+		super("sort", "BAM and SAM sorting and merging", "4.1",
+			"WORKDIR INPATH [INPATH...]", null,
 			"Merges together the BAM and SAM files in the INPATHs, sorting the "+
 			"result in standard coordinate order, all in a distributed fashion "+
 			"using Hadoop MapReduce. Output parts are placed in WORKDIR in, by "+
 			"default, headerless and unterminated BAM format.");
-	}
-	static {
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			reducersOpt, "use N reduce tasks (default: 1), i.e. produce N "+
-			              "outputs in parallel"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			verboseOpt, "tell the Hadoop job to be more verbose"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputFileOpt, "output a complete SAM/BAM file to the file PATH, "+
-			               "removing the parts from WORKDIR; SAM/BAM is chosen "+
-			               "by file extension, if appropriate (but -F takes "+
-			               "precedence)"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
-			                "never by file extension"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			formatOpt, "select the output format based on FMT: SAM or BAM"));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -119,45 +87,17 @@ public final class Sort extends CLIPlugin {
 			System.err.println("sort :: INPATH not given.");
 			return 3;
 		}
+		if (!cacheAndSetProperties(parser))
+			return 3;
 
-		final String wrkDir = args.get(0),
-		             out    = (String)parser.getOptionValue(outputFileOpt);
+		Path wrkDir = new Path(args.get(0));
 
 		final List<String> strInputs = args.subList(1, args.size());
-
 		final List<Path> inputs = new ArrayList<Path>(strInputs.size());
 		for (final String in : strInputs)
 			inputs.add(new Path(in));
 
-		final boolean verbose = parser.getBoolean(verboseOpt);
-
-		final String intermediateOutName =
-			(out == null ? inputs.get(0) : new Path(out)).getName();
-
 		final Configuration conf = getConf();
-
-		SAMFormat format = null;
-		final String fmt = (String)parser.getOptionValue(formatOpt);
-		if (fmt != null) {
-			try { format = SAMFormat.valueOf(fmt.toUpperCase(Locale.ENGLISH)); }
-			catch (IllegalArgumentException e) {
-				System.err.printf("sort :: invalid format '%s'\n", fmt);
-				return 3;
-			}
-		}
-
-		if (format == null) {
-			if (out != null)
-				format = SAMFormat.inferFromFilePath(out);
-			if (format == null)
-				format = SAMFormat.BAM;
-		}
-
-		conf.set(AnySAMOutputFormat.OUTPUT_SAM_FORMAT_PROPERTY,
-		         format.toString());
-
-		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
-		                !parser.getBoolean(noTrustExtsOpt));
 
 		// Used by getHeaderMerger. SortRecordReader needs it to correct the
 		// reference indices when the output has a different index and
@@ -166,24 +106,16 @@ public final class Sort extends CLIPlugin {
 		conf.setStrings(INPUT_PATHS_PROP, strInputs.toArray(new String[0]));
 
 		// Used by SortOutputFormat to name the output files.
+		final String intermediateOutName =
+			(outPath == null ? inputs.get(0) : outPath).getName();
 		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, intermediateOutName);
-
-		// Let the output format know if we're going to merge the output, so that
-		// it doesn't write headers into the intermediate files.
-		conf.setBoolean(SortOutputFormat.WRITE_HEADER_PROP, out == null);
-
-		Path wrkDirPath = new Path(wrkDir);
-
-		final int reduceTasks = parser.getInt(reducersOpt, 1);
 
 		final Timer t = new Timer();
 		try {
 			// Required for path ".", for example.
-			wrkDirPath = wrkDirPath.getFileSystem(conf).makeQualified(wrkDirPath);
+			wrkDir = wrkDir.getFileSystem(conf).makeQualified(wrkDir);
 
-			Utils.configureSampling(wrkDirPath, intermediateOutName, conf);
-
-			conf.setInt("mapred.reduce.tasks", reduceTasks);
+			Utils.configureSampling(wrkDir, intermediateOutName, conf);
 
 			final Job job = new Job(conf);
 
@@ -201,7 +133,7 @@ public final class Sort extends CLIPlugin {
 			for (final Path in : inputs)
 				FileInputFormat.addInputPath(job, in);
 
-			FileOutputFormat.setOutputPath(job, wrkDirPath);
+			FileOutputFormat.setOutputPath(job, wrkDir);
 
 			job.setPartitionerClass(TotalOrderPartitioner.class);
 
@@ -235,14 +167,12 @@ public final class Sort extends CLIPlugin {
 		} catch (ClassNotFoundException e) { throw new RuntimeException(e); }
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
-		if (out != null) try {
+		if (outPath != null) try {
 			System.out.println("sort :: Merging output...");
 			t.start();
 
-			final Path outPath = new Path(out);
-
-			final FileSystem srcFS = wrkDirPath.getFileSystem(conf);
-			      FileSystem dstFS =    outPath.getFileSystem(conf);
+			final FileSystem srcFS =  wrkDir.getFileSystem(conf);
+			      FileSystem dstFS = outPath.getFileSystem(conf);
 
 			// First, place the BAM header.
 
@@ -252,7 +182,7 @@ public final class Sort extends CLIPlugin {
 
 			// Don't use the returned stream, because we're concatenating directly
 			// and don't want to apply another layer of compression to BAM.
-			new SAMOutputPreparer().prepareForRecords(outs, format, header);
+			new SAMOutputPreparer().prepareForRecords(outs, samFormat, header);
 
 			// Then, the actual SAM or BAM contents.
 
@@ -279,7 +209,7 @@ public final class Sort extends CLIPlugin {
 				srcFS.delete(part.getPath(), false);
 
 			// And if BAM, the BGZF terminator.
-			if (format == SAMFormat.BAM)
+			if (samFormat == SAMFormat.BAM)
 				outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
 
 			outs.close();
@@ -463,9 +393,7 @@ final class SortRecordReader
 final class SortOutputFormat
 	extends FileOutputFormat<NullWritable,SAMRecordWritable>
 {
-	public static final String
-		OUTPUT_NAME_PROP  = "hadoopbam.sort.output.name",
-		WRITE_HEADER_PROP = "hadoopbam.sort.output.write-header";
+	public static final String OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
 
 	private KeyIgnoringAnySAMOutputFormat<NullWritable> baseOF;
 
@@ -474,9 +402,6 @@ final class SortOutputFormat
 			return;
 
 		baseOF = new KeyIgnoringAnySAMOutputFormat<NullWritable>(conf);
-
-		baseOF.setWriteHeader(
-			conf.getBoolean(WRITE_HEADER_PROP, baseOF.getWriteHeader()));
 	}
 
 	@Override

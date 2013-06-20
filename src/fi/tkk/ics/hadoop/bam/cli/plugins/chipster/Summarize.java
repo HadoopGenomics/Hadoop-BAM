@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,7 +39,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -70,24 +68,21 @@ import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
-public final class Summarize extends CLIPlugin {
+public final class Summarize extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		reducersOpt    = new IntegerOption('r', "reducers=N"),
-		verboseOpt     = new BooleanOption('v', "verbose"),
 		sortOpt        = new BooleanOption('s', "sort"),
-		outputDirOpt   = new  StringOption('o', "output-dir=PATH"),
 		noTrustExtsOpt = new BooleanOption("no-trust-exts");
 
 	public Summarize() {
-		super("summarize", "summarize SAM or BAM for zooming", "3.0",
+		super("summarize", "summarize SAM or BAM for zooming", "3.1",
 			"WORKDIR LEVELS INPATH", optionDescs,
 			"Outputs, for each level in LEVELS, a summary file describing the "+
 			"average number of alignments at various positions in the SAM or "+
@@ -100,25 +95,18 @@ public final class Summarize extends CLIPlugin {
 	}
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			reducersOpt, "use N reduce tasks (default: 1), i.e. produce N "+
-			             "outputs in parallel"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			verboseOpt, "tell Hadoop jobs to be more verbose"));
-		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			outputDirOpt, "output complete summary files to the directory PATH, "+
-			              "removing the parts from WORKDIR"));
+			outputPathOpt, "output complete summary files to the directory "+
+			               "PATH, removing the parts from WORKDIR"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			sortOpt, "sort created summaries by position"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
-			noTrustExtsOpt, "detect SAM/BAM files only by contents, "+
-			                "never by file extension"));
+			noTrustExtsOpt, "detect SAM/BAM files only by contents, never by "+
+			                "file extension"));
 	}
 
 	private final Timer    t = new Timer();
 	private       String[] levels;
 	private       Path     wrkDir, mainSortOutputDir;
-	private       int      reduceTasks;
-	private       boolean  verbose;
 	private       boolean  sorted = false;
 
 	private int missingArg(String s) {
@@ -135,17 +123,8 @@ public final class Summarize extends CLIPlugin {
 			case 2: return missingArg("INPATH");
 			default: break;
 		}
-
-		wrkDir = new Path(args.get(0));
-		final String outS = (String)parser.getOptionValue(outputDirOpt);
-		final Path   bam  = new Path(args.get(2)),
-		             out  = outS == null ? null : new Path(outS);
-
-		final boolean sort = parser.getBoolean(sortOpt);
-
-		verbose = parser.getBoolean(verboseOpt);
-
-		reduceTasks = parser.getInt(reducersOpt, 1);
+		if (!cacheAndSetProperties(parser))
+			return 3;
 
 		levels = args.get(1).split(",");
 		for (String l : levels) {
@@ -162,6 +141,11 @@ public final class Summarize extends CLIPlugin {
 			return 3;
 		}
 
+		wrkDir = new Path(args.get(0));
+		final Path bam = new Path(args.get(2));
+
+		final boolean sort = parser.getBoolean(sortOpt);
+
 		final Configuration conf = getConf();
 
 		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
@@ -177,8 +161,8 @@ public final class Summarize extends CLIPlugin {
 				// There's a lot of different Paths here, and it can get a bit
 				// confusing. Here's how it works:
 				//
-				// - out is the output dir for the final merged output, given with
-				//   the -o or -O parameters.
+				// - outPath is the output dir for the final merged output, given
+				//   with the -o parameter.
 				//
 				// - wrkDir is the user-given path where the outputs of the
 				//   reducers go.
@@ -189,7 +173,7 @@ public final class Summarize extends CLIPlugin {
 				//
 				// - mainSortOutputDir is $wrkDir/sorted.tmp: getSortOutputDir()
 				//   gives a per-level/strand directory under it, which is used by
-				//   sortMerged() and mergeOne(). This is necessary because we
+				//   doSorting() and mergeOne(). This is necessary because we
 				//   cannot have multiple Hadoop jobs outputting into the same
 				//   directory at the same time, as explained in the comment in
 				//   sortMerged().
@@ -198,8 +182,6 @@ public final class Summarize extends CLIPlugin {
 				wrkDir = wrkDir.getFileSystem(conf).makeQualified(wrkDir);
 
 				mainSortOutputDir = sort ? new Path(wrkDir, "sorted.tmp") : null;
-
-				conf.setInt("mapred.reduce.tasks", reduceTasks);
 
 				if (!runSummary(bam))
 					return 4;
@@ -214,8 +196,8 @@ public final class Summarize extends CLIPlugin {
 					mergedTmpDir = new Path(wrkDir, "sort.tmp");
 					mergeOutputs(mergedTmpDir);
 
-				} else if (out != null)
-					mergeOutputs(out);
+				} else if (outPath != null)
+					mergeOutputs(outPath);
 
 			} catch (IOException e) {
 				System.err.printf("summarize :: Merging failed: %s\n", e);
@@ -228,9 +210,9 @@ public final class Summarize extends CLIPlugin {
 
 				tryDelete(mergedTmpDir);
 
-				if (out != null) try {
+				if (outPath != null) try {
 					sorted = true;
-					mergeOutputs(out);
+					mergeOutputs(outPath);
 				} catch (IOException e) {
 					System.err.printf(
 						"summarize :: Merging sorted output failed: %s\n", e);
@@ -342,7 +324,7 @@ public final class Summarize extends CLIPlugin {
 		return true;
 	}
 
-	private void mergeOutputs(Path outPath)
+	private void mergeOutputs(Path out)
 		throws IOException
 	{
 		System.out.println("summarize :: Merging output...");
@@ -350,25 +332,25 @@ public final class Summarize extends CLIPlugin {
 
 		final Configuration conf = getConf();
 
-		final FileSystem srcFS =  wrkDir.getFileSystem(conf);
-		final FileSystem dstFS = outPath.getFileSystem(conf);
+		final FileSystem srcFS = wrkDir.getFileSystem(conf);
+		final FileSystem dstFS =    out.getFileSystem(conf);
 
 		final Timer tl = new Timer();
 		for (String l : levels) {
-			mergeOne(l, 'f', getSummaryName(l, false), outPath, srcFS, dstFS, tl);
-			mergeOne(l, 'r', getSummaryName(l,  true), outPath, srcFS, dstFS, tl);
+			mergeOne(l, 'f', getSummaryName(l, false), out, srcFS, dstFS, tl);
+			mergeOne(l, 'r', getSummaryName(l,  true), out, srcFS, dstFS, tl);
 		}
 		System.out.printf("summarize :: Merging complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());
 	}
 	private void mergeOne(
 			String level, char strand,
-			String filename, Path outPath,
+			String filename, Path out,
 			FileSystem srcFS, FileSystem dstFS, Timer to)
 		throws IOException
 	{
 		to.start();
-		final OutputStream outs = dstFS.create(new Path(outPath, filename));
+		final OutputStream outs = dstFS.create(new Path(out, filename));
 
 		final FileStatus[] parts = srcFS.globStatus(new Path(
 			sorted ? getSortOutputDir(level, strand) : wrkDir,
