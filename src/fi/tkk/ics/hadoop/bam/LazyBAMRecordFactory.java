@@ -84,7 +84,7 @@ class LazyBAMRecord extends BAMRecord {
 	@Override public String getMateReferenceName() {
 		if (mMateReferenceIndex != null && !decodedMateRefIdx) {
 			decodedMateRefIdx = true;
-			super.setReferenceIndex(mReferenceIndex);
+			super.setMateReferenceIndex(mMateReferenceIndex);
 		}
 		return super.getMateReferenceName();
 	}
