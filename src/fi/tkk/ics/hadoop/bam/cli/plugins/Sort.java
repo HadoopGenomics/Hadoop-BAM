@@ -246,7 +246,6 @@ public final class Sort extends CLIPlugin {
 			// First, place the BAM header.
 
 			final SAMFileHeader header = getHeaderMerger(conf).getMergedHeader();
-			header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
 			final OutputStream outs = dstFS.create(outPath);
 
@@ -456,7 +455,6 @@ final class SortRecordReader
 					headerMerger.getProgramGroupId(h, rg));
 		}
 
-		getCurrentValue().set(r);
 		return true;
 	}
 }
