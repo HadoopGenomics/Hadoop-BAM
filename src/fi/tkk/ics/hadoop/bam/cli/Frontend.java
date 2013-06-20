@@ -120,8 +120,8 @@ public final class Frontend {
 			thread.setContextClassLoader(
 				new URLClassLoader(allURLs, loader2.getParent()));
 
-			// Evidently we don't need to do conf.setClassLoader(). Presumably
-			// Hadoop loads the libjars and the main jar in the same class loader.
+			// Make sure Hadoop also uses the right class loader.
+			conf.setClassLoader(thread.getContextClassLoader());
 		}
 
 		/* Call the go(args,conf) method of this class, but do it via
