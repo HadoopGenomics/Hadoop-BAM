@@ -158,11 +158,14 @@ public class BAMSplitGuesser {
 
 				// Verify that we can actually decode BLOCKS_NEEDED_FOR_GUESS worth
 				// of records starting at (cp0,up0).
+				boolean decodedAny = false;
 				bgzf.seek(cp0Virt | up0);
 				try {
 					for (byte b = 0; b < BLOCKS_NEEDED_FOR_GUESS;)
 					{
 						bamCodec.decode();
+						decodedAny = true;
+
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
 						if (cp2 != cp) {
 							// The compressed position changed so we must be in a new
@@ -176,14 +179,18 @@ public class BAMSplitGuesser {
 				  catch (FileTruncatedException e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
 				  catch (RuntimeEOFException    e) {
-					// If we couldn't read enough blocks to support proper
-					// verification, EOF is fine. Otherwise it shouldn't even
-					// happen... but just in case it does happen, have this check
-					// here to handle that correctly.
-					if (arr.length >= MAX_BYTES_READ)
+					// If we couldn't decode even one read due to getting EOF during
+					// decoding, this position is definitely incorrect.
+					//
+					// If we could decode one read, but we didn't have enough blocks
+					// to do full verification, EOF is to be expected.
+					//
+					// If we had enough blocks, we shouldn't get EOF at all, but
+					// just in case we do, treat it like any other exception.
+					if (!decodedAny || arr.length >= MAX_BYTES_READ)
 						continue;
 				}
-
+				assert decodedAny;
 				return beg+cp0 << 16 | up0;
 			}
 		}
