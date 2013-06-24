@@ -158,11 +158,12 @@ public class BAMSplitGuesser {
 
 				// Verify that we can actually decode BLOCKS_NEEDED_FOR_GUESS worth
 				// of records starting at (cp0,up0).
-				boolean decodedAny = false;
 				bgzf.seek(cp0Virt | up0);
 				try {
-					for (byte b = 0; b < BLOCKS_NEEDED_FOR_GUESS;) {
-						bamCodec.decode();
+					boolean decodedAny = false;
+					byte b = 0;
+					while (b < BLOCKS_NEEDED_FOR_GUESS && bamCodec.decode() != null)
+					{
 						decodedAny = true;
 
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
@@ -174,22 +175,20 @@ public class BAMSplitGuesser {
 							++b;
 						}
 					}
+
+					// Running out of records to verify is fine as long as we
+					// verified at least something. It should only happen if we
+					// couldn't fill the array.
+					if (b < BLOCKS_NEEDED_FOR_GUESS) {
+						assert arr.length < MAX_BYTES_READ;
+						if (!decodedAny)
+							continue;
+					}
 				} catch (SAMFormatException     e) { continue; }
 				  catch (FileTruncatedException e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
-				  catch (RuntimeEOFException    e) {
-					// If we couldn't decode even one read due to getting EOF during
-					// decoding, this position is definitely incorrect.
-					//
-					// If we could decode one read, but we didn't have enough blocks
-					// to do full verification, EOF is to be expected.
-					//
-					// If we had enough blocks, we shouldn't get EOF at all, but
-					// just in case we do, treat it like any other exception.
-					if (!decodedAny || arr.length >= MAX_BYTES_READ)
-						continue;
-				}
-				assert decodedAny;
+				  catch (RuntimeEOFException    e) { continue; }
+
 				return beg+cp0 << 16 | up0;
 			}
 		}
