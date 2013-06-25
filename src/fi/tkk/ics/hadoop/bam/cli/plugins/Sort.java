@@ -39,7 +39,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -54,8 +53,8 @@ import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
-import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
+import fi.tkk.ics.hadoop.bam.cli.CLIMergingAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Timer;
@@ -119,7 +118,7 @@ public final class Sort extends CLIMRBAMPlugin {
 			job.setOutputValueClass (SAMRecordWritable.class);
 
 			job.setInputFormatClass (SortInputFormat.class);
-			job.setOutputFormatClass(SortOutputFormat.class);
+			job.setOutputFormatClass(CLIMergingAnySAMOutputFormat.class);
 
 			for (final Path in : inputs)
 				FileInputFormat.addInputPath(job, in);
@@ -273,42 +272,4 @@ final class SortRecordReader
 
 		return true;
 	}
-}
-
-final class SortOutputFormat
-	extends FileOutputFormat<NullWritable,SAMRecordWritable>
-{
-	private KeyIgnoringAnySAMOutputFormat<NullWritable> baseOF;
-
-	private void initBaseOF(Configuration conf) {
-		if (baseOF != null)
-			return;
-
-		baseOF = new KeyIgnoringAnySAMOutputFormat<NullWritable>(conf);
-	}
-
-	@Override
-	public RecordWriter<NullWritable,SAMRecordWritable> getRecordWriter(
-			TaskAttemptContext context)
-		throws IOException
-	{
-		initBaseOF(context.getConfiguration());
-
-		if (baseOF.getSAMHeader() == null)
-			baseOF.setSAMHeader(Utils.getSAMHeaderMerger(
-				context.getConfiguration()).getMergedHeader());
-
-		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));
-	}
-
-	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
-		throws IOException
-	{
-		initBaseOF(ctx.getConfiguration());
-		return Utils.getMergeableWorkFile(
-			baseOF.getDefaultWorkFile(ctx, ext).getParent(), "", "", ctx, ext);
-	}
-
-	// Allow the output directory to exist.
-	@Override public void checkOutputSpecs(JobContext job) {}
 }

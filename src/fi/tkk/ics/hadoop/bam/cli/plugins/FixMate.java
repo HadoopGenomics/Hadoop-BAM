@@ -37,11 +37,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
@@ -54,8 +51,8 @@ import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
-import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
+import fi.tkk.ics.hadoop.bam.cli.CLIMergingAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
@@ -146,7 +143,7 @@ public final class FixMate extends CLIMRBAMPlugin {
 			job.setOutputValueClass(SAMRecordWritable.class);
 
 			job.setInputFormatClass (AnySAMInputFormat.class);
-			job.setOutputFormatClass(FixMateOutputFormat.class);
+			job.setOutputFormatClass(CLIMergingAnySAMOutputFormat.class);
 
 			for (final Path in : inputs)
 				FileInputFormat.addInputPath(job, in);
@@ -266,41 +263,4 @@ final class FixMateReducer
 			ctx.write(key, b);
 		}
 	}
-}
-
-final class FixMateOutputFormat
-	extends FileOutputFormat<Text,SAMRecordWritable>
-{
-	private KeyIgnoringAnySAMOutputFormat<Text> baseOF;
-
-	private void initBaseOF(Configuration conf) {
-		if (baseOF != null)
-			return;
-
-		baseOF = new KeyIgnoringAnySAMOutputFormat<Text>(conf);
-	}
-
-	@Override public RecordWriter<Text,SAMRecordWritable> getRecordWriter(
-			TaskAttemptContext context)
-		throws IOException
-	{
-		initBaseOF(context.getConfiguration());
-
-		if (baseOF.getSAMHeader() == null)
-			baseOF.setSAMHeader(Utils.getSAMHeaderMerger(
-				context.getConfiguration()).getMergedHeader());
-
-		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));
-	}
-
-	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
-		throws IOException
-	{
-		initBaseOF(ctx.getConfiguration());
-		return Utils.getMergeableWorkFile(
-			baseOF.getDefaultWorkFile(ctx, ext).getParent(), "", "", ctx, ext);
-	}
-
-	// Allow the output directory to exist.
-	@Override public void checkOutputSpecs(JobContext job) {}
 }
