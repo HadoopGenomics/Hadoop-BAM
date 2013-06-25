@@ -49,20 +49,16 @@ import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
 import net.sf.picard.sam.SamPairUtil;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
-import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
-import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class FixMate extends CLIMRBAMPlugin {
@@ -192,34 +188,7 @@ public final class FixMate extends CLIMRBAMPlugin {
 		  catch   (InterruptedException e) { throw new RuntimeException(e); }
 
 		if (outPath != null) try {
-			System.out.println("fixmate :: Merging output...");
-			t.start();
-
-			final FileSystem dstFS = outPath.getFileSystem(conf);
-
-			// First, place the SAM or BAM header.
-
-			final SAMFileHeader header =
-				Utils.getSAMHeaderMerger(conf).getMergedHeader();
-
-			final OutputStream outs = dstFS.create(outPath);
-
-			// Don't use the returned stream, because we're concatenating directly
-			// and don't want to apply another layer of compression to BAM.
-			new SAMOutputPreparer().prepareForRecords(outs, samFormat, header);
-
-			// Then, the actual SAM or BAM contents.
-			Utils.mergeInto(outs, wrkDir, "", "", conf, "fixmate");
-
-			// And if BAM, the BGZF terminator.
-			if (samFormat == SAMFormat.BAM)
-				outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
-
-			outs.close();
-
-			System.out.printf("fixmate :: Merging complete in %d.%03d s.\n",
-			                  t.stopS(), t.fms());
-
+			Utils.mergeSAMInto(outPath, wrkDir,"","", samFormat, conf, "fixmate");
 		} catch (IOException e) {
 			System.err.printf("fixmate :: Output merging failed: %s\n", e);
 			return 5;

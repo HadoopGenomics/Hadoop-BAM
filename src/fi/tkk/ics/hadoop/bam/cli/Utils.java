@@ -48,7 +48,10 @@ import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.BlockCompressedStreamConstants;
 
+import fi.tkk.ics.hadoop.bam.SAMFormat;
+import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class Utils {
@@ -322,4 +325,42 @@ public final class Utils {
 					headerMerger.getProgramGroupId(h, rg));
 		}
 	}
+
+	/** Merges the files in the given directory that have names given by
+	 * getMergeableWorkFile() into out in the given SAMFormat, using
+	 * getSAMHeaderMerger().getMergedHeader() as the header.
+	 *
+	 * Outputs progress reports if commandName is non-null.
+	 */
+	public static void mergeSAMInto(
+			Path out, Path directory, String basePrefix, String basePostfix,
+			SAMFormat format, Configuration conf, String commandName)
+		throws IOException
+	{
+		Timer t = new Timer();
+		System.out.printf("%s :: Merging output...\n", commandName);
+		t.start();
+
+		final OutputStream outs = out.getFileSystem(conf).create(out);
+
+		// First, place the SAM or BAM header.
+		//
+		// Don't use the returned stream, because we're concatenating directly
+		// and don't want to apply another layer of compression to BAM.
+		new SAMOutputPreparer().prepareForRecords(
+				outs, format, getSAMHeaderMerger(conf).getMergedHeader());
+
+		// Then, the actual SAM or BAM contents.
+		mergeInto(outs, directory, basePrefix, basePostfix, conf, commandName);
+
+		// And if BAM, the BGZF terminator.
+		if (format == SAMFormat.BAM)
+			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+
+		outs.close();
+
+		System.out.printf("%s :: Merging complete in %d.%03d s.\n",
+		                  commandName, t.stopS(), t.fms());
+	}
+
 }
