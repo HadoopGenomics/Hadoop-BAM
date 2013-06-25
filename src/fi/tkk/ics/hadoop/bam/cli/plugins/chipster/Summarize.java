@@ -36,7 +36,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
@@ -107,6 +106,7 @@ public final class Summarize extends CLIMRPlugin {
 	private final Timer    t = new Timer();
 	private       String[] levels;
 	private       Path     wrkDir, mainSortOutputDir;
+	private       String   wrkFile;
 	private       boolean  sorted = false;
 
 	private int missingArg(String s) {
@@ -151,8 +151,9 @@ public final class Summarize extends CLIMRPlugin {
 		conf.setBoolean(AnySAMInputFormat.TRUST_EXTS_PROPERTY,
 		                !parser.getBoolean(noTrustExtsOpt));
 
-		// Used by SummarizeOutputFormat to name the output files.
-		conf.set(SummarizeOutputFormat.OUTPUT_NAME_PROP, bam.getName());
+		// Used by Utils.getMergeableWorkFile() to name the output files.
+		wrkFile = bam.getName();
+		conf.set(Utils.WORK_FILENAME_PROPERTY, wrkFile);
 
 		conf.setStrings(SummarizeReducer.SUMMARY_LEVELS_PROP, levels);
 
@@ -207,6 +208,9 @@ public final class Summarize extends CLIMRPlugin {
 			if (sort) {
 				if (!doSorting(mergedTmpDir))
 					return 6;
+
+				// Reset this since SummarySort uses it.
+				conf.set(Utils.WORK_FILENAME_PROPERTY, wrkFile);
 
 				tryDelete(mergedTmpDir);
 
@@ -302,10 +306,10 @@ public final class Summarize extends CLIMRPlugin {
 
 		for (String lvl : levels) {
 			MultipleOutputs.addNamedOutput(
-				job, getOutputName(lvl, false), SummarizeOutputFormat.class,
+				job, getSummaryName(lvl, false), SummarizeOutputFormat.class,
 				NullWritable.class, Range.class);
 			MultipleOutputs.addNamedOutput(
-				job, getOutputName(lvl,  true), SummarizeOutputFormat.class,
+				job, getSummaryName(lvl,  true), SummarizeOutputFormat.class,
 				NullWritable.class, Range.class);
 		}
 
@@ -337,39 +341,34 @@ public final class Summarize extends CLIMRPlugin {
 
 		final Timer tl = new Timer();
 		for (String l : levels) {
-			mergeOne(l, 'f', getSummaryName(l, false), out, srcFS, dstFS, tl);
-			mergeOne(l, 'r', getSummaryName(l,  true), out, srcFS, dstFS, tl);
+			mergeOne(l, false, out, srcFS, dstFS, tl);
+			mergeOne(l,  true, out, srcFS, dstFS, tl);
 		}
 		System.out.printf("summarize :: Merging complete in %d.%03d s.\n",
 			               t.stopS(), t.fms());
 	}
 	private void mergeOne(
-			String level, char strand,
-			String filename, Path out,
-			FileSystem srcFS, FileSystem dstFS, Timer to)
+			String lvl, boolean reverseStrand,
+			Path out, FileSystem srcFS, FileSystem dstFS, Timer t)
 		throws IOException
 	{
-		to.start();
-		final OutputStream outs = dstFS.create(new Path(out, filename));
+		t.start();
 
-		final FileStatus[] parts = srcFS.globStatus(new Path(
-			sorted ? getSortOutputDir(level, strand) : wrkDir,
-			filename + "-[0-9][0-9][0-9][0-9][0-9][0-9]"));
+		final char strand = reverseStrand ? 'r' : 'f';
 
-		for (final FileStatus part : parts) {
-			final InputStream ins = srcFS.open(part.getPath());
-			IOUtils.copyBytes(ins, outs, getConf(), false);
-			ins.close();
-		}
-		for (final FileStatus part : parts)
-			srcFS.delete(part.getPath(), false);
+		final OutputStream outs =
+			dstFS.create(new Path(out, getFinalSummaryName(lvl, reverseStrand)));
+
+		Utils.mergeInto(
+			outs, sorted ? getSortOutputDir(lvl, strand) : wrkDir,
+			"", "-" + getSummaryName(lvl, reverseStrand), getConf(), null);
 
 		// Don't forget the BGZF terminator.
 		outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
 		outs.close();
 
 		System.out.printf("summarize :: Merged %s%c in %d.%03d s.\n",
-				            level, strand, to.stopS(), to.fms());
+				            lvl, strand, t.stopS(), t.fms());
 	}
 
 	private boolean doSorting(Path inputDir)
@@ -392,13 +391,13 @@ public final class Summarize extends CLIMRPlugin {
 				// here than to override that behaviour.
 				jobs[2*i] = SummarySort.sortOne(
 					conf,
-					new Path(inputDir, getSummaryName(lvl, false)),
+					new Path(inputDir, getFinalSummaryName(lvl, false)),
 					getSortOutputDir(lvl, 'f'),
 					"summarize", " for sorting " + lvl + 'f');
 
 				jobs[2*i + 1] = SummarySort.sortOne(
 					conf,
-					new Path(inputDir, getSummaryName(lvl,  true)),
+					new Path(inputDir, getFinalSummaryName(lvl,  true)),
 					getSortOutputDir(lvl, 'r'),
 					"summarize", " for sorting " + lvl + 'r');
 
@@ -441,13 +440,15 @@ public final class Summarize extends CLIMRPlugin {
 		return true;
 	}
 
-	private String getSummaryName(String lvl, boolean reverseStrand) {
-		return getConf().get(SummarizeOutputFormat.OUTPUT_NAME_PROP)
-			+ "-" + getOutputName(lvl, reverseStrand);
+	private String getFinalSummaryName(String lvl, boolean reverseStrand) {
+		return wrkFile + "-" + getSummaryName(lvl, reverseStrand);
 	}
-	/*package*/ static String getOutputName(String lvl, boolean reverseStrand) {
+
+	/*package*/ static String getSummaryName(String lvl, boolean reverseStrand)
+	{
 		return "summary" + lvl + (reverseStrand ? 'r' : 'f');
 	}
+
 	private Path getSortOutputDir(String level, char strand) {
 		return new Path(mainSortOutputDir, level + strand);
 	}
@@ -489,9 +490,9 @@ final class SummarizeReducer
 		for (String s : ctx.getConfiguration().getStrings(SUMMARY_LEVELS_PROP)) {
 			int lvl = Integer.parseInt(s);
 			summaryGroupsR.add(
-				new SummaryGroup(lvl, Summarize.getOutputName(s,  true)));
+				new SummaryGroup(lvl, Summarize.getSummaryName(s,  true)));
 			summaryGroupsF.add(
-				new SummaryGroup(lvl, Summarize.getOutputName(s, false)));
+				new SummaryGroup(lvl, Summarize.getSummaryName(s, false)));
 		}
 	}
 
@@ -757,9 +758,6 @@ final class SummarizeRecordReader extends RecordReader<LongWritable,Range> {
 final class SummarizeOutputFormat
 	extends TextOutputFormat<NullWritable,RangeCount>
 {
-	public static final String OUTPUT_NAME_PROP =
-		"hadoopbam.summarize.output.name";
-
 	@Override public RecordWriter<NullWritable,RangeCount> getRecordWriter(
 			TaskAttemptContext ctx)
 		throws IOException
@@ -784,15 +782,13 @@ final class SummarizeOutputFormat
 				}));
 	}
 
-	@Override public Path getDefaultWorkFile(
-			TaskAttemptContext context, String ext)
+	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
 		throws IOException
 	{
-		Configuration conf = context.getConfiguration();
-
 		// From MultipleOutputs. If we had a later version of FileOutputFormat as
 		// well, we'd use super.getOutputName().
-		String summaryName = conf.get("mapreduce.output.basename");
+		String summaryName =
+			ctx.getConfiguration().get("mapreduce.output.basename");
 
 		// A RecordWriter is created as soon as a reduce task is started, even
 		// though MultipleOutputs eventually overrides it with its own.
@@ -802,16 +798,11 @@ final class SummarizeOutputFormat
 		//
 		// We can't use a filename we'd use later, because TextOutputFormat would
 		// throw later on, as the file would already exist.
-		String baseName = summaryName == null ? ".unused_" : "";
+		String prefix = summaryName == null ? ".unused_" : "";
 
-		baseName         += conf.get(OUTPUT_NAME_PROP);
-		String extension  = ext.isEmpty() ? ext : "." + ext;
-		int    part       = context.getTaskAttemptID().getTaskID().getId();
-		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
-			  baseName    + "-"
-			+ summaryName + "-"
-			+ String.format("%06d", part)
-			+ extension);
+		return Utils.getMergeableWorkFile(
+			super.getDefaultWorkFile(ctx, ext).getParent(),
+			prefix, "-" + summaryName, ctx, ext);
 	}
 
 	// Allow the output directory to exist.

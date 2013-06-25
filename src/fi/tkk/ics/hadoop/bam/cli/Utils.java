@@ -23,7 +23,9 @@
 package fi.tkk.ics.hadoop.bam.cli;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -32,8 +34,14 @@ import java.util.Scanner;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
+
+import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class Utils {
 	public static void printWrapped(PrintStream out, String str) {
@@ -145,5 +153,68 @@ public final class Utils {
 			DistributedCache.addCacheFile(partitionURI, conf);
 			DistributedCache.createSymlink(conf);
 		} catch (URISyntaxException e) { throw new RuntimeException(e); }
+	}
+
+	public static final String WORK_FILENAME_PROPERTY =
+		"hadoopbam.work.filename";
+
+	/** Returns a name that mergeInto() will recognize as a file to be merged.
+	 *
+	 * The filename is the value of WORK_FILENAME_PROPERTY surrounded by
+	 * basePrefix and basePostfix, followed by the part number and with the
+	 * given extension.
+	 */
+	public static Path getMergeableWorkFile(
+			Path directory, String basePrefix, String basePostfix,
+			TaskAttemptContext ctx, String extension)
+	{
+		return new Path(
+			directory,
+			  basePrefix
+			+ ctx.getConfiguration().get(WORK_FILENAME_PROPERTY)
+			+ basePostfix
+			+ "-"
+			+ String.format("%06d", ctx.getTaskAttemptID().getTaskID().getId())
+			+ (extension.isEmpty() ? extension : "." + extension));
+	}
+
+	/** Merges the files in the given directory that have names given by
+	 * getMergeableWorkFile() into out.
+	 *
+	 * Outputs progress reports if commandName is non-null.
+	 */
+	public static void mergeInto(
+			OutputStream out,
+			Path directory, String basePrefix, String basePostfix,
+			Configuration conf, String commandName)
+		throws IOException
+	{
+		final FileSystem fs = directory.getFileSystem(conf);
+
+		final FileStatus[] parts = fs.globStatus(new Path(
+			directory,
+			  basePrefix + conf.get(WORK_FILENAME_PROPERTY) + basePostfix
+			+ "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
+
+		int i = 0;
+		Timer t = new Timer();
+		for (final FileStatus part : parts) {
+			if (commandName != null) {
+				System.out.printf("%s :: Merging part %d (size %d)...",
+				                  commandName, ++i, part.getLen());
+				System.out.flush();
+
+				t.start();
+			}
+
+			final InputStream in = fs.open(part.getPath());
+			IOUtils.copyBytes(in, out, conf, false);
+			in.close();
+
+			if (commandName != null)
+				System.out.printf(" done in %d.%03d s.\n", t.stopS(), t.fms());
+		}
+		for (final FileStatus part : parts)
+			fs.delete(part.getPath(), false);
 	}
 }

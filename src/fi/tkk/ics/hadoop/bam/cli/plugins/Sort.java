@@ -32,7 +32,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -105,10 +104,10 @@ public final class Sort extends CLIMRBAMPlugin {
 		// records.
 		conf.setStrings(INPUT_PATHS_PROP, strInputs.toArray(new String[0]));
 
-		// Used by SortOutputFormat to name the output files.
+		// Used by Utils.getMergeableWorkFile() to name the output files.
 		final String intermediateOutName =
 			(outPath == null ? inputs.get(0) : outPath).getName();
-		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, intermediateOutName);
+		conf.set(Utils.WORK_FILENAME_PROPERTY, intermediateOutName);
 
 		final Timer t = new Timer();
 		try {
@@ -171,8 +170,7 @@ public final class Sort extends CLIMRBAMPlugin {
 			System.out.println("sort :: Merging output...");
 			t.start();
 
-			final FileSystem srcFS =  wrkDir.getFileSystem(conf);
-			      FileSystem dstFS = outPath.getFileSystem(conf);
+			final FileSystem dstFS = outPath.getFileSystem(conf);
 
 			// First, place the BAM header.
 
@@ -185,28 +183,7 @@ public final class Sort extends CLIMRBAMPlugin {
 			new SAMOutputPreparer().prepareForRecords(outs, samFormat, header);
 
 			// Then, the actual SAM or BAM contents.
-
-			final FileStatus[] parts = srcFS.globStatus(new Path(
-				wrkDir, conf.get(SortOutputFormat.OUTPUT_NAME_PROP) +
-				        "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
-
-			{int i = 0;
-			final Timer t2 = new Timer();
-			for (final FileStatus part : parts) {
-				System.out.printf("sort :: Merging part %d (size %d)...",
-						            ++i, part.getLen());
-				System.out.flush();
-
-				t2.start();
-
-				final InputStream ins = srcFS.open(part.getPath());
-				IOUtils.copyBytes(ins, outs, conf, false);
-				ins.close();
-
-				System.out.printf(" done in %d.%03d s.\n", t2.stopS(), t2.fms());
-			}}
-			for (final FileStatus part : parts)
-				srcFS.delete(part.getPath(), false);
+			Utils.mergeInto(outs, wrkDir, "", "", conf, "sort");
 
 			// And if BAM, the BGZF terminator.
 			if (samFormat == SAMFormat.BAM)
@@ -393,8 +370,6 @@ final class SortRecordReader
 final class SortOutputFormat
 	extends FileOutputFormat<NullWritable,SAMRecordWritable>
 {
-	public static final String OUTPUT_NAME_PROP = "hadoopbam.sort.output.name";
-
 	private KeyIgnoringAnySAMOutputFormat<NullWritable> baseOF;
 
 	private void initBaseOF(Configuration conf) {
@@ -422,11 +397,8 @@ final class SortOutputFormat
 		throws IOException
 	{
 		initBaseOF(ctx.getConfiguration());
-		String filename  = ctx.getConfiguration().get(OUTPUT_NAME_PROP);
-		String extension = ext.isEmpty() ? ext : "." + ext;
-		int    part      = ctx.getTaskAttemptID().getTaskID().getId();
-		return new Path(baseOF.getDefaultWorkFile(ctx, ext).getParent(),
-			filename + "-" + String.format("%06d", part) + extension);
+		return Utils.getMergeableWorkFile(
+			baseOF.getDefaultWorkFile(ctx, ext).getParent(), "", "", ctx, ext);
 	}
 
 	// Allow the output directory to exist.

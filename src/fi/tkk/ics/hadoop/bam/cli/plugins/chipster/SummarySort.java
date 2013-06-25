@@ -130,32 +130,15 @@ public final class SummarySort extends CLIMRPlugin {
 			System.out.println("summarysort :: Merging output...");
 			t.start();
 
-			final FileSystem srcFS =  wrkDir.getFileSystem(conf);
 			final FileSystem dstFS = outPath.getFileSystem(conf);
 
 			final OutputStream outs = dstFS.create(outPath);
 
-			final FileStatus[] parts = srcFS.globStatus(new Path(
-				wrkDir, in.getName() + "-[0-9][0-9][0-9][0-9][0-9][0-9]*"));
-
-			{int i = 0;
-			final Timer t2 = new Timer();
-			for (final FileStatus part : parts) {
-				t2.start();
-
-				final InputStream ins = srcFS.open(part.getPath());
-				IOUtils.copyBytes(ins, outs, conf, false);
-				ins.close();
-
-				System.out.printf("summarysort :: Merged part %d in %d.%03d s.\n",
-				                  ++i, t2.stopS(), t2.fms());
-			}}
-			for (final FileStatus part : parts)
-				srcFS.delete(part.getPath(), false);
+			Utils.mergeInto(outs, wrkDir, "", "", conf, "summarysort");
 
 			// Remember the BGZF terminator.
-
 			outs.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK);
+
 			outs.close();
 
 			System.out.printf("summarysort :: Merging complete in %d.%03d s.\n",
@@ -175,7 +158,7 @@ public final class SummarySort extends CLIMRPlugin {
 			String commandName, String samplingInfo)
 		throws IOException, ClassNotFoundException, InterruptedException
 	{
-		conf.set(SortOutputFormat.OUTPUT_NAME_PROP, inputFile.getName());
+		conf.set(Utils.WORK_FILENAME_PROPERTY, inputFile.getName());
 		Utils.configureSampling(outputDir, inputFile.getName(), conf);
 		final Job job = new Job(conf);
 
@@ -350,9 +333,6 @@ final class BlockCompressedLineRecordReader
 }
 
 final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
-	public static final String OUTPUT_NAME_PROP =
-		"hadoopbam.summarysort.output.name";
-
 	@Override public RecordWriter<NullWritable,Text> getRecordWriter(
 			TaskAttemptContext ctx)
 		throws IOException
@@ -377,15 +357,11 @@ final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 				}));
 	}
 
-	@Override public Path getDefaultWorkFile(
-			TaskAttemptContext context, String ext)
+	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
 		throws IOException
 	{
-		String filename  = context.getConfiguration().get(OUTPUT_NAME_PROP);
-		String extension = ext.isEmpty() ? ext : "." + ext;
-		int    part      = context.getTaskAttemptID().getTaskID().getId();
-		return new Path(super.getDefaultWorkFile(context, ext).getParent(),
-			filename + "-" + String.format("%06d", part) + extension);
+		return Utils.getMergeableWorkFile(
+			super.getDefaultWorkFile(ctx, ext).getParent(), "", "", ctx, ext);
 	}
 
 	// Allow the output directory to exist.
