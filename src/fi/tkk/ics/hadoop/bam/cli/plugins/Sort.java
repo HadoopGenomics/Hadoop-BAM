@@ -479,7 +479,8 @@ final class SortOutputFormat
 			conf.getBoolean(WRITE_HEADER_PROP, baseOF.getWriteHeader()));
 	}
 
-	@Override public RecordWriter<NullWritable,SAMRecordWritable> getRecordWriter(
+	@Override
+	public RecordWriter<NullWritable,SAMRecordWritable> getRecordWriter(
 			TaskAttemptContext context)
 		throws IOException
 	{
