@@ -47,8 +47,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
-import net.sf.picard.sam.ReservedTagConstants;
-import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
@@ -98,11 +96,9 @@ public final class Sort extends CLIMRBAMPlugin {
 
 		final Configuration conf = getConf();
 
-		// Used by getHeaderMerger. SortRecordReader needs it to correct the
-		// reference indices when the output has a different index and
-		// SortOutputFormat needs it to have the correct header for the output
-		// records.
-		conf.setStrings(INPUT_PATHS_PROP, strInputs.toArray(new String[0]));
+		Utils.setHeaderMergerSortOrder(conf, SAMFileHeader.SortOrder.coordinate);
+		conf.setStrings(
+			Utils.HEADERMERGER_INPUTS_PROPERTY, strInputs.toArray(new String[0]));
 
 		// Used by Utils.getMergeableWorkFile() to name the output files.
 		final String intermediateOutName =
@@ -174,7 +170,8 @@ public final class Sort extends CLIMRBAMPlugin {
 
 			// First, place the BAM header.
 
-			final SAMFileHeader header = getHeaderMerger(conf).getMergedHeader();
+			final SAMFileHeader header =
+				Utils.getSAMHeaderMerger(conf).getMergedHeader();
 
 			final OutputStream outs = dstFS.create(outPath);
 
@@ -199,37 +196,6 @@ public final class Sort extends CLIMRBAMPlugin {
 			return 5;
 		}
 		return 0;
-	}
-
-	private static final String INPUT_PATHS_PROP = "hadoopbam.sort.input.paths";
-
-	private static SamFileHeaderMerger headerMerger = null;
-
-	public static SamFileHeaderMerger getHeaderMerger(Configuration conf)
-		throws IOException
-	{
-		// TODO: it would be preferable to cache this beforehand instead of
-		// having every task read the header block of every input file. But that
-		// would be trickier, given that SamFileHeaderMerger isn't trivially
-		// serializable.
-
-		// Save it in a static field, though, in case that helps anything.
-		if (headerMerger != null)
-			return headerMerger;
-
-		final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
-
-		for (final String in : conf.getStrings(INPUT_PATHS_PROP)) {
-			final Path p = new Path(in);
-
-			final SAMFileReader r =
-				new SAMFileReader(p.getFileSystem(conf).open(p));
-			headers.add(r.getFileHeader());
-			r.close();
-		}
-
-		return headerMerger = new SamFileHeaderMerger(
-			SAMFileHeader.SortOrder.coordinate, headers, true);
 	}
 }
 
@@ -290,7 +256,7 @@ final class SortRecordReader
 {
 	private final RecordReader<LongWritable,SAMRecordWritable> baseRR;
 
-	private SamFileHeaderMerger headerMerger;
+	private Configuration conf;
 
 	public SortRecordReader(RecordReader<LongWritable,SAMRecordWritable> rr) {
 		baseRR = rr;
@@ -299,7 +265,7 @@ final class SortRecordReader
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws InterruptedException, IOException
 	{
-		headerMerger = Sort.getHeaderMerger(ctx.getConfiguration());
+		conf = ctx.getConfiguration();
 	}
 
 	@Override public void close() throws IOException { baseRR.close(); }
@@ -327,41 +293,14 @@ final class SortRecordReader
 		if (!baseRR.nextKeyValue())
 			return false;
 
-		final SAMRecord     r = getCurrentValue().get();
-		final SAMFileHeader h = r.getHeader();
+		final SAMRecord rec = getCurrentValue().get();
 
-		// Correct the reference indices, and thus the key, if necessary.
-		if (headerMerger.hasMergedSequenceDictionary()) {
-			int ri = headerMerger.getMergedSequenceIndex(
-				h, r.getReferenceIndex());
+		final int ri = rec.getReferenceIndex();
 
-			r.setReferenceIndex(ri);
-			if (r.getReadPairedFlag())
-				r.setMateReferenceIndex(headerMerger.getMergedSequenceIndex(
-					h, r.getMateReferenceIndex()));
+		Utils.correctSAMRecordForMerging(rec, conf);
 
-			getCurrentKey().set(BAMRecordReader.getKey(r));
-		}
-
-		// Correct the program group if necessary.
-		if (headerMerger.hasProgramGroupCollisions()) {
-			final String pg = (String)r.getAttribute(
-				ReservedTagConstants.PROGRAM_GROUP_ID);
-			if (pg != null)
-				r.setAttribute(
-					ReservedTagConstants.PROGRAM_GROUP_ID,
-					headerMerger.getProgramGroupId(h, pg));
-		}
-
-		// Correct the read group if necessary.
-		if (headerMerger.hasReadGroupCollisions()) {
-			final String rg = (String)r.getAttribute(
-				ReservedTagConstants.READ_GROUP_ID);
-			if (rg != null)
-				r.setAttribute(
-					ReservedTagConstants.READ_GROUP_ID,
-					headerMerger.getProgramGroupId(h, rg));
-		}
+		if (rec.getReferenceIndex() != ri)
+			getCurrentKey().set(BAMRecordReader.getKey(rec));
 
 		return true;
 	}
@@ -387,7 +326,7 @@ final class SortOutputFormat
 		initBaseOF(context.getConfiguration());
 
 		if (baseOF.getSAMHeader() == null)
-			baseOF.setSAMHeader(Sort.getHeaderMerger(
+			baseOF.setSAMHeader(Utils.getSAMHeaderMerger(
 				context.getConfiguration()).getMergedHeader());
 
 		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));

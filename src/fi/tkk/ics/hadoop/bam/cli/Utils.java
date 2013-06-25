@@ -30,6 +30,8 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.CodeSource;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import org.apache.hadoop.conf.Configuration;
@@ -40,6 +42,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
+
+import net.sf.picard.sam.ReservedTagConstants;
+import net.sf.picard.sam.SamFileHeaderMerger;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
@@ -216,5 +224,102 @@ public final class Utils {
 		}
 		for (final FileStatus part : parts)
 			fs.delete(part.getPath(), false);
+	}
+
+	private static final String
+		HEADERMERGER_SORTORDER_PROP = "hadoopbam.headermerger.sortorder";
+
+	public static void setHeaderMergerSortOrder(
+		Configuration conf, SAMFileHeader.SortOrder order)
+	{
+		conf.set(HEADERMERGER_SORTORDER_PROP, order.name());
+	}
+
+	public static final String
+		HEADERMERGER_INPUTS_PROPERTY = "hadoopbam.headermerger.inputs";
+
+	private static SamFileHeaderMerger headerMerger = null;
+
+	/** Computes the merger of the SAM headers in the files listed in
+	 * HEADERMERGER_INPUTS_PROPERTY. The sort order of the result is set
+	 * according to the last call to setHeaderMergerSortOrder, or otherwise
+	 * to "unsorted".
+	 *
+	 * The result is cached locally to prevent it from being recomputed too
+	 * often.
+	 */
+	public static SamFileHeaderMerger getSAMHeaderMerger(Configuration conf)
+		throws IOException
+	{
+		// TODO: it would be preferable to cache this beforehand instead of
+		// having every task read the header block of every input file. But that
+		// would be trickier, given that SamFileHeaderMerger isn't trivially
+		// serializable.
+
+		// Save it in a static field, though, in case that helps anything.
+		if (headerMerger != null)
+			return headerMerger;
+
+		final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
+
+		for (final String in : conf.getStrings(HEADERMERGER_INPUTS_PROPERTY)) {
+			final Path p = new Path(in);
+
+			final SAMFileReader r =
+				new SAMFileReader(p.getFileSystem(conf).open(p));
+			headers.add(r.getFileHeader());
+			r.close();
+		}
+
+		final String orderStr = conf.get(HEADERMERGER_SORTORDER_PROP);
+		final SAMFileHeader.SortOrder order =
+			orderStr == null ? SAMFileHeader.SortOrder.unsorted
+			                 : SAMFileHeader.SortOrder.valueOf(orderStr);
+
+		return headerMerger = new SamFileHeaderMerger(order, headers, true);
+	}
+
+	/** Changes the given SAMRecord as appropriate for being placed in a file
+	 * whose header is getSAMHeaderMerger(conf).getMergedHeader().
+	 */
+	public static void correctSAMRecordForMerging(
+			SAMRecord r, Configuration conf)
+		throws IOException
+	{
+		if (headerMerger == null)
+			getSAMHeaderMerger(conf);
+
+		final SAMFileHeader h = r.getHeader();
+
+		// Correct the reference indices, and thus the key, if necessary.
+		if (headerMerger.hasMergedSequenceDictionary()) {
+			final int ri = headerMerger.getMergedSequenceIndex(
+				h, r.getReferenceIndex());
+
+			r.setReferenceIndex(ri);
+			if (r.getReadPairedFlag())
+				r.setMateReferenceIndex(headerMerger.getMergedSequenceIndex(
+					h, r.getMateReferenceIndex()));
+		}
+
+		// Correct the program group if necessary.
+		if (headerMerger.hasProgramGroupCollisions()) {
+			final String pg = (String)r.getAttribute(
+				ReservedTagConstants.PROGRAM_GROUP_ID);
+			if (pg != null)
+				r.setAttribute(
+					ReservedTagConstants.PROGRAM_GROUP_ID,
+					headerMerger.getProgramGroupId(h, pg));
+		}
+
+		// Correct the read group if necessary.
+		if (headerMerger.hasReadGroupCollisions()) {
+			final String rg = (String)r.getAttribute(
+				ReservedTagConstants.READ_GROUP_ID);
+			if (rg != null)
+				r.setAttribute(
+					ReservedTagConstants.READ_GROUP_ID,
+					headerMerger.getProgramGroupId(h, rg));
+		}
 	}
 }

@@ -47,12 +47,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
-import net.sf.picard.sam.ReservedTagConstants;
-import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.sam.SamPairUtil;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
@@ -119,19 +116,18 @@ public final class FixMate extends CLIMRBAMPlugin {
 
 		final Configuration conf = getConf();
 
-		// Used by getHeaderMerger. FixMateRecordReader needs it to correct the
-		// reference indices when the output has a different index and
-		// FixMateOutputFormat needs it to have the correct header for the output
-		// records.
-		conf.setStrings(INPUT_PATHS_PROP, strInputs.toArray(new String[0]));
-
 		// Used by Utils.getMergeableWorkFile() to name the output files.
 		final String intermediateOutName =
 			(outPath == null ? inputs.get(0) : outPath).getName();
 		conf.set(Utils.WORK_FILENAME_PROPERTY, intermediateOutName);
 
 		final boolean globalSort = parser.getBoolean(sortOpt);
-		conf.setBoolean(GLOBAL_SORT_PROP, globalSort);
+		if (globalSort)
+			Utils.setHeaderMergerSortOrder(
+				conf, SAMFileHeader.SortOrder.queryname);
+
+		conf.setStrings(
+			Utils.HEADERMERGER_INPUTS_PROPERTY, strInputs.toArray(new String[0]));
 
 		final Timer t = new Timer();
 		try {
@@ -203,7 +199,8 @@ public final class FixMate extends CLIMRBAMPlugin {
 
 			// First, place the SAM or BAM header.
 
-			final SAMFileHeader header = getHeaderMerger(conf).getMergedHeader();
+			final SAMFileHeader header =
+				Utils.getSAMHeaderMerger(conf).getMergedHeader();
 
 			final OutputStream outs = dstFS.create(outPath);
 
@@ -229,43 +226,6 @@ public final class FixMate extends CLIMRBAMPlugin {
 		}
 		return 0;
 	}
-
-	private static final String
-		INPUT_PATHS_PROP = "hadoopbam.fixmate.input.paths",
-		GLOBAL_SORT_PROP = "hadoopbam.fixmate.globalsort";
-
-	private static SamFileHeaderMerger headerMerger = null;
-
-	public static SamFileHeaderMerger getHeaderMerger(Configuration conf)
-		throws IOException
-	{
-		// TODO: it would be preferable to cache this beforehand instead of
-		// having every task read the header block of every input file. But that
-		// would be trickier, given that SamFileHeaderMerger isn't trivially
-		// serializable.
-
-		// Save it in a static field, though, in case that helps anything.
-		if (headerMerger != null)
-			return headerMerger;
-
-		final List<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
-
-		for (final String in : conf.getStrings(INPUT_PATHS_PROP)) {
-			final Path p = new Path(in);
-
-			final SAMFileReader r =
-				new SAMFileReader(p.getFileSystem(conf).open(p));
-			headers.add(r.getFileHeader());
-			r.close();
-		}
-
-		final SAMFileHeader.SortOrder order =
-			conf.getBoolean(GLOBAL_SORT_PROP, false)
-				? SAMFileHeader.SortOrder.queryname
-				: SAMFileHeader.SortOrder.unsorted;
-
-		return headerMerger = new SamFileHeaderMerger(order, headers, true);
-	}
 }
 
 final class FixMateMapper
@@ -277,43 +237,8 @@ final class FixMateMapper
 				ctx)
 		throws InterruptedException, IOException
 	{
-		final SamFileHeaderMerger headerMerger =
-			FixMate.getHeaderMerger(ctx.getConfiguration());
-
-		final SAMRecord     rec    = wrec.get();
-		final SAMFileHeader header = rec.getHeader();
-
-		// Correct the reference indices if necessary.
-		if (headerMerger.hasMergedSequenceDictionary()) {
-			rec.setReferenceIndex(headerMerger.getMergedSequenceIndex(
-				header, rec.getReferenceIndex()));
-
-			if (rec.getReadPairedFlag())
-				rec.setMateReferenceIndex(headerMerger.getMergedSequenceIndex(
-					header, rec.getMateReferenceIndex()));
-		}
-
-		// Correct the program group if necessary.
-		if (headerMerger.hasProgramGroupCollisions()) {
-			final String pg = (String)rec.getAttribute(
-				ReservedTagConstants.PROGRAM_GROUP_ID);
-			if (pg != null)
-				rec.setAttribute(
-					ReservedTagConstants.PROGRAM_GROUP_ID,
-					headerMerger.getProgramGroupId(header, pg));
-		}
-
-		// Correct the read group if necessary.
-		if (headerMerger.hasReadGroupCollisions()) {
-			final String rg = (String)rec.getAttribute(
-				ReservedTagConstants.READ_GROUP_ID);
-			if (rg != null)
-				rec.setAttribute(
-					ReservedTagConstants.READ_GROUP_ID,
-					headerMerger.getProgramGroupId(header, rg));
-		}
-
-		ctx.write(new Text(rec.getReadName()), wrec);
+		Utils.correctSAMRecordForMerging(wrec.get(), ctx.getConfiguration());
+		ctx.write(new Text(wrec.get().getReadName()), wrec);
 	}
 }
 
@@ -333,7 +258,7 @@ final class FixMateReducer
 		// two primaries, pair them up.
 
 		final SAMFileHeader header =
-			FixMate.getHeaderMerger(ctx.getConfiguration()).getMergedHeader();
+			Utils.getSAMHeaderMerger(ctx.getConfiguration()).getMergedHeader();
 
 		final Iterator<SAMRecordWritable> it = records.iterator();
 
@@ -393,7 +318,7 @@ final class FixMateOutputFormat
 		initBaseOF(context.getConfiguration());
 
 		if (baseOF.getSAMHeader() == null)
-			baseOF.setSAMHeader(FixMate.getHeaderMerger(
+			baseOF.setSAMHeader(Utils.getSAMHeaderMerger(
 				context.getConfiguration()).getMergedHeader());
 
 		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));
