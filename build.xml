@@ -51,6 +51,8 @@
 
 		<pathelement path="sam-1.93.jar"/>
 		<pathelement path="picard-1.93.jar"/>
+		<pathelement path="tribble-1.93.jar"/>
+		<pathelement path="variant-1.93.jar"/>
 	</path>
 
 	<!-- Check for whether we need to use our custom back-ported compatibility
