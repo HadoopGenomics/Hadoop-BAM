@@ -1,0 +1,276 @@
+// Copyright (c) 2013 Aalto University
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+// File created: 2013-07-03 14:59:14
+
+package fi.tkk.ics.hadoop.bam;
+
+import java.io.DataOutput;
+import java.io.DataInput;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.lang.reflect.Array;
+
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+
+// See the comment in VariantContextWritable explaining what this is used for.
+public final class VariantContextCodec {
+	public static void write(final DataOutput out, final VariantContext vc)
+		throws IOException
+	{
+		// We would need the header to build the genotype fields. Fortunately,
+		// unless the VariantContext is a result of a fullyDecode(), it saves the
+		// genotypes as an uninterpreted String.
+		if (!vc.getGenotypes().isLazyWithData())
+			throw new IllegalStateException(
+				"Cannot write fully decoded VariantContext: need lazy genotypes");
+
+		final org.broadinstitute.variant.variantcontext.LazyGenotypesContext gc =
+			(org.broadinstitute.variant.variantcontext.LazyGenotypesContext)
+				vc.getGenotypes();
+
+		final Object geno = gc.getUnparsedGenotypeData();
+		if (!(geno instanceof String))
+			throw new IllegalStateException(
+				"Cannot write genotypes whose unparsed form is not a String");
+
+		final byte[] chrom = vc.getChr().getBytes("UTF-8");
+		out.writeInt(chrom.length);
+		out.write   (chrom);
+
+		out.writeInt(vc.getStart());
+		out.writeInt(vc.getEnd());
+
+		final byte[] id = vc.getID().getBytes("UTF-8");
+		out.writeInt(id.length);
+		out.write   (id);
+
+		final List<Allele> alleles = vc.getAlleles();
+		out.writeInt(alleles.size());
+		for (final Allele allele : alleles) {
+			final byte[] b = allele.getDisplayBases();
+			out.writeInt(b.length);
+			out.write   (b);
+		}
+
+		if (vc.hasLog10PError())
+			out.writeFloat((float)vc.getLog10PError());
+		else {
+			// The "missing value" used in BCF2, a signaling NaN.
+			out.writeInt(0x7f800001);
+		}
+
+		if (vc.isFiltered()) {
+			final Set<String> filters = vc.getFilters();
+			out.writeInt(filters.size());
+			for (final String s : filters) {
+				final byte[] b = s.getBytes("UTF-8");
+				out.writeInt(b.length);
+				out.write   (b);
+			}
+		} else
+			out.writeInt(vc.filtersWereApplied() ? -1 : -2);
+
+		final Map<String,Object> attrs = vc.getAttributes();
+		out.writeInt(attrs.size());
+		for (final Map.Entry<String,Object> ent : attrs.entrySet()) {
+			final byte[] k = ent.getKey().getBytes("UTF-8");
+			out.writeInt(k.length);
+			out.write   (k);
+
+			encodeAttrVal(out, ent.getValue());
+		}
+
+		out.writeInt(gc.size());
+		final byte[] genob = ((String)geno).getBytes("UTF-8");
+		out.writeInt(genob.length);
+		out.write   (genob);
+	}
+
+	public static VariantContext read(final DataInput in) throws IOException {
+		final VariantContextBuilder builder = new VariantContextBuilder();
+
+		int count, len;
+		byte[] b;
+
+		len = in.readInt();
+		b = new byte[len];
+		in.readFully(b);
+		final String chrom = new String(b, "UTF-8");
+		builder.chr(chrom);
+
+		final int start = in.readInt();
+		builder.start(start);
+		builder.stop (in.readInt());
+
+		len = in.readInt();
+		if (len == 0)
+			builder.noID();
+		else {
+			if (len > b.length) b = new byte[len];
+			in.readFully(b, 0, len);
+			builder.id(new String(b, 0, len, "UTF-8"));
+		}
+
+		count = in.readInt();
+		final List<Allele> alleles = new ArrayList<Allele>(count);
+		for (int i = 0; i < count; ++i) {
+			len = in.readInt();
+			if (len > b.length) b = new byte[len];
+			in.readFully(b, 0, len);
+			alleles.add(Allele.create(Arrays.copyOf(b, len), i == 0));
+		}
+		builder.alleles(alleles);
+
+		final int qualInt = in.readInt();
+		builder.log10PError(
+			qualInt == 0x7f800001
+				? VariantContext.NO_LOG10_PERROR
+				: Float.intBitsToFloat(qualInt));
+
+		count = in.readInt();
+		switch (count) {
+		case -2: builder.unfiltered(); break;
+		case -1: builder.passFilters(); break;
+		default:
+			while (count-- > 0) {
+				len = in.readInt();
+				if (len > b.length) b = new byte[len];
+				in.readFully(b, 0, len);
+				builder.filter(new String(b, 0, len, "UTF-8"));
+			}
+			break;
+		}
+
+		count = in.readInt();
+		final Map<String,Object> attrs = new HashMap<String,Object>(count, 1);
+		while (count-- > 0) {
+			len = in.readInt();
+			if (len > b.length) b = new byte[len];
+			in.readFully(b, 0, len);
+			attrs.put(new String(b, 0, len, "UTF-8"), decodeAttrVal(in));
+		}
+		builder.attributes(attrs);
+
+		count = in.readInt();
+		len = in.readInt();
+
+		// Resize b even if it's already big enough, minimizing the amount of
+		// memory LazyGenotypesContext hangs on to.
+		b = new byte[len];
+		in.readFully(b);
+
+		builder.genotypesNoValidation(
+			new LazyGenotypesContext(alleles, chrom, start, b, count));
+
+		return builder.make();
+	}
+
+	// The VCF 4.1 spec says: "Integer, Float, Flag, Character, and String", but
+	// there can be many so we also have ARRAY.
+	//
+	private enum AttrType {
+		INT, FLOAT, BOOL, CHAR, STRING, ARRAY;
+
+		public byte toByte() { return (byte)ordinal(); }
+
+		private static final AttrType[] values = values();
+		public static AttrType fromByte(byte b) { return values[b]; }
+	}
+
+	private static void encodeAttrVal(final DataOutput out, final Object v)
+		throws IOException
+	{
+		if (v instanceof Integer) {
+			out.writeByte(AttrType.INT.toByte());
+			out.writeInt ((Integer)v);
+		} else if (v instanceof Float) {
+			out.writeByte (AttrType.FLOAT.toByte());
+			out.writeFloat((Float)v);
+		} else if (v instanceof Boolean) {
+			out.writeByte   (AttrType.BOOL.toByte());
+			out.writeBoolean((Boolean)v);
+		} else if (v instanceof Character) {
+			out.writeByte(AttrType.CHAR.toByte());
+			out.writeChar((Character)v);
+
+		} else if (v instanceof Double) {
+			// VariantContext represents some/all floats as doubles even though
+			// they're actually floats.
+			out.writeByte (AttrType.FLOAT.toByte());
+			out.writeFloat((float)(double)(Double)v);
+
+		} else if (v instanceof List) {
+			encodeAttrVal(out, ((List)v).toArray());
+
+		} else if (v.getClass().isArray()) {
+			out.writeByte(AttrType.ARRAY.toByte());
+			final int length = Array.getLength(v);
+			out.writeInt(length);
+			for (int i = 0; i < length; ++i)
+				encodeAttrVal(out, Array.get(v, i));
+
+		} else {
+			out.writeByte(AttrType.STRING.toByte());
+			if (v == null)
+				out.writeInt(0);
+			else {
+				final byte[] b = v.toString().getBytes("UTF-8");
+				out.writeInt(b.length);
+				out.write   (b);
+			}
+		}
+	}
+
+	private static Object decodeAttrVal(final DataInput in) throws IOException {
+		switch (AttrType.fromByte(in.readByte())) {
+			case INT:    return in.readInt();
+			case FLOAT:  return in.readFloat();
+			case BOOL:   return in.readBoolean();
+			case CHAR:   return in.readChar();
+			case ARRAY: {
+				// VariantContext.fullyDecodeAttributes() checks for "instanceof
+				// List" so we have to return a List, not an array, here.
+				int len = in.readInt();
+				final List<Object> os = new ArrayList<Object>(len);
+				while (len-- > 0)
+					os.add(decodeAttrVal(in));
+				return os;
+			}
+			case STRING: {
+				final int len = in.readInt();
+				if (len == 0)
+					return null;
+				final byte[] b = new byte[len];
+				in.readFully(b);
+				return new String(b, "UTF-8");
+			}
+		}
+		assert (false);
+		throw new IOException("Invalid type identifier: cannot decode");
+	}
+}
