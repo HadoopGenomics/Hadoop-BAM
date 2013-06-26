@@ -40,7 +40,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTextWriter;
-import net.sf.samtools.util.SeekableStream;
+import net.sf.samtools.seekablestream.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 

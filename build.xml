@@ -49,8 +49,8 @@
 		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client-0.20" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
 		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
 
-		<pathelement path="sam-1.76.jar"/>
-		<pathelement path="picard-1.76.jar"/>
+		<pathelement path="sam-1.93.jar"/>
+		<pathelement path="picard-1.93.jar"/>
 	</path>
 
 	<!-- Check for whether we need to use our custom back-ported compatibility
