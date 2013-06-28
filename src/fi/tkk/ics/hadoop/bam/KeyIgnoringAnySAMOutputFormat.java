@@ -73,8 +73,7 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 			format = SAMFormat.inferFromFilePath(path);
 
 			if (format == null)
-				throw new IllegalArgumentException(
-					"unknown SAM format, cannot create RecordWriter: "+path);
+				throw new IllegalArgumentException("unknown SAM format: " + path);
 		}
 	}
 
