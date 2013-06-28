@@ -57,10 +57,10 @@ public class BAMSplitGuesser {
 	// contain valid BAM records, when guessing a BAM record position.
 	private final static byte BLOCKS_NEEDED_FOR_GUESS = 2;
 
-	//  Since the max size of a BGZF block is 0xffff (64K), and we might be just
-	//  one byte off from the start of the previous one, we need 0xfffe bytes
-	//  for the start, and then 0xffff times the number of blocks we want to go
-	//  through.
+	// Since the max size of a BGZF block is 0xffff (64K), and we might be just
+	// one byte off from the start of the previous one, we need 0xfffe bytes for
+	// the start, and then 0xffff times the number of blocks we want to go
+	// through.
 	private final static int MAX_BYTES_READ =
 		BLOCKS_NEEDED_FOR_GUESS * 0xffff + 0xfffe;
 

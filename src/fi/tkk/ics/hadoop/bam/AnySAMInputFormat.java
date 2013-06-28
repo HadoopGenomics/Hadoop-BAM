@@ -24,7 +24,6 @@ package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +69,6 @@ public class AnySAMInputFormat
 
 	private Configuration conf;
 	private boolean trustExts;
-
 
 	/** Creates a new input format, which will use the
 	 * <code>Configuration</code> from the first public method called. Thus this
