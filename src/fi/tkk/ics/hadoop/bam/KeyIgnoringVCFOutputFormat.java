@@ -22,7 +22,6 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import java.io.InputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -31,9 +30,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import net.sf.samtools.seekablestream.SeekableStream;
 import org.broadinstitute.variant.vcf.VCFHeader;
+
+import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
+import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** Writes only the VCF records, not the key.
  *
@@ -74,15 +75,12 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 	public void      setHeader(VCFHeader header) { this.header = header; }
 
 	public void readHeaderFrom(Path path, FileSystem fs) throws IOException {
-		InputStream i = fs.open(path);
+		SeekableStream i = WrapSeekable.openPath(fs, path);
 		readHeaderFrom(i);
 		i.close();
 	}
-	public void readHeaderFrom(InputStream in) throws IOException {
-		final Object h = new VCFCodec().readHeader(new AsciiLineReader(in));
-		if (!(h instanceof VCFHeader))
-			throw new IOException("No VCF header found");
-		this.header = (VCFHeader)h;
+	public void readHeaderFrom(SeekableStream in) throws IOException {
+		this.header = VCFHeaderReader.readHeaderFrom(in);
 	}
 
 	/** <code>setHeader</code> or <code>readHeaderFrom</code> must have been

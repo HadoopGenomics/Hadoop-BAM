@@ -33,14 +33,15 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.variantcontext.GenotypesContext;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 import org.broadinstitute.variant.vcf.VCFHeader;
+
+import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
+import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** A base {@link RecordWriter} for compressed BCF.
  *
@@ -50,22 +51,19 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 public abstract class BCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {
-	private BCF2Codec codec = new BCF2Codec();
-
 	private VariantContextWriter writer;
 	private VCFHeader header;
 
-	/** A BCF header is read from the input Path. */
+	/** A VCF header is read from the input Path, which should refer to a VCF or
+	 * BCF file.
+	 */
 	public BCFRecordWriter(
 			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
-		final PositionalBufferedStream in = new PositionalBufferedStream(
-			input.getFileSystem(ctx.getConfiguration()).open(input));
-
-		final VCFHeader header =
-			(VCFHeader)codec.readHeader(in).getHeaderValue();
-
+		final WrapSeekable in =
+			WrapSeekable.openPath(ctx.getConfiguration(), input);
+		final VCFHeader header = VCFHeaderReader.readHeaderFrom(in);
 		in.close();
 
 		init(output, header, writeHeader, ctx);
