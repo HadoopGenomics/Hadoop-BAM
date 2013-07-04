@@ -120,7 +120,11 @@
 			<classpath refid="classpath"/>
 			<include name="fi/**/*.java"/>
 
-			<compilerarg compiler="modern" value="-Xlint:all,-serial"/>
+			<!-- -Xlint:none disables the "cannot find annotation
+			     method" warning and -Xlint:all doesn't enable it
+			     again. There's no other way of disabling it.
+			  -->
+			<compilerarg compiler="modern" value="-Xlint:none,all,-serial"/>
 		</javac>
 	</target>
 
