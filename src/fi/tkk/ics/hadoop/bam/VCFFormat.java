@@ -18,41 +18,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-// File created: 2013-06-26 56:09:25
+// File created: 2013-06-27 13:21:07
 
 package fi.tkk.ics.hadoop.bam;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.io.InputStream;
+import java.io.IOException;
 
-/** An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for VCF and
- * BCF files. Only locks down the value type and stores the output format
- * requested.
- */
-public abstract class VCFOutputFormat<K>
-	extends FileOutputFormat<K,VariantContextWritable>
-{
-	/** A string property defining the output format to use. The value is read
-	 * directly by {@link VCFFormat#valueOf}.
+import org.apache.hadoop.fs.Path;
+
+/** Describes a VCF format. */
+public enum VCFFormat {
+	VCF, BCF;
+
+	/** Infers the VCF format by looking at the filename of the given path.
+	 *
+	 * @see #inferFromFilePath(String)
 	 */
-	public static final String OUTPUT_VCF_FORMAT_PROPERTY =
-		"hadoopbam.vcf.output-format";
-
-	protected VCFFormat format;
-
-	/** Creates a new output format, reading {@link #OUTPUT_VCF_FORMAT_PROPERTY}
-	 * from the given <code>Configuration</code>.
-	 */
-	protected VCFOutputFormat(Configuration conf) {
-		final String fmtStr = conf.get(OUTPUT_VCF_FORMAT_PROPERTY);
-
-		format = fmtStr == null ? null : VCFFormat.valueOf(fmtStr);
+	public static VCFFormat inferFromFilePath(final Path path) {
+		return inferFromFilePath(path.getName());
 	}
 
-	/** Creates a new output format for the given VCF format. */
-	protected VCFOutputFormat(VCFFormat fmt) {
-		if (fmt == null)
-			throw new IllegalArgumentException("null VCFFormat");
-		format = fmt;
+	/** Infers the VCF format by looking at the extension of the given file
+	 * name. <code>*.vcf</code> is recognized as {@link #VCF} and
+	 * <code>*.bcf</code> as {@link #BCF}.
+	 */
+	public static VCFFormat inferFromFilePath(final String name) {
+		if (name.endsWith(".bcf")) return BCF;
+		if (name.endsWith(".vcf")) return VCF;
+		return null;
+	}
+
+	public static VCFFormat inferFromData(final InputStream in) throws IOException {
+		final byte b = (byte)in.read();
+		in.close();
+		switch (b) {
+			case 0x1f: return BCF; // BGZF-compressed
+			case 'B':  return BCF; // Not compressed
+			case '#':  return VCF;
+		}
+		return null;
 	}
 }

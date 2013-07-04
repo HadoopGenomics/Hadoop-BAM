@@ -49,7 +49,22 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 	protected VCFHeader header;
 
-	public KeyIgnoringVCFOutputFormat() {}
+	public KeyIgnoringVCFOutputFormat(VCFFormat fmt) { super(fmt); }
+	public KeyIgnoringVCFOutputFormat(Configuration conf) {
+		super(conf);
+		if (format == null)
+			throw new IllegalArgumentException(
+				"unknown VCF format: OUTPUT_VCF_FORMAT_PROPERTY not set");
+	}
+	public KeyIgnoringVCFOutputFormat(Configuration conf, Path path) {
+		super(conf);
+		if (format == null) {
+			format = VCFFormat.inferFromFilePath(path);
+
+			if (format == null)
+				throw new IllegalArgumentException("unknown VCF format: " + path);
+		}
+	}
 
 	/** Whether the header will be written, defaults to true. */
 	public static final String WRITE_HEADER_PROPERTY =
@@ -89,9 +104,13 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 			throw new IOException(
 				"Can't create a RecordWriter without the VCF header");
 
-		final boolean writeHeader = ctx.getConfiguration().getBoolean(
+		final boolean wh = ctx.getConfiguration().getBoolean(
 			WRITE_HEADER_PROPERTY, true);
 
-		return new KeyIgnoringVCFRecordWriter<K>(out, header, writeHeader, ctx);
+		switch (format) {
+			case BCF: return new KeyIgnoringBCFRecordWriter<K>(out,header,wh,ctx);
+			case VCF: return new KeyIgnoringVCFRecordWriter<K>(out,header,wh,ctx);
+			default: assert false; return null;
+		}
 	}
 }

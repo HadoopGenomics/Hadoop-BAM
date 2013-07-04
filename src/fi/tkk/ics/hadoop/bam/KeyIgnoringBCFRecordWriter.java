@@ -18,41 +18,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-// File created: 2013-06-26 56:09:25
+// File created: 2013-06-28 16:36:22
 
 package fi.tkk.ics.hadoop.bam;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.io.IOException;
+import java.io.OutputStream;
 
-/** An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for VCF and
- * BCF files. Only locks down the value type and stores the output format
- * requested.
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
+import org.broadinstitute.variant.vcf.VCFHeader;
+
+/** A convenience class that you can use as a RecordWriter for BCF files.
+ *
+ * <p>The write function ignores the key, just outputting the
+ * VariantContext.</p>
  */
-public abstract class VCFOutputFormat<K>
-	extends FileOutputFormat<K,VariantContextWritable>
-{
-	/** A string property defining the output format to use. The value is read
-	 * directly by {@link VCFFormat#valueOf}.
-	 */
-	public static final String OUTPUT_VCF_FORMAT_PROPERTY =
-		"hadoopbam.vcf.output-format";
-
-	protected VCFFormat format;
-
-	/** Creates a new output format, reading {@link #OUTPUT_VCF_FORMAT_PROPERTY}
-	 * from the given <code>Configuration</code>.
-	 */
-	protected VCFOutputFormat(Configuration conf) {
-		final String fmtStr = conf.get(OUTPUT_VCF_FORMAT_PROPERTY);
-
-		format = fmtStr == null ? null : VCFFormat.valueOf(fmtStr);
+public class KeyIgnoringBCFRecordWriter<K> extends BCFRecordWriter<K> {
+	public KeyIgnoringBCFRecordWriter(
+			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+		throws IOException
+	{
+		super(output, input, writeHeader, ctx);
+	}
+	public KeyIgnoringBCFRecordWriter(
+			Path output, VCFHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
+		throws IOException
+	{
+		super(output, header, writeHeader, ctx);
+	}
+	public KeyIgnoringBCFRecordWriter(
+			OutputStream output, VCFHeader header, boolean writeHeader)
+		throws IOException
+	{
+		super(output, header, writeHeader);
 	}
 
-	/** Creates a new output format for the given VCF format. */
-	protected VCFOutputFormat(VCFFormat fmt) {
-		if (fmt == null)
-			throw new IllegalArgumentException("null VCFFormat");
-		format = fmt;
+	@Override public void write(K ignored, VariantContextWritable vc) {
+		writeRecord(vc.get());
 	}
 }
