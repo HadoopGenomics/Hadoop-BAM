@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
 import org.broadinstitute.variant.vcf.AbstractVCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
@@ -32,37 +33,18 @@ import org.broadinstitute.variant.vcf.VCFHeaderVersion;
 
 // File created: 2013-07-03 15:41:21
 
-/** You need to call getParser().setHeader() here before trying to decode() a
- * GenotypesContext in any VariantContext that came about via
- * VariantContextWritable.readFields(). That includes calling
- * VariantContext.fullyDecode() or almost any of the GenotypesContext methods.
- */
-// There's no public LazyGenotypesContext.LazyParser in Picard so we need to
-// provide our own. Since we need to have the header in the parser set
-// externally, we also need to provide a LazyGenotypesContext which gives
-// access to the parser.
-//
 // The actual parsing is delegated to AbstractVCFCodec.
-public class LazyGenotypesContext
-	extends org.broadinstitute.variant.variantcontext.LazyGenotypesContext
-{
-	private final Parser parserCopy;
+public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
 
 	/** Takes ownership of the given byte[]: don't modify its contents. */
-	public LazyGenotypesContext(
+	public LazyVCFGenotypesContext(
 		List<Allele> alleles, String chrom, int start,
 		byte[] utf8Unparsed, int count)
 	{
-		this(new Parser(alleles, chrom, start), utf8Unparsed, count);
-	}
-	private LazyGenotypesContext(Parser p, byte[] utf8Unparsed, int count) {
-		super(p, utf8Unparsed, count);
-		parserCopy = p;
+		super(new Parser(alleles, chrom, start), utf8Unparsed, count);
 	}
 
-	public Parser getParser() { return parserCopy; }
-
-	public static class Parser implements LazyParser {
+	public static class Parser extends LazyParsingGenotypesContext.Parser {
 		private final List<Allele> alleles;
 		private final String chrom;
 		private final int start;
@@ -75,7 +57,9 @@ public class LazyGenotypesContext
 			this.start = start;
 		}
 
-		public void setHeader(VCFHeader header) { codec.setHeader(header); }
+		@Override public void setHeader(VCFHeader header) {
+			codec.setHeader(header);
+		}
 
 		@Override public LazyGenotypesContext.LazyData parse(final Object data) {
 			if (!codec.hasHeader())

@@ -119,8 +119,8 @@ public abstract class VCFRecordWriter<K>
 
 	protected void writeRecord(VariantContext vc) {
 		final GenotypesContext gc = vc.getGenotypes();
-		if (gc instanceof LazyGenotypesContext)
-			((LazyGenotypesContext)gc).getParser().setHeader(this.header);
+		if (gc instanceof LazyParsingGenotypesContext)
+			((LazyParsingGenotypesContext)gc).getParser().setHeader(this.header);
 
 		writer.add(vc);
 	}

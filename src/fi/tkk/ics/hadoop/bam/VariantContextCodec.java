@@ -36,6 +36,7 @@ import java.lang.reflect.Array;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import org.broadinstitute.variant.bcf2.BCF2Codec;
 
 // See the comment in VariantContextWritable explaining what this is used for.
 public final class VariantContextCodec {
@@ -54,9 +55,10 @@ public final class VariantContextCodec {
 				vc.getGenotypes();
 
 		final Object geno = gc.getUnparsedGenotypeData();
-		if (!(geno instanceof String))
+		if (!(geno instanceof String || geno instanceof BCF2Codec.LazyData))
 			throw new IllegalStateException(
-				"Cannot write genotypes whose unparsed form is not a String");
+				"Unrecognized unparsed genotype data, expected String or "+
+				"BCF2Codec.LazyData: "+ geno.getClass());
 
 		final byte[] chrom = vc.getChr().getBytes("UTF-8");
 		out.writeInt(chrom.length);
@@ -106,9 +108,20 @@ public final class VariantContextCodec {
 		}
 
 		out.writeInt(gc.size());
-		final byte[] genob = ((String)geno).getBytes("UTF-8");
-		out.writeInt(genob.length);
-		out.write   (genob);
+
+		if (geno instanceof String) {
+			out.writeByte(0);
+			final byte[] genob = ((String)geno).getBytes("UTF-8");
+			out.writeInt(genob.length);
+			out.write   (genob);
+		} else {
+			assert geno instanceof BCF2Codec.LazyData;
+			final BCF2Codec.LazyData data = (BCF2Codec.LazyData)geno;
+			out.writeByte(1);
+			out.writeInt(data.bytes.length);
+			out.write   (data.bytes);
+			out.writeInt(data.nGenotypeFields);
+		}
 	}
 
 	public static VariantContext read(final DataInput in) throws IOException {
@@ -177,6 +190,7 @@ public final class VariantContextCodec {
 		builder.attributes(attrs);
 
 		count = in.readInt();
+		final byte genoType = in.readByte();
 		len = in.readInt();
 
 		// Resize b even if it's already big enough, minimizing the amount of
@@ -184,17 +198,34 @@ public final class VariantContextCodec {
 		b = new byte[len];
 		in.readFully(b);
 
-		builder.genotypesNoValidation(
-			new LazyGenotypesContext(alleles, chrom, start, b, count));
+		switch (genoType) {
+		case 0:
+			builder.genotypesNoValidation(
+				new LazyVCFGenotypesContext(alleles, chrom, start, b, count));
+			break;
+
+		case 1:
+			builder.genotypesNoValidation(
+				new LazyBCFGenotypesContext(alleles, in.readInt(), b, count));
+			break;
+
+		default:
+			throw new IOException(
+				"Invalid genotypes type identifier: cannot decode");
+		}
 
 		return builder.make();
 	}
 
-	// The VCF 4.1 spec says: "Integer, Float, Flag, Character, and String", but
-	// there can be many so we also have ARRAY.
+	// The VCF 4.1 spec says: "Integer, Float, Flag, Character, and String". But
+	// there can be many, so we also have ARRAY.
 	//
+	// In addition, VariantContext seems to represent some/all floats as doubles
+	// at least when reading from BCF, and at least BCF2FieldEncoder assumes
+	// them to be of class Double so we have to preserve doubles and thus must
+	// have DOUBLE.
 	private enum AttrType {
-		INT, FLOAT, BOOL, CHAR, STRING, ARRAY;
+		INT, FLOAT, BOOL, CHAR, STRING, ARRAY, DOUBLE;
 
 		public byte toByte() { return (byte)ordinal(); }
 
@@ -211,18 +242,15 @@ public final class VariantContextCodec {
 		} else if (v instanceof Float) {
 			out.writeByte (AttrType.FLOAT.toByte());
 			out.writeFloat((Float)v);
+		} else if (v instanceof Double) {
+			out.writeByte  (AttrType.DOUBLE.toByte());
+			out.writeDouble((Double)v);
 		} else if (v instanceof Boolean) {
 			out.writeByte   (AttrType.BOOL.toByte());
 			out.writeBoolean((Boolean)v);
 		} else if (v instanceof Character) {
 			out.writeByte(AttrType.CHAR.toByte());
 			out.writeChar((Character)v);
-
-		} else if (v instanceof Double) {
-			// VariantContext represents some/all floats as doubles even though
-			// they're actually floats.
-			out.writeByte (AttrType.FLOAT.toByte());
-			out.writeFloat((float)(double)(Double)v);
 
 		} else if (v instanceof List) {
 			encodeAttrVal(out, ((List)v).toArray());
@@ -250,6 +278,7 @@ public final class VariantContextCodec {
 		switch (AttrType.fromByte(in.readByte())) {
 			case INT:    return in.readInt();
 			case FLOAT:  return in.readFloat();
+			case DOUBLE: return in.readDouble();
 			case BOOL:   return in.readBoolean();
 			case CHAR:   return in.readChar();
 			case ARRAY: {
