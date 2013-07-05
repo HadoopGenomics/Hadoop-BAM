@@ -162,16 +162,17 @@ public class BAMSplitGuesser {
 				try {
 					boolean decodedAny = false;
 					byte b = 0;
+					int prevCP = cp0;
 					while (b < BLOCKS_NEEDED_FOR_GUESS && bamCodec.decode() != null)
 					{
 						decodedAny = true;
 
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
-						if (cp2 != cp) {
+						if (cp2 != prevCP) {
 							// The compressed position changed so we must be in a new
 							// block.
-							assert cp2 > cp;
-							cp = cp2;
+							assert cp2 > prevCP;
+							prevCP = cp2;
 							++b;
 						}
 					}
