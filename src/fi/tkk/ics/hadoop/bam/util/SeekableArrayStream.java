@@ -45,6 +45,8 @@ public class SeekableArrayStream extends SeekableStream {
 	}
 
 	@Override public int read(byte[] b, int off, int len) {
+		if (eof())
+			return -1;
 		len = Math.min(len, arr.length - pos);
 		System.arraycopy(arr, pos, b, off, len);
 		pos += len;
