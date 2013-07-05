@@ -59,7 +59,7 @@ public class VCFRecordReader
 	private VCFCodec codec = new VCFCodec();
 	private AsciiLineReader reader;
 
-	private long start, length;
+	private long length;
 
 	private final Map<String,Integer> contigDict =
 		new HashMap<String,Integer>();
@@ -69,7 +69,6 @@ public class VCFRecordReader
 	{
 		final FileSplit split = (FileSplit)spl;
 
-		this.start  = split.getStart();
 		this.length = split.getLength();
 
 		final Path file = split.getPath();
@@ -87,6 +86,10 @@ public class VCFRecordReader
 		for (final VCFContigHeaderLine contig : ((VCFHeader)h).getContigLines())
 			contigDict.put(contig.getID(), i++);
 
+		// Note that we create a new reader here, so reader.getPosition() is 0 at
+		// start regardless of the value of start. Hence getProgress() and
+		// nextKeyValue() don't need to use start at all.
+		final long start = split.getStart();
 		if (start != 0) {
 			ins.seek(start-1);
 			reader = new AsciiLineReader(ins);
@@ -96,14 +99,14 @@ public class VCFRecordReader
 	@Override public void close() { reader.close(); }
 
 	@Override public float getProgress() {
-		return length == 0 ? 1 : (float)(reader.getPosition() - start) / length;
+		return length == 0 ? 1 : (float)reader.getPosition() / length;
 	}
 
 	@Override public LongWritable           getCurrentKey  () { return key; }
 	@Override public VariantContextWritable getCurrentValue() { return vc; }
 
 	@Override public boolean nextKeyValue() throws IOException {
-		if (reader.getPosition() >= start + length)
+		if (reader.getPosition() >= length)
 			return false;
 
 		final String line = reader.readLine();
