@@ -159,8 +159,8 @@ public class BAMSplitGuesser {
 				// Verify that we can actually decode BLOCKS_NEEDED_FOR_GUESS worth
 				// of records starting at (cp0,up0).
 				bgzf.seek(cp0Virt | up0);
+				boolean decodedAny = false;
 				try {
-					boolean decodedAny = false;
 					byte b = 0;
 					int prevCP = cp0;
 					while (b < BLOCKS_NEEDED_FOR_GUESS && bamCodec.decode() != null)
@@ -188,7 +188,15 @@ public class BAMSplitGuesser {
 				} catch (SAMFormatException     e) { continue; }
 				  catch (FileTruncatedException e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
-				  catch (RuntimeEOFException    e) { continue; }
+				  catch (RuntimeEOFException    e) {
+					// This can happen legitimately if the [beg,end) range is too
+					// small to accommodate BLOCKS_NEEDED_FOR_GUESS and we get cut
+					// off in the middle of a record. In that case, our stream
+					// should have hit EOF as well. If we've then verified at least
+					// something, go ahead with it and hope for the best.
+					if (!decodedAny && this.in.eof())
+						continue;
+				}
 
 				return beg+cp0 << 16 | up0;
 			}
