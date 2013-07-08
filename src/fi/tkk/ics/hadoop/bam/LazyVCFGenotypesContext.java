@@ -44,12 +44,34 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
 		super(new Parser(alleles, chrom, start), utf8Unparsed, count);
 	}
 
+	public static class HeaderDataCache
+		implements LazyParsingGenotypesContext.HeaderDataCache
+	{
+		private HeaderSettableVCFCodec codec = new HeaderSettableVCFCodec();
+
+		@Override public void setHeader(VCFHeader header) {
+			VCFHeaderVersion version = null;
+
+			// Normally AbstractVCFCodec parses the header and thereby sets the
+			// version field. It gets used later on so we need to set it.
+			for (final VCFHeaderLine line : header.getMetaDataInInputOrder()) {
+				if (VCFHeaderVersion.isFormatString(line.getKey())) {
+					version = VCFHeaderVersion.toHeaderVersion(line.getValue());
+					break;
+				}
+			}
+
+			codec.setHeaderAndVersion(header, version);
+		}
+
+		public AbstractVCFCodec getCodec() { return codec; }
+	}
+
 	public static class Parser extends LazyParsingGenotypesContext.Parser {
+		private HeaderSettableVCFCodec codec = null;
 		private final List<Allele> alleles;
 		private final String chrom;
 		private final int start;
-
-		private HeaderSettableVCFCodec codec = new HeaderSettableVCFCodec();
 
 		public Parser(List<Allele> alleles, String chrom, int start) {
 			this.alleles = alleles;
@@ -57,14 +79,16 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
 			this.start = start;
 		}
 
-		@Override public void setHeader(VCFHeader header) {
-			codec.setHeader(header);
+		@Override public void setHeaderDataCache(
+			LazyParsingGenotypesContext.HeaderDataCache data)
+		{
+			codec = (HeaderSettableVCFCodec)((HeaderDataCache)data).getCodec();
 		}
 
 		@Override public LazyGenotypesContext.LazyData parse(final Object data) {
-			if (!codec.hasHeader())
+			if (codec == null || !codec.hasHeader())
 				throw new IllegalStateException(
-					"Cannot decode genotypes without a VCFHeader");
+					"Cannot decode genotypes without a codec with a VCFHeader");
 
 			final String str;
 			try {
@@ -74,8 +98,7 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
 					"Can never happen on a compliant Java implementation because "+
 					"UTF-8 is guaranteed to be supported");
 			}
-			return
-				Parser.this.codec.createGenotypeMap(str, alleles, chrom, start);
+			return codec.createGenotypeMap(str, alleles, chrom, start);
 		}
 	}
 }
@@ -86,17 +109,9 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
 class HeaderSettableVCFCodec extends AbstractVCFCodec {
 	public boolean hasHeader() { return header != null; }
 
-	public void setHeader(VCFHeader header) {
+	public void setHeaderAndVersion(VCFHeader header, VCFHeaderVersion ver) {
 		this.header = header;
-
-		// Normally AbstractVCFCodec parses the header and thereby sets the
-		// version field. It gets used later on so we need to set it.
-		for (final VCFHeaderLine line : header.getMetaDataInInputOrder()) {
-			if (VCFHeaderVersion.isFormatString(line.getKey())) {
-				this.version = VCFHeaderVersion.toHeaderVersion(line.getValue());
-				break;
-			}
-		}
+		this.version = ver;
 	}
 
 	@Override public Object readHeader(LineReader reader) {

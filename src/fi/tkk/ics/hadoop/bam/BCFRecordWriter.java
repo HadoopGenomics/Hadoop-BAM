@@ -52,7 +52,12 @@ public abstract class BCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {
 	private VariantContextWriter writer;
-	private VCFHeader header, inputHeader;
+	private VCFHeader header;
+
+	private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
+		new LazyVCFGenotypesContext.HeaderDataCache();
+	private LazyBCFGenotypesContext.HeaderDataCache bcfHeaderDataCache =
+		new LazyBCFGenotypesContext.HeaderDataCache();
 
 	/** A VCF header is read from the input Path, which should refer to a VCF or
 	 * BCF file.
@@ -108,7 +113,7 @@ public abstract class BCFRecordWriter<K>
 		writer.writeHeader(header);
 		stopOut.stopped = false;
 
-		this.inputHeader = this.header = header;
+		setInputHeader(this.header = header);
 	}
 
 	@Override public void close(TaskAttemptContext ctx) throws IOException {
@@ -119,12 +124,17 @@ public abstract class BCFRecordWriter<K>
 	 * may have a different header, but we currently only support one header
 	 * here... This is in part due to the fact that it's not clear what the best
 	 * solution is. */
-	public void setInputHeader(VCFHeader header) { this.inputHeader = header; }
+	public void setInputHeader(VCFHeader header) {
+		vcfHeaderDataCache.setHeader(header);
+		bcfHeaderDataCache.setHeader(header);
+	}
 
 	protected void writeRecord(VariantContext vc) {
 		final GenotypesContext gc = vc.getGenotypes();
 		if (gc instanceof LazyParsingGenotypesContext)
-			((LazyParsingGenotypesContext)gc).getParser().setHeader(inputHeader);
+			((LazyParsingGenotypesContext)gc).getParser().setHeaderDataCache(
+				gc instanceof LazyVCFGenotypesContext ? vcfHeaderDataCache
+				                                      : bcfHeaderDataCache);
 
 		writer.add(vc);
 	}

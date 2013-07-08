@@ -51,7 +51,11 @@ public abstract class LazyParsingGenotypesContext
 
 	public Parser getParser() { return parserCopy; }
 
+	public static interface HeaderDataCache {
+		public void setHeader(VCFHeader header);
+	}
+
 	public static abstract class Parser implements LazyParser {
-		public abstract void setHeader(VCFHeader header);
+		public abstract void setHeaderDataCache(HeaderDataCache data);
 	}
 }
