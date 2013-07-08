@@ -1,3 +1,50 @@
+2013-07-08 --- 6.0:
+   - Input and output formats for VCF and BCF. There are no format-specific
+     InputFormat or OutputFormat classes; instead, AnySAM-like support for both
+     in one class is provided.
+
+     Both compressed and uncompressed BCF can be read, but only compressed BCF
+     can be output.
+
+     This required adding three .jar files to the Hadoop-BAM distribution, two
+     from Picard and one from Apache Commons: variant-<version>.jar,
+     tribble-<version>.jar, and commons-jexl-<version>.jar. All of these need
+     to be provided in the Hadoop classpath or in '-libjars' when using CLI
+     plugins that require the VCF/BCF functionality.
+
+   - Added new 'fixmate' plugin, akin to the samtools fixmate command or
+     Picard's FixMateInformation, i.e. recomputing mate information in the
+     input SAM/BAM files. Like 'sort', it can also merge multiple SAM/BAM files
+     together.
+
+   - Added new 'vcf-sort' plugin, which sorts a single VCF or BCF input file
+     while possibly performing format conversion, as it can also output either
+     VCF or BCF.
+
+   - Updated provided Picard from 1.76 to 1.93. Note that a breaking change
+     concerning the SeekableStream class occurred in Picard 1.84, so a version
+     older than that may not be used together with this version of Hadoop-BAM.
+
+   - The FASTQ and QSEQ input formats can now skip records that have failed
+     filtering: use the CONF_FILTER_FAILED_QC and CONF_INPUT_FILTER_FAILED_QC
+     properties.
+
+   - The FASTQ input format now accepts Illumina identifiers with a blank index
+     sequence.
+
+   - Fixed BAM records sometimes confusing the reference and mate reference
+     indices, and not always updating the reference names appropriately.
+
+   - Fixed various small misdecodings and misencodings in QSEQ I/O.
+
+   - Fixed 'premature EOF' crashes on some BAM inputs.
+
+   - Fixed crash on headerless SAM inputs.
+
+   - Fixed CLI crash on startup in newer Hadoop versions (at least CDH 4.2.0).
+
+   - Other minor fixes.
+
 2012-11-26 --- 5.1:
    - Removed the fi.tkk.ics.hadoop.bam.util.hadoop.BAMReader and
      fi.tkk.ics.hadoop.bam.util.hadoop.BAMSort classes, which were deprecated
