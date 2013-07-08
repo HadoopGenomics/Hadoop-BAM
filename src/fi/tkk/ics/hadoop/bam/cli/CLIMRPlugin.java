@@ -87,7 +87,8 @@ public abstract class CLIMRPlugin extends CLIPlugin {
 		final String out = (String)parser.getOptionValue(outputPathOpt);
 		outPath = out == null ? null : new Path(out);
 
-		getConf().setInt("mapred.reduce.tasks", reduceTasks);
+		getConf().setInt("mapred.reduce.tasks",   reduceTasks);
+		getConf().setInt("mapreduce.job.reduces", reduceTasks);
 
 		return true;
 	}
