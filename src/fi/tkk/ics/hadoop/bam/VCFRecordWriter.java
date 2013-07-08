@@ -50,7 +50,7 @@ public abstract class VCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {
 	private VCFCodec codec = new VCFCodec();
-	private VCFHeader header = null;
+	private VCFHeader header, inputHeader;
 
 	private VariantContextWriter writer;
 
@@ -110,17 +110,23 @@ public abstract class VCFRecordWriter<K>
 		writer.writeHeader(header);
 		stopOut.stopped = false;
 
-		this.header = header;
+		this.inputHeader = this.header = header;
 	}
 
 	@Override public void close(TaskAttemptContext ctx) throws IOException {
 		writer.close();
 	}
 
+	/** Used for lazy decoding of genotype data. Of course, each input record
+	 * may have a different header, but we currently only support one header
+	 * here... This is in part due to the fact that it's not clear what the best
+	 * solution is. */
+	public void setInputHeader(VCFHeader header) { this.inputHeader = header; }
+
 	protected void writeRecord(VariantContext vc) {
 		final GenotypesContext gc = vc.getGenotypes();
 		if (gc instanceof LazyParsingGenotypesContext)
-			((LazyParsingGenotypesContext)gc).getParser().setHeader(this.header);
+			((LazyParsingGenotypesContext)gc).getParser().setHeader(inputHeader);
 
 		writer.add(vc);
 	}
