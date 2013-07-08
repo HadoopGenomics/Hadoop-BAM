@@ -7,8 +7,10 @@ The file formats currently supported are:
    - BAM (Binary Alignment/Map)
    - SAM (Sequence Alignment/Map)
    - FASTQ
-   - FASTA
+   - FASTA (input only)
    - QSEQ
+   - VCF (Variant Call Format)
+   - BCF (Binary VCF) (output is always BGZF-compressed)
 
 For a longer high-level description of Hadoop-BAM, refer to the article
 "Hadoop-BAM: directly manipulating next generation sequencing data in the
@@ -28,24 +30,28 @@ Hadoop-BAM.
 Dependencies
 ------------
 
-Hadoop 0.20.2 or later in the 0.20.x or 1.0.x series. The latest stable
-release, 1.0.4, is recommended. The unstable 0.22.x, 0.23.x, 1.1.x, and 2.x.x
-releases are not supported by this version of Hadoop-BAM: use them at your own
-risk.
+Hadoop. The latest stable release, 1.1.2 at the time of writing, is
+recommended. Older stable versions as far back as 0.20.2 should also work.
+Version 4.2.0 of Cloudera's distribution, CDH, has also been tested. Use other
+versions at your own risk.
 
-Picard SAM-JDK. Version 1.76 is provided in the form of sam-1.76.jar and
-picard-1.76.jar. Later versions may also work but have not been tested.
+Picard SAM-JDK. Version 1.93 is provided in the form of sam-1.93.jar,
+picard-1.93.jar, variant-1.93.jar, and tribble-1.93.jar. Later versions may
+also work but have not been tested. variant-1.93.jar additionally depends on
+Commons JEXL, which is also provided as commons-jexl-2.1.1.jar.
 
 Availability:
-   Hadoop - http://hadoop.apache.org/
-   Picard - http://picard.sourceforge.net/
+   Hadoop       - http://hadoop.apache.org/
+   Picard       - http://picard.sourceforge.net/
+   Commons JEXL - https://commons.apache.org/proper/commons-jexl/
 
 ------------
 Installation
 ------------
 
-A precompiled "hadoop-bam.jar" is provided. You may also build it yourself
-using the commands below.
+A precompiled "hadoop-bam.jar" built against Hadoop 1.1.2 is provided. You may
+also build it yourself using the commands below --- a necessary step if you are
+using an incompatible version of Hadoop.
 
 The easiest way to compile Hadoop-BAM is to use Apache Ant (version 1.7.1 or
 greater) with the following simple command:
@@ -57,19 +63,16 @@ be set to point to the main Hadoop directory, or the relevant .jar files should
 be in the CLASSPATH environment variable. If one wants to use CLASSPATH
 directly, it should contain the following .jars:
 
-   - hadoop-0.20.2-core.jar   For Hadoop 0.20.2; the appropriate core .jar file
-                              for other releases.
+   - hadoop-core-1.1.2.jar   For Hadoop 1.1.2; the appropriate core .jar file
+                             for other releases.
 
-   - sam-1.76.jar             Part of Picard, provided in this Hadoop-BAM
-                              distribution; later versions may or may not work.
+   - commons-cli-1.2.jar     Apache Commons CLI; provided by Hadoop in its lib/
+                             subdirectory. Hadoop loads it when used so this
+                             should never be necessary when using Hadoop-BAM,
+                             but it is required in this build step.
 
-   - picard-1.76.jar          Ditto.
-
-   - commons-cli-1.2.jar      Apache Commons CLI; provided by Hadoop in its
-                              lib/ subdirectory. Hadoop loads it when used so
-                              this should never be necessary when using
-                              Hadoop-BAM, but it is required in this build
-                              step.
+   - The provided Picard .jar files (named in the "Dependencies" section
+     above), or any greater version at your own risk.
 
 The previous command will create the 'hadoop-bam.jar' file. For Javadoc
 documentation, run:
@@ -87,10 +90,9 @@ Finally, to run tests, which require version 4 of the JUnit test framework
 Library usage
 -------------
 
-Hadoop-BAM provides the standard set of Hadoop file format classes for BAM
-files: a FileInputFormat and a RecordReader, and a FileOutputFormat and a
-RecordWriter. These are BAMInputFormat, BAMRecordReader, BAMOutputFormat, and
-BAMRecordWriter, respectively.
+Hadoop-BAM provides the standard set of Hadoop file format classes for the file
+formats it supports: a FileInputFormat and one or more RecordReaders for input,
+and a FileOutputFormat and one or more RecordWriters for output.
 
 Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 0.20 Hadoop releases instead of the older, deprecated API.
@@ -98,14 +100,13 @@ Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 See the Javadoc as well as the command line plugins' source code (in
 src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for more information. In
 particular, for MapReduce usage, recommended examples are
-src/fi/tkk/ics/hadoop/bam/cli/plugins/Sort.java and
-src/fi/tkk/ics/hadoop/bam/cli/plugins/chipster/Summarize.java.
+src/fi/tkk/ics/hadoop/bam/cli/plugins/FixMate.java and
+src/fi/tkk/ics/hadoop/bam/cli/plugins/VCFSort.java.
 
 When using Hadoop-BAM as a library in your program, remember to have
-hadoop-bam.jar as well as the Picard .jars (sam-1.76.jar and picard-1.76.jar,
-assuming version 1.76) in your CLASSPATH and HADOOP_CLASSPATH; alternatively,
-use the "-libjars" argument and handle it properly, by using Hadoop's
-GenericOptionsParser or Tool class.
+hadoop-bam.jar as well as the Picard .jars (including the Commons JEXL .jar) in
+your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the "-libjars" argument
+and handle it properly, by using Hadoop's GenericOptionsParser or Tool class.
 
 ------------------
 Command-line usage
@@ -119,18 +120,15 @@ class path will be used as well.
 Running under Hadoop
 ....................
 
-To use Hadoop-BAM under Hadoop, the Picard .jar files need to be available.
-There are two alternative ways of accomplishing this. The most straightforward
-is to use the "-libjars" command line argument when running Hadoop-BAM, as
-follows:
+To use Hadoop-BAM under Hadoop, the Picard .jar files (including the Commons
+JEXL .jar) need to be available. There are two alternative ways of
+accomplishing this. The most straightforward is to use the "-libjars" command
+line argument when running Hadoop-BAM, as follows:
 
-   hadoop jar hadoop-bam.jar -libjars sam-1.76.jar,picard-1.76.jar
+   hadoop jar hadoop-bam.jar \
+      -libjars sam-1.93.jar,picard-1.93.jar,variant-1.93.jar,tribble-1.93.jar,commons-jexl-2.1.1.jar
 
-Specifying the appropriate paths to sam-1.76.jar and picard-1.76.jar (assuming
-version 1.76), of course.
-
-The other way is to make sure that Picard's "sam-1.76.jar" and
-"picard-1.76.jar" (assuming version 1.76) have been added to the
+The other way is to make sure that the Picard .jar files have been added to the
 HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh, along with any
 plugin .jar files that provide other commands. Then, you may run Hadoop-BAM
 simply with a command like:
@@ -139,8 +137,8 @@ simply with a command like:
 
 No matter which method is chosen, the command used should print a brief help
 message listing the Hadoop-BAM commands available. To run a command, give it as
-the first command-line argument. For example, the provided BAM sorting command,
-"sort":
+the first command-line argument. For example, the provided SAM/BAM sorting
+command, "sort":
 
    hadoop jar hadoop-bam.jar sort
 
@@ -160,8 +158,9 @@ Output of MapReduce-using commands
 An example of a MapReduce-using command is "sort". Like all such commands
 should, it takes a working directory argument in which to place its output in
 parts. Each part is the output of one reduce task. By default, these parts are
-not complete and usable files! They are /not/ BAM files, they are only parts of
-BAM files containing reads, but they don't have headers or footers.
+not complete and usable files! They are /not/ BAM or SAM files, they are only
+parts of BAM or SAM files containing output records, but lacking headers and
+footers.
 
 For convenience, the provided MapReduce-using commands support a "-o" parameter
 to output single complete files instead of the individual parts.
@@ -177,12 +176,10 @@ Running without Hadoop
 ......................
 
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
-SAM-JDK and Hadoop .jar files ("sam-1.76.jar" and "picard-1.76.jar" and
-"hadoop-0.20.2-core.jar" for versions 1.76 and 0.20.2 respectively) as well as
-the Apache Commons CLI .jar provided by Hadoop ("lib/commons-cli-1.2.jar" for
-version 0.20.2) are in the Java class path. In addition, depending on the
-Hadoop version, there may be more dependencies from the Hadoop lib/ directory.
-A command such as the following:
+and Hadoop .jar files as well as the Apache Commons CLI .jar provided by Hadoop
+("lib/commons-cli-1.2.jar" for version 1.1.2) are in the Java class path. In
+addition, depending on the Hadoop version, there may be more dependencies from
+the Hadoop lib/ directory. A command such as the following:
 
    java fi.tkk.ics.hadoop.bam.cli.Frontend
 
@@ -230,4 +227,3 @@ terminating block which would make them valid BGZF files. This is to avoid
 having to remove it from the end of each output file in distributed usage (when
 not using the "-o" convenience parameter): it's much simpler to put an empty
 gzip block to the end of the output.
-
