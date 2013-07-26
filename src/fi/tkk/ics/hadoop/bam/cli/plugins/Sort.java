@@ -47,9 +47,11 @@ import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
 import static net.sf.samtools.SAMFileHeader.SortOrder;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
@@ -57,16 +59,28 @@ import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIMergingAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class Sort extends CLIMRBAMPlugin {
+	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
+		= new ArrayList<Pair<CmdLineParser.Option, String>>();
+
+	private static final CmdLineParser.Option
+		stringencyOpt = new StringOption("validation-stringency=S");
+
 	public Sort() {
-		super("sort", "BAM and SAM sorting and merging", "4.1",
-			"WORKDIR INPATH [INPATH...]", null,
+		super("sort", "BAM and SAM sorting and merging", "4.2",
+			"WORKDIR INPATH [INPATH...]", optionDescs,
 			"Merges together the BAM and SAM files in the INPATHs, sorting the "+
 			"result in standard coordinate order, all in a distributed fashion "+
 			"using Hadoop MapReduce. Output parts are placed in WORKDIR in, by "+
 			"default, headerless and unterminated BAM format.");
+	}
+	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			stringencyOpt, Utils.getStringencyOptHelp()));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -82,6 +96,11 @@ public final class Sort extends CLIMRBAMPlugin {
 		if (!cacheAndSetProperties(parser))
 			return 3;
 
+		final SAMFileReader.ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt), "sort");
+		if (stringency == null)
+			return 3;
+
 		Path wrkDir = new Path(args.get(0));
 
 		final List<String> strInputs = args.subList(1, args.size());
@@ -94,6 +113,10 @@ public final class Sort extends CLIMRBAMPlugin {
 		Utils.setHeaderMergerSortOrder(conf, SortOrder.coordinate);
 		conf.setStrings(
 			Utils.HEADERMERGER_INPUTS_PROPERTY, strInputs.toArray(new String[0]));
+
+		if (stringency != null)
+			conf.set(SAMHeaderReader.VALIDATION_STRINGENCY_PROPERTY,
+			         stringency.toString());
 
 		// Used by Utils.getMergeableWorkFile() to name the output files.
 		final String intermediateOutName =

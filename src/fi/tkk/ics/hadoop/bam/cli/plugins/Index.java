@@ -22,6 +22,7 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
@@ -29,19 +30,31 @@ import org.apache.hadoop.fs.Path;
 import net.sf.samtools.BAMIndexer;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMRecordIterator;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 public final class Index extends CLIPlugin {
+	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
+		= new ArrayList<Pair<CmdLineParser.Option, String>>();
+
+	private static final CmdLineParser.Option
+		stringencyOpt = new StringOption("validation-stringency=S");
+
 	public Index() {
-		super("index", "BAM indexing", "1.0", "PATH [OUT]", null,
+		super("index", "BAM indexing", "1.1", "PATH [OUT]", optionDescs,
 			"Indexes the BAM file in PATH to OUT, or PATH.bai by default.");
+	}
+	static {
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			stringencyOpt, Utils.getStringencyOptHelp()));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -58,6 +71,11 @@ public final class Index extends CLIPlugin {
 			return 3;
 		}
 
+		final SAMFileReader.ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt), "index");
+		if (stringency == null)
+			return 3;
+
 		final String path = args.get(0);
 		final String out  = args.size() > 1 ? args.get(1) : path + ".bai";
 
@@ -70,8 +88,6 @@ public final class Index extends CLIPlugin {
 			                  path, e.getMessage());
 			return 4;
 		}
-
-		reader.setValidationStringency(ValidationStringency.SILENT);
 
 		final SAMFileHeader header;
 		try {

@@ -46,6 +46,7 @@ import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
 import net.sf.picard.sam.SamPairUtil;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
@@ -56,6 +57,7 @@ import fi.tkk.ics.hadoop.bam.cli.CLIMergingAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
 public final class FixMate extends CLIMRBAMPlugin {
@@ -64,10 +66,11 @@ public final class FixMate extends CLIMRBAMPlugin {
 
 	private static final CmdLineParser.Option
 		sortOpt       = new BooleanOption('s', "sort"),
-		noCombinerOpt = new BooleanOption('C', "no-combine");
+		noCombinerOpt = new BooleanOption('C', "no-combine"),
+		stringencyOpt = new  StringOption("validation-stringency=S");
 
 	public FixMate() {
-		super("fixmate", "BAM and SAM mate information fixing", "1.0",
+		super("fixmate", "BAM and SAM mate information fixing", "1.1",
 			"WORKDIR INPATH [INPATH...]", optionDescs,
 			"Merges together the BAM and SAM files (the INPATHs), while filling "+
 			"in mate information, all distributed with Hadoop MapReduce. Output "+
@@ -85,6 +88,8 @@ public final class FixMate extends CLIMRBAMPlugin {
 			noCombinerOpt, "don't use a combiner; less efficient, but "+
 			               "guarantees validity of results when there are "+
 			               "multiple possible pairings"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			stringencyOpt, Utils.getStringencyOptHelp()));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -100,6 +105,11 @@ public final class FixMate extends CLIMRBAMPlugin {
 		if (!cacheAndSetProperties(parser))
 			return 3;
 
+		final SAMFileReader.ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt), "fixmate");
+		if (stringency == null)
+			return 3;
+
 		Path wrkDir = new Path(args.get(0));
 
 		final List<String> strInputs = args.subList(1, args.size());
@@ -113,6 +123,10 @@ public final class FixMate extends CLIMRBAMPlugin {
 		final String intermediateOutName =
 			(outPath == null ? inputs.get(0) : outPath).getName();
 		conf.set(Utils.WORK_FILENAME_PROPERTY, intermediateOutName);
+
+		if (stringency != null)
+			conf.set(SAMHeaderReader.VALIDATION_STRINGENCY_PROPERTY,
+			         stringency.toString());
 
 		final boolean globalSort = parser.getBoolean(sortOpt);
 		if (globalSort)

@@ -43,13 +43,13 @@ import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.seekablestream.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
-
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 public final class View extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
@@ -57,10 +57,11 @@ public final class View extends CLIPlugin {
 
 	private static final CmdLineParser.Option
 		headerOnlyOpt = new BooleanOption('H', "header-only"),
-		formatOpt     = new StringOption ('F', "format=FMT");
+		formatOpt     = new StringOption ('F', "format=FMT"),
+		stringencyOpt = new  StringOption("validation-stringency=S");
 
 	public View() {
-		super("view", "SAM and BAM viewing", "1.1", "PATH [regions...]",
+		super("view", "SAM and BAM viewing", "1.2", "PATH [regions...]",
 			optionDescs,
 			"Reads the BAM or SAM file in PATH and, by default, outputs it in "+
 			"SAM format. If any number of regions is given, only the alignments "+
@@ -77,6 +78,8 @@ public final class View extends CLIPlugin {
 			headerOnlyOpt, "print header only"));
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			formatOpt, "select the output format based on FMT: SAM or BAM"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			stringencyOpt, Utils.getStringencyOptHelp()));
 	}
 
 	@Override protected int run(CmdLineParser parser) {
@@ -86,6 +89,12 @@ public final class View extends CLIPlugin {
 			System.err.println("view :: PATH not given.");
 			return 3;
 		}
+
+		final SAMFileReader.ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt), "view");
+		if (stringency == null)
+			return 3;
+
 		final String       path    = args.get(0);
 		final List<String> regions = args.subList(1, args.size());
 

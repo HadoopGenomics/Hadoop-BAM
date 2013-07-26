@@ -49,6 +49,7 @@ import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
+import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 
@@ -57,12 +58,12 @@ public final class Cat extends CLIPlugin {
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
 
 	private static final CmdLineParser.Option
-		verboseOpt = new BooleanOption('v', "verbose");
+		verboseOpt    = new BooleanOption('v', "verbose"),
+		stringencyOpt = new  StringOption("validation-stringency=S");
 
 	public Cat() {
-		super("cat", "concatenation of partial SAM and BAM files", "1.0.1",
-			"OUTPATH INPATH [INPATH...]",
-			optionDescs,
+		super("cat", "concatenation of partial SAM and BAM files", "1.1",
+			"OUTPATH INPATH [INPATH...]", optionDescs,
 			"Reads the SAM or BAM files in the given INPATHs and outputs "+
 			"the reads contained within them directly to OUTPATH. Performs no "+
 			"format conversions: simply concatenates the files. Note that BAM "+
@@ -78,6 +79,8 @@ public final class Cat extends CLIPlugin {
 	static {
 		optionDescs.add(new Pair<CmdLineParser.Option, String>(
 			verboseOpt, "report progress verbosely"));
+		optionDescs.add(new Pair<CmdLineParser.Option, String>(
+			stringencyOpt, Utils.getStringencyOptHelp()));
 	}
 
 	@Override protected int run(final CmdLineParser parser) {
@@ -96,6 +99,11 @@ public final class Cat extends CLIPlugin {
 		final List<String> ins = args.subList(1, args.size());
 
 		final boolean verbose = parser.getBoolean(verboseOpt);
+
+		final SAMFileReader.ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt), "cat");
+		if (stringency == null)
+			return 3;
 
 		final Configuration conf = getConf();
 

@@ -363,4 +363,43 @@ public final class Utils {
 		                  commandName, t.stopS(), t.fms());
 	}
 
+	private static String stringencyOptHelp = null;
+	public static String getStringencyOptHelp() {
+		if (stringencyOptHelp != null)
+			return stringencyOptHelp;
+
+		final StringBuilder sb = new StringBuilder(
+			"set Picard's validation stringency to S (");
+
+		String last = null;
+		for (final SAMFileReader.ValidationStringency v
+		     : SAMFileReader.ValidationStringency.values())
+		{
+			if (last != null) {
+				sb.append(last);
+				sb.append(", ");
+			}
+			last = v.name();
+		}
+		sb.append("or ");
+		sb.append(last);
+		sb.append(')');
+		return stringencyOptHelp = sb.toString();
+	}
+
+	/** Sets the default validation stringency in addition to returning it. */
+	public static SAMFileReader.ValidationStringency toStringency(
+		Object o, String cmdName)
+	{
+		final String s = (String)o;
+		try {
+			final SAMFileReader.ValidationStringency stringency =
+				SAMFileReader.ValidationStringency.valueOf(s);
+			SAMFileReader.setDefaultValidationStringency(stringency);
+			return stringency;
+		} catch (IllegalArgumentException e) {
+			System.err.printf("%s :: invalid stringency '%s'\n", cmdName, s);
+			return null;
+		}
+	}
 }
