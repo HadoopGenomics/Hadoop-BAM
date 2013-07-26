@@ -98,8 +98,8 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 	{
 		this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
 	}
-	public void readSAMHeaderFrom(InputStream in) {
-		this.header = SAMHeaderReader.readSAMHeaderFrom(in);
+	public void readSAMHeaderFrom(InputStream in, Configuration conf) {
+		this.header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
 	}
 
 	/** <code>setSAMHeader</code> or <code>readSAMHeaderFrom</code> must have

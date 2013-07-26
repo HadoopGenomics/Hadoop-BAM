@@ -73,8 +73,11 @@ public class BAMSplitGuesser {
 	/** The stream must point to a valid BAM file, because the header is read
 	 * from it.
 	 */
-	public BAMSplitGuesser(SeekableStream ss) throws IOException {
-		this(ss, ss);
+	public BAMSplitGuesser(
+			SeekableStream ss, Configuration conf)
+		throws IOException
+	{
+		this(ss, ss, conf);
 
 		// Secondary check that the header points to a BAM file: Picard can get
 		// things wrong due to its autodetection.
@@ -83,7 +86,8 @@ public class BAMSplitGuesser {
 			throw new SAMFormatException("Does not seem like a BAM file");
 	}
 
-	public BAMSplitGuesser(SeekableStream ss, InputStream headerStream)
+	public BAMSplitGuesser(
+			SeekableStream ss, InputStream headerStream, Configuration conf)
 		throws IOException
 	{
 		inFile = ss;
@@ -92,7 +96,7 @@ public class BAMSplitGuesser {
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 
 		referenceSequenceCount =
-			SAMHeaderReader.readSAMHeaderFrom(headerStream)
+			SAMHeaderReader.readSAMHeaderFrom(headerStream, conf)
 			.getSequenceDictionary().size();
 
 		bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());
@@ -437,7 +441,7 @@ public class BAMSplitGuesser {
 			beg, beg + 0xffff, end);
 
 		final long g =
-			new BAMSplitGuesser(ss, hs).guessNextBAMRecordStart(beg, end);
+			new BAMSplitGuesser(ss, hs, conf).guessNextBAMRecordStart(beg, end);
 
 		ss.close();
 

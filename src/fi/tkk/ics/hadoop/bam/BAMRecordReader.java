@@ -24,6 +24,7 @@ package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
@@ -49,6 +50,8 @@ public class BAMRecordReader
 {
 	private final LongWritable key = new LongWritable();
 	private final SAMRecordWritable record = new SAMRecordWritable();
+
+	private SAMFileReader.ValidationStringency stringency;
 
 	private BlockCompressedInputStream bci;
 	private BAMRecordCodec codec;
@@ -102,14 +105,17 @@ public class BAMRecordReader
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
-		final FileVirtualSplit split = (FileVirtualSplit)spl;
+		final Configuration conf = ctx.getConfiguration();
 
-		final Path file = split.getPath();
-		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
+		final FileVirtualSplit split = (FileVirtualSplit)spl;
+		final Path             file  = split.getPath();
+		final FileSystem       fs    = file.getFileSystem(conf);
+
+		this.stringency = SAMHeaderReader.getValidationStringency(conf);
 
 		final FSDataInputStream in = fs.open(file);
 
-		codec = new BAMRecordCodec(SAMHeaderReader.readSAMHeaderFrom(in));
+		codec = new BAMRecordCodec(SAMHeaderReader.readSAMHeaderFrom(in, conf));
 
 		in.seek(0);
 		bci =
@@ -152,6 +158,11 @@ public class BAMRecordReader
 		final SAMRecord r = codec.decode();
 		if (r == null)
 			return false;
+
+		// Since we're reading from a BAMRecordCodec directly we have to set the
+		// validation stringency ourselves.
+		if (this.stringency != null)
+			r.setValidationStringency(this.stringency);
 
 		key.set(getKey(r));
 		record.set(r);

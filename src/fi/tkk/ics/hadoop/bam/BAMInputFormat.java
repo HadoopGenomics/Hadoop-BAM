@@ -159,7 +159,7 @@ public class BAMInputFormat
 		final SeekableStream sin =
 			WrapSeekable.openPath(path.getFileSystem(cfg), path);
 
-		final BAMSplitGuesser guesser = new BAMSplitGuesser(sin);
+		final BAMSplitGuesser guesser = new BAMSplitGuesser(sin, cfg);
 
 		FileVirtualSplit previousSplit = null;
 

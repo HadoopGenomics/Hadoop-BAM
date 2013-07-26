@@ -47,6 +47,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMTextHeaderCodec;
 
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
+
 /** See {@link BAMRecordReader} for the meaning of the key. */
 public class SAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
@@ -69,6 +71,9 @@ public class SAMRecordReader
 		this.end   = start + split.getLength();
 
 		final Configuration conf = ctx.getConfiguration();
+
+		final SAMFileReader.ValidationStringency stringency =
+			SAMHeaderReader.getValidationStringency(conf);
 
 		final Path file = split.getPath();
 		final FileSystem fs = file.getFileSystem(conf);
@@ -100,34 +105,44 @@ public class SAMRecordReader
 		// from reading the last partial line, so our stream actually allows
 		// reading to the next newline after the actual end.
 
-		final SAMFileHeader header =
-			new SAMFileReader(input, false).getFileHeader();
+		SAMFileReader.ValidationStringency origStringency = null;
+		try {
+			if (stringency != null) {
+				origStringency = SAMFileReader.getDefaultValidationStringency();
+				SAMFileReader.setDefaultValidationStringency(stringency);
+			}
+			final SAMFileHeader header =
+				new SAMFileReader(input, false).getFileHeader();
 
-		waInput = new WorkaroundingStream(input, header);
+			waInput = new WorkaroundingStream(input, header);
 
-		final boolean firstSplit = this.start == 0;
+			final boolean firstSplit = this.start == 0;
 
-		if (firstSplit) {
-			// Skip the header because we already have it, and adjust the start to
-			// match.
-			final int headerLength = waInput.getRemainingHeaderLength();
-			input.seek(headerLength);
-			this.start += headerLength;
-		} else
-			input.seek(--this.start);
+			if (firstSplit) {
+				// Skip the header because we already have it, and adjust the start
+				// to match.
+				final int headerLength = waInput.getRemainingHeaderLength();
+				input.seek(headerLength);
+				this.start += headerLength;
+			} else
+				input.seek(--this.start);
 
-		// Creating the iterator causes reading from the stream, so make sure
-		// to start counting this early.
-		waInput.setLength(this.end - this.start);
+			// Creating the iterator causes reading from the stream, so make sure
+			// to start counting this early.
+			waInput.setLength(this.end - this.start);
 
-		iterator = new SAMFileReader(waInput, false).iterator();
+			iterator = new SAMFileReader(waInput, false).iterator();
 
-		if (!firstSplit) {
-			// Skip the first line, it'll be handled with the previous split.
-			try {
-				if (iterator.hasNext())
-					iterator.next();
-			} catch (SAMFormatException e) {}
+			if (!firstSplit) {
+				// Skip the first line, it'll be handled with the previous split.
+				try {
+					if (iterator.hasNext())
+						iterator.next();
+				} catch (SAMFormatException e) {}
+			}
+		} finally {
+			if (origStringency != null)
+				SAMFileReader.setDefaultValidationStringency(origStringency);
 		}
 	}
 	@Override public void close() throws IOException { iterator.close(); }
