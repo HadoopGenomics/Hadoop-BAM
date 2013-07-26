@@ -31,9 +31,10 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMTextWriter;
+
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
 /** A base {@link RecordWriter} for SAM records.
  *
@@ -51,12 +52,10 @@ public abstract class SAMRecordWriter<K>
 			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
-		final SAMFileReader r = new SAMFileReader(
-			input.getFileSystem(ctx.getConfiguration()).open(input));
-
-		final SAMFileHeader hdr = r.getFileHeader();
-		r.close();
-		init(output, hdr, writeHeader, ctx);
+		init(
+			output,
+			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
+			writeHeader, ctx);
 	}
 	public SAMRecordWriter(
 			Path output, SAMFileHeader header, boolean writeHeader,

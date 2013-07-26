@@ -38,6 +38,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
 import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
@@ -107,7 +108,8 @@ public class BAMRecordReader
 		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
 		final FSDataInputStream in = fs.open(file);
-		codec = new BAMRecordCodec(new SAMFileReader(in).getFileHeader());
+
+		codec = new BAMRecordCodec(SAMHeaderReader.readSAMHeaderFrom(in));
 
 		in.seek(0);
 		bci =

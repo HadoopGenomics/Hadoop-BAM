@@ -32,9 +32,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
+
 import net.sf.samtools.BAMRecordCodec;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
@@ -59,12 +60,10 @@ public abstract class BAMRecordWriter<K>
 			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
 		throws IOException
 	{
-		final SAMFileReader r = new SAMFileReader(
-			input.getFileSystem(ctx.getConfiguration()).open(input));
-
-		final SAMFileHeader hdr = r.getFileHeader();
-		r.close();
-		init(output, hdr, writeHeader, ctx);
+		init(
+			output,
+			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
+			writeHeader, ctx);
 	}
 	public BAMRecordWriter(
 			Path output, SAMFileHeader header, boolean writeHeader,

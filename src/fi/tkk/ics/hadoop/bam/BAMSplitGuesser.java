@@ -34,12 +34,12 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 import net.sf.samtools.BAMRecordCodec;
 import net.sf.samtools.FileTruncatedException;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
 
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
@@ -92,7 +92,7 @@ public class BAMSplitGuesser {
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 
 		referenceSequenceCount =
-			new SAMFileReader(headerStream).getFileHeader()
+			SAMHeaderReader.readSAMHeaderFrom(headerStream)
 			.getSequenceDictionary().size();
 
 		bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());

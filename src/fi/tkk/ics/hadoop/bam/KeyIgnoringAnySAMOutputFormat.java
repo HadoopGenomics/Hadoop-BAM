@@ -31,8 +31,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
+
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
 /** Writes only the SAM records, not the key.
  *
@@ -92,13 +93,13 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 	public SAMFileHeader getSAMHeader() { return header; }
 	public void setSAMHeader(SAMFileHeader header) { this.header = header; }
 
-	public void readSAMHeaderFrom(Path path, FileSystem fs) throws IOException {
-		InputStream i = fs.open(path);
-		readSAMHeaderFrom(i);
-		i.close();
+	public void readSAMHeaderFrom(Path path, Configuration conf)
+		throws IOException
+	{
+		this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
 	}
 	public void readSAMHeaderFrom(InputStream in) {
-		this.header = new SAMFileReader(in).getFileHeader();
+		this.header = SAMHeaderReader.readSAMHeaderFrom(in);
 	}
 
 	/** <code>setSAMHeader</code> or <code>readSAMHeaderFrom</code> must have
