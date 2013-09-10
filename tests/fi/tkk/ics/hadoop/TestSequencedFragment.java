@@ -299,8 +299,8 @@ public class TestSequencedFragment
 	public void testVerifyQualitySangerOutOfRange()
 	{
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
-		frag.setQuality(new Text("###z##########################")); // over range
-		assertEquals(3, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger));
+		frag.setQuality(new Text("#############################" + Character.toString((char)127))); // over range
+		assertEquals(29, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger));
 
 		frag.setQuality(new Text("##### ########################")); // under range
 		assertEquals(5, SequencedFragment.verifyQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger));
@@ -346,14 +346,6 @@ public class TestSequencedFragment
 		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
 		frag.setQuality(new Text("zzz=zzzzzzzzzzzzzzzzzzzzzzzzzz"));
 		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Illumina, FormatConstants.BaseQualityEncoding.Sanger);
-	}
-
-	@Test(expected=FormatException.class)
-	public void testConvertQualitySangerOverRange()
-	{
-		frag.setSequence(new Text("AGTAGTAGTAGTAGTAGTAGTAGTAGTAGT"));
-		frag.setQuality(new Text("###z##########################"));
-		SequencedFragment.convertQuality(frag.getQuality(), FormatConstants.BaseQualityEncoding.Sanger, FormatConstants.BaseQualityEncoding.Illumina);
 	}
 
 	@Test(expected=FormatException.class)

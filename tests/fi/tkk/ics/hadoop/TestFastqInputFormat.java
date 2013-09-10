@@ -65,7 +65,7 @@ public class TestFastqInputFormat
 		"@EAS139:136:FC706VJ:2:5:1000:12850 1:Y:18:ATCACG\n" +
 		"TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT\n" +
 		"+\n" +
-		"###########################################################################################";
+		"##########################################################################################~";
 
 	public static final String illuminaFastqWithPhred64Quality =
 		"@EAS139:136:FC706VJ:2:5:1000:12850 1:Y:18:ATCACG\n" +

@@ -31,8 +31,11 @@ public class FormatConstants
 
 	/**
 	 * Maximum encodable quality score for Sanger Phred+33 encoded base qualities.
+	 *
+	 * Range of legal values is [0,93], according to wikipedia on 10/9/2013:
+	 *   http://en.wikipedia.org/wiki/FASTQ_format#Quality
 	 */
-	public static final int SANGER_MAX = 62;
+	public static final int SANGER_MAX = 93;
 
 	/**
 	 * Offset by which Illumina-style ASCII-encoded quality scores are shifted.
