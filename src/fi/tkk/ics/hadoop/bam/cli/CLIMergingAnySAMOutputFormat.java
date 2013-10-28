@@ -37,6 +37,8 @@ import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 // Like a KeyIgnoringAnySAMOutputFormat<K>, but sets the SAMFileHeader to
 // Utils.getSAMHeaderMerger().getMergedHeader() and allows the output directory
 // (the "work directory") to exist.
+import parquet.hadoop.util.ContextUtil;
+
 public class CLIMergingAnySAMOutputFormat<K>
 	extends FileOutputFormat<K, SAMRecordWritable>
 {
@@ -51,11 +53,11 @@ public class CLIMergingAnySAMOutputFormat<K>
 			TaskAttemptContext context)
 		throws IOException
 	{
-		initBaseOF(context.getConfiguration());
+		initBaseOF(ContextUtil.getConfiguration(context));
 
 		if (baseOF.getSAMHeader() == null)
 			baseOF.setSAMHeader(Utils.getSAMHeaderMerger(
-				context.getConfiguration()).getMergedHeader());
+				ContextUtil.getConfiguration(context)).getMergedHeader());
 
 		return baseOF.getRecordWriter(context, getDefaultWorkFile(context, ""));
 	}
@@ -63,7 +65,7 @@ public class CLIMergingAnySAMOutputFormat<K>
 	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
 		throws IOException
 	{
-		initBaseOF(ctx.getConfiguration());
+		initBaseOF(ContextUtil.getConfiguration(ctx));
 		return Utils.getMergeableWorkFile(
 			baseOF.getDefaultWorkFile(ctx, ext).getParent(), "", "", ctx, ext);
 	}

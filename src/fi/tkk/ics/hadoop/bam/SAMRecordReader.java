@@ -48,6 +48,8 @@ import net.sf.samtools.SAMTextHeaderCodec;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
 /** See {@link BAMRecordReader} for the meaning of the key. */
+import parquet.hadoop.util.ContextUtil;
+
 public class SAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
 {
@@ -68,7 +70,7 @@ public class SAMRecordReader
 		this.start =         split.getStart();
 		this.end   = start + split.getLength();
 
-		final Configuration conf = ctx.getConfiguration();
+		final Configuration conf = ContextUtil.getConfiguration(ctx);
 
 		final SAMFileReader.ValidationStringency stringency =
 			SAMHeaderReader.getValidationStringency(conf);

@@ -45,6 +45,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class BAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
 {
@@ -105,7 +107,7 @@ public class BAMRecordReader
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
-		final Configuration conf = ctx.getConfiguration();
+		final Configuration conf = ContextUtil.getConfiguration(ctx);
 
 		final FileVirtualSplit split = (FileVirtualSplit)spl;
 		final Path             file  = split.getPath();

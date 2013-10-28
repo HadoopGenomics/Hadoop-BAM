@@ -63,6 +63,8 @@ import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class Sort extends CLIMRBAMPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
@@ -223,7 +225,7 @@ final class SortInputFormat
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
 	{
-		initBaseIF(ctx.getConfiguration());
+		initBaseIF(ContextUtil.getConfiguration(ctx));
 
 		final RecordReader<LongWritable,SAMRecordWritable> rr =
 			new SortRecordReader(baseIF.createRecordReader(split, ctx));
@@ -232,13 +234,13 @@ final class SortInputFormat
 	}
 
 	@Override protected boolean isSplitable(JobContext job, Path path) {
-		initBaseIF(job.getConfiguration());
+		initBaseIF(ContextUtil.getConfiguration(job));
 		return baseIF.isSplitable(job, path);
 	}
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		initBaseIF(job.getConfiguration());
+		initBaseIF(ContextUtil.getConfiguration(job));
 		return baseIF.getSplits(job);
 	}
 }
@@ -256,7 +258,7 @@ final class SortRecordReader
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws InterruptedException, IOException
 	{
-		conf = ctx.getConfiguration();
+		conf = ContextUtil.getConfiguration(ctx);
 	}
 
 	@Override public void close() throws IOException { baseRR.close(); }

@@ -47,6 +47,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
  * are the individual records; see {@link BAMRecordReader} for the meaning of
  * the key.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
@@ -67,7 +69,7 @@ public class BAMInputFormat
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		return getSplits(super.getSplits(job), job.getConfiguration());
+		return getSplits(super.getSplits(job), ContextUtil.getConfiguration(job));
 	}
 
 	public List<InputSplit> getSplits(

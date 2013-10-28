@@ -41,6 +41,8 @@ import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeAlignment} function for subclasses.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public abstract class SAMRecordWriter<K>
 	extends RecordWriter<K,SAMRecordWritable>
 {
@@ -54,7 +56,7 @@ public abstract class SAMRecordWriter<K>
 	{
 		init(
 			output,
-			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
+			SAMHeaderReader.readSAMHeaderFrom(input, ContextUtil.getConfiguration(ctx)),
 			writeHeader, ctx);
 	}
 	public SAMRecordWriter(
@@ -63,7 +65,7 @@ public abstract class SAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	public SAMRecordWriter(
@@ -79,7 +81,7 @@ public abstract class SAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	private void init(

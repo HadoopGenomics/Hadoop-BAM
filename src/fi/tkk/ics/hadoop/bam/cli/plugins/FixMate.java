@@ -60,6 +60,8 @@ import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class FixMate extends CLIMRBAMPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
@@ -217,7 +219,7 @@ final class FixMateMapper
 				ctx)
 		throws InterruptedException, IOException
 	{
-		Utils.correctSAMRecordForMerging(wrec.get(), ctx.getConfiguration());
+		Utils.correctSAMRecordForMerging(wrec.get(), ContextUtil.getConfiguration(ctx));
 		ctx.write(new Text(wrec.get().getReadName()), wrec);
 	}
 }
@@ -238,7 +240,7 @@ final class FixMateReducer
 		// two primaries, pair them up.
 
 		final SAMFileHeader header =
-			Utils.getSAMHeaderMerger(ctx.getConfiguration()).getMergedHeader();
+			Utils.getSAMHeaderMerger(ContextUtil.getConfiguration(ctx)).getMergedHeader();
 
 		final Iterator<SAMRecordWritable> it = records.iterator();
 
