@@ -47,6 +47,8 @@ import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
 /** See {@link VCFRecordReader} for the meaning of the key. */
+import parquet.hadoop.util.ContextUtil;
+
 public class BCFRecordReader
 	extends RecordReader<LongWritable,VariantContextWritable>
 {
@@ -74,7 +76,7 @@ public class BCFRecordReader
 			final FileVirtualSplit split = (FileVirtualSplit)spl;
 
 			final Path file = split.getPath();
-			final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
+			final FileSystem fs = file.getFileSystem(ContextUtil.getConfiguration(ctx));
 
 			final FSDataInputStream inFile = fs.open(file);
 
@@ -111,7 +113,7 @@ public class BCFRecordReader
 			final Path file = split.getPath();
 
 			in = new PositionalBufferedStream(
-				file.getFileSystem(ctx.getConfiguration()).open(file));
+				file.getFileSystem(ContextUtil.getConfiguration(ctx)).open(file));
 
 			initContigDict();
 

@@ -48,6 +48,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeRecord} function for subclasses.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public abstract class BCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {
@@ -67,7 +69,7 @@ public abstract class BCFRecordWriter<K>
 		throws IOException
 	{
 		final WrapSeekable in =
-			WrapSeekable.openPath(ctx.getConfiguration(), input);
+			WrapSeekable.openPath(ContextUtil.getConfiguration(ctx), input);
 		final VCFHeader header = VCFHeaderReader.readHeaderFrom(in);
 		in.close();
 
@@ -79,7 +81,7 @@ public abstract class BCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	public BCFRecordWriter(
@@ -97,7 +99,7 @@ public abstract class BCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	private void init(

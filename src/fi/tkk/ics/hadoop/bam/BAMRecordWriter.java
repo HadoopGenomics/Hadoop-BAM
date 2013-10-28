@@ -48,6 +48,8 @@ import net.sf.samtools.util.BlockCompressedOutputStream;
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeAlignment} function for subclasses.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public abstract class BAMRecordWriter<K>
 	extends RecordWriter<K,SAMRecordWritable>
 {
@@ -62,7 +64,7 @@ public abstract class BAMRecordWriter<K>
 	{
 		init(
 			output,
-			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
+			SAMHeaderReader.readSAMHeaderFrom(input, ContextUtil.getConfiguration(ctx)),
 			writeHeader, ctx);
 	}
 	public BAMRecordWriter(
@@ -71,7 +73,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	public BAMRecordWriter(
@@ -89,7 +91,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	private void init(

@@ -54,6 +54,8 @@ import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class Utils {
 	public static void printWrapped(PrintStream out, String str) {
 		printWrapped(out, str, 0);
@@ -182,7 +184,7 @@ public final class Utils {
 		return new Path(
 			directory,
 			  basePrefix
-			+ ctx.getConfiguration().get(WORK_FILENAME_PROPERTY)
+			+ ContextUtil.getConfiguration(ctx).get(WORK_FILENAME_PROPERTY)
 			+ basePostfix
 			+ "-"
 			+ String.format("%06d", ctx.getTaskAttemptID().getTaskID().getId())

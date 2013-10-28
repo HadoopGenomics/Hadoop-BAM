@@ -57,6 +57,8 @@ import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
  *   - Filter
  */
 
+import parquet.hadoop.util.ContextUtil;
+
 public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.qseq-output.base-quality-encoding";
@@ -167,7 +169,7 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
   public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
-		Configuration conf = task.getConfiguration();
+		Configuration conf = ContextUtil.getConfiguration(task);
 		boolean isCompressed = getCompressOutput(task);
 
 		CompressionCodec codec = null;

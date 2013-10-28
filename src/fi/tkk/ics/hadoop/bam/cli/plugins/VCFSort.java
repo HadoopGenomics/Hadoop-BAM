@@ -68,6 +68,8 @@ import fi.tkk.ics.hadoop.bam.util.Timer;
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class VCFSort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
@@ -294,7 +296,7 @@ final class SortOutputFormat<K>
 			TaskAttemptContext context)
 		throws IOException
 	{
-		final Configuration conf = context.getConfiguration();
+		final Configuration conf = ContextUtil.getConfiguration(context);
 		initBaseOF(conf);
 
 		if (baseOF.getHeader() == null) {
@@ -308,7 +310,7 @@ final class SortOutputFormat<K>
 	@Override public Path getDefaultWorkFile(TaskAttemptContext ctx, String ext)
 		throws IOException
 	{
-		initBaseOF(ctx.getConfiguration());
+		initBaseOF(ContextUtil.getConfiguration(ctx));
 		return Utils.getMergeableWorkFile(
 			baseOF.getDefaultWorkFile(ctx, ext).getParent(), "", "", ctx, ext);
 	}

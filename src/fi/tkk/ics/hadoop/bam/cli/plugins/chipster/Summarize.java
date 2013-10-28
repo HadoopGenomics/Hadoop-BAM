@@ -72,6 +72,8 @@ import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class Summarize extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
@@ -487,7 +489,7 @@ final class SummarizeReducer
 	{
 		mos = new MultipleOutputs<NullWritable,RangeCount>(ctx);
 
-		for (String s : ctx.getConfiguration().getStrings(SUMMARY_LEVELS_PROP)) {
+		for (String s : ContextUtil.getConfiguration(ctx).getStrings(SUMMARY_LEVELS_PROP)) {
 			int lvl = Integer.parseInt(s);
 			summaryGroupsR.add(
 				new SummaryGroup(lvl, Summarize.getSummaryName(s,  true)));
@@ -639,13 +641,13 @@ final class SummarizeInputFormat extends FileInputFormat<LongWritable,Range> {
 	}
 
 	@Override protected boolean isSplitable(JobContext job, Path path) {
-		initBaseIF(job.getConfiguration());
+		initBaseIF(ContextUtil.getConfiguration(job));
 		return baseIF.isSplitable(job, path);
 	}
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		initBaseIF(job.getConfiguration());
+		initBaseIF(ContextUtil.getConfiguration(job));
 		return baseIF.getSplits(job);
 	}
 
@@ -653,7 +655,7 @@ final class SummarizeInputFormat extends FileInputFormat<LongWritable,Range> {
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
 			throws InterruptedException, IOException
 	{
-		initBaseIF(ctx.getConfiguration());
+		initBaseIF(ContextUtil.getConfiguration(ctx));
 
 		final RecordReader<LongWritable,Range> rr =
 			new SummarizeRecordReader(baseIF.createRecordReader(split, ctx));
@@ -763,7 +765,7 @@ final class SummarizeOutputFormat
 		throws IOException
 	{
 		Path path = getDefaultWorkFile(ctx, "");
-		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
+		FileSystem fs = path.getFileSystem(ContextUtil.getConfiguration(ctx));
 
 		final OutputStream file = fs.create(path);
 
@@ -788,7 +790,7 @@ final class SummarizeOutputFormat
 		// From MultipleOutputs. If we had a later version of FileOutputFormat as
 		// well, we'd use super.getOutputName().
 		String summaryName =
-			ctx.getConfiguration().get("mapreduce.output.basename");
+			ContextUtil.getConfiguration(ctx).get("mapreduce.output.basename");
 
 		// A RecordWriter is created as soon as a reduce task is started, even
 		// though MultipleOutputs eventually overrides it with its own.

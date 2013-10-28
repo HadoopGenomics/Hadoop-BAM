@@ -48,6 +48,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
  * are the individual records; see {@link VCFRecordReader} for the meaning of
  * the key.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class VCFInputFormat
 	extends FileInputFormat<LongWritable,VariantContextWritable>
 {
@@ -169,7 +171,7 @@ public class VCFInputFormat
 				"split '"+split+"' has unknown type: cannot extract path");
 
 		if (this.conf == null)
-			this.conf = ctx.getConfiguration();
+			this.conf = ContextUtil.getConfiguration(ctx);
 
 		final VCFFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -196,7 +198,7 @@ public class VCFInputFormat
 		throws IOException
 	{
 		if (this.conf == null)
-			this.conf = job.getConfiguration();
+			this.conf = ContextUtil.getConfiguration(job);
 
 		final List<InputSplit> origSplits = super.getSplits(job);
 

@@ -41,6 +41,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  * <p>A {@link BGZFBlockIndex} for each Path used is required, or an
  * <code>IOException</code> is thrown out of {@link #getSplits}.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public abstract class BGZFSplitFileInputFormat<K,V>
 	extends FileInputFormat<K,V>
 {
@@ -67,7 +69,7 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 		final List<InputSplit> newSplits =
 			new ArrayList<InputSplit>(splits.size());
 
-		final Configuration cfg = job.getConfiguration();
+		final Configuration cfg = ContextUtil.getConfiguration(job);
 
 		for (int i = 0; i < splits.size();) {
 			try {

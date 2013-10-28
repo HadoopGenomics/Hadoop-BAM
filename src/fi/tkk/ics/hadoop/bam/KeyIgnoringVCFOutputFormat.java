@@ -47,6 +47,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
  * parts, which are easier to concatenate if the header is not present in each
  * file.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 	protected VCFHeader header;
 
@@ -102,7 +104,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 			throw new IOException(
 				"Can't create a RecordWriter without the VCF header");
 
-		final boolean wh = ctx.getConfiguration().getBoolean(
+		final boolean wh = ContextUtil.getConfiguration(ctx).getBoolean(
 			WRITE_HEADER_PROPERTY, true);
 
 		switch (format) {
