@@ -3,42 +3,67 @@
 # Script adapted from
 # https://github.com/massie/adam/blob/master/scripts/create-thirdparty-repo.sh
 
+# This script downloads a number of Hadoop-BAM version and creates
+# a maven repository inside TMPDIR that can be then uploaded to a
+# webserver. It also checks out a given branch and builds a
+# snapshot version.
+
 TMPDIR=/tmp/hadoop_bam_repo
 
-HADOOPBAM_VERSION="6.0"
-PICARD_VERSION="1.93"
-SAMTOOLS_VERSION="$PICARD_VERSION"
-
-rm -rf "$TMPDIR"
-mkdir -p "$TMPDIR"
-$(cd $TMPDIR && wget http://sourceforge.net/projects/hadoop-bam/files/hadoop-bam-${HADOOPBAM_VERSION}.tar.gz)
-$(cd "$TMPDIR" && tar xvpzf hadoop-bam-${HADOOPBAM_VERSION}.tar.gz)
+HADOOPBAM_VERSIONS=( "6.0" )
+SNAPSHOT_VERSION="6.1-SNAPSHOT"
+SNAPSHOT_BRANCH=hadoop_interop
 
 REPO_ID="hadoop-bam-repo"
 OUTPUT_DIR="$TMPDIR/$REPO_ID"
-HADOOP_BAM_PATH="$TMPDIR/hadoop-bam-${HADOOPBAM_VERSION}"
-# Delete any old artifacts
-rm -rf $OUTPUT_DIR
 OUTPUT_URL="file://$OUTPUT_DIR"
 
-mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/picard-$PICARD_VERSION.jar \
--DgroupId=picard -DartifactId=picard -Dversion=$PICARD_VERSION -DgeneratePom.description="Picard"
+rm -rf "$TMPDIR"
+mkdir -p "$TMPDIR"
 
-mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/tribble-$PICARD_VERSION.jar \
--DgroupId=picard -DartifactId=tribble -Dversion=$PICARD_VERSION -DgeneratePom.description="Picard - Tribble"
+function fetch_and_build() {
+    version=$1
+    prefix=$2
+    groupid=$3
+    artifactid=$4
 
-mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/variant-$PICARD_VERSION.jar \
--DgroupId=picard -DartifactId=variant -Dversion=$PICARD_VERSION -DgeneratePom.description="Picard - Variant"
+    jar_file=$(find $TMPDIR/hadoop-bam-${version} -name "${prefix}*.jar")
+    if [[ -e $jar_file ]]; then
+        jar_version=$(echo $(basename "$jar_file") | sed "s@${prefix}-\([0-9]*.[0-9]*\).jar@\1@g")
+	echo "deploying prefix:$prefix groupid:$groupid artifactid:$artifactid jar_version:$jar_version"
+	mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$jar_file \
+            -DgroupId=${groupid} -DartifactId=${artifactid} -Dversion=$jar_version -DgeneratePom.description="$4"
+    else
+        echo "could not find $prefix jar for version $version"
+    fi
+}
 
-mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/sam-$SAMTOOLS_VERSION.jar \
--DgroupId=samtools -DartifactId=samtools -Dversion=$SAMTOOLS_VERSION -DgeneratePom.description="Samtools"
+for version in ${HADOOPBAM_VERSIONS[@]}; do
+        echo "Processing version $version"
+	HADOOP_BAM_PATH="$TMPDIR/hadoop-bam-${version}"
 
-mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/hadoop-bam-${HADOOPBAM_VERSION}.jar \
--DgroupId=fi.tkk.ics.hadoop.bam -DartifactId=hadoop-bam -Dversion=$HADOOPBAM_VERSION -DgeneratePom.description="Hadoop-BAM"
+	$(cd $TMPDIR && \
+	    wget http://sourceforge.net/projects/hadoop-bam/files/hadoop-bam-${version}.tar.gz > /dev/null 2>&1 && \
+	    tar xvpzf hadoop-bam-${version}.tar.gz > /dev/null 2>&1 )
 
-for i in $(find $OUTPUT_DIR -type d); do
-    echo "Options +Indexes" > ${i}/.htaccess;
+	fetch_and_build $version sam samtools samtools Samtools
+	fetch_and_build $version picard picard picard Picard
+	fetch_and_build $version picard picard picard Picard
+	fetch_and_build $version tribble tribble tribble Tribble
+        fetch_and_build $version variant variant variant Variant
+        fetch_and_build $version hadoop-bam fi.tkk.ics.hadoop.bam hadoop-bam Hadoop-BAM
 done
 
-echo "now please push the contents of $OUTPUT_DIR to /home/project-web/hadoop-bam/htdocs/maven on sourceforge"
+echo "processing $SNAPSHOT_VERSION"
 
+$(cd $TMPDIR && git clone -b $SNAPSHOT_BRANCH git://git.code.sf.net/p/hadoop-bam/code hadoop-bam-${SNAPSHOT_VERSION} > /dev/null 2>&1 )
+$(cd "$TMPDIR/hadoop-bam-${SNAPSHOT_VERSION}" && ant > /dev/null 2>&1 )
+
+fetch_and_build $SNAPSHOT_VERSION sam samtools samtools Samtools
+fetch_and_build $SNAPSHOT_VERSION picard picard picard Picard
+fetch_and_build $SNAPSHOT_VERSION picard picard picard Picard
+fetch_and_build $SNAPSHOT_VERSION tribble tribble tribble Tribble
+fetch_and_build $SNAPSHOT_VERSION variant variant variant Variant
+
+mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$TMPDIR/hadoop-bam-${SNAPSHOT_VERSION}/hadoop-bam.jar \
+    -DgroupId=fi.tkk.ics.hadoop.bam -DartifactId=hadoop-bam -Dversion="$SNAPSHOT_VERSION" -DgeneratePom.description="Hadoop-BAM"
