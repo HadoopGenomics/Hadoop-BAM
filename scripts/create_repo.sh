@@ -24,6 +24,12 @@ OUTPUT_URL="file://$OUTPUT_DIR"
 mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/picard-$PICARD_VERSION.jar \
 -DgroupId=picard -DartifactId=picard -Dversion=$PICARD_VERSION -DgeneratePom.description="Picard"
 
+mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/tribble-$PICARD_VERSION.jar \
+-DgroupId=picard -DartifactId=tribble -Dversion=$PICARD_VERSION -DgeneratePom.description="Picard - Tribble"
+
+mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/variant-$PICARD_VERSION.jar \
+-DgroupId=picard -DartifactId=variant -Dversion=$PICARD_VERSION -DgeneratePom.description="Picard - Variant"
+
 mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$HADOOP_BAM_PATH/sam-$SAMTOOLS_VERSION.jar \
 -DgroupId=samtools -DartifactId=samtools -Dversion=$SAMTOOLS_VERSION -DgeneratePom.description="Samtools"
 
