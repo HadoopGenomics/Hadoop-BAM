@@ -38,6 +38,7 @@ import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
+import net.sf.samtools.util.RuntimeIOException;
 
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
@@ -194,6 +195,15 @@ public class BAMSplitGuesser {
 				} catch (SAMFormatException     e) { continue; }
 				  catch (FileTruncatedException e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
+				  catch (RuntimeIOException     e) {
+					// We treat this case here in the same way as a RuntimeEOFException.
+					// This particular case caused problems on the input BAM
+					// ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data/NA12878/high_coverage_alignment/NA12878.mapped.ILLUMINA.bwa.CEU.high_coverage_pcr_free.20130906.bam
+					// TODO: verify the two cases should really be equivalent
+                                        if (!decodedAny && this.in.eof()) {
+                                                continue;
+                                        }
+                                  }
 				  catch (RuntimeEOFException    e) {
 					// This can happen legitimately if the [beg,end) range is too
 					// small to accommodate BLOCKS_NEEDED_FOR_GUESS and we get cut
