@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Script adapted from
-# https://github.com/massie/adam/blob/master/scripts/create-thirdparty-repo.sh
+# https://github.com/massie/adam/blob/a1825f06847ea781d75ea755b8086897e7b447a6/scripts/create-thirdparty-repo.sh
 
 TMPDIR=/tmp/hadoop_bam_repo
 
