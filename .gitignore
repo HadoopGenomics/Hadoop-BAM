@@ -1,3 +1,6 @@
 /bin
 /test-classes
 /hadoop-bam.jar
+/libs
+.idea
+*.iml

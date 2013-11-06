@@ -50,6 +50,9 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
+	// set this to true for debug output
+	public final static boolean DEBUG_BAM_SPLITTER = false;
+
 	private Path getIdxPath(Path path) { return path.suffix(".splitting-bai"); }
 
 	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
@@ -196,8 +199,16 @@ public class BAMInputFormat
 
 				previousSplit.setEndVirtualOffset(alignedEnd);
 			} else {
-				newSplits.add(previousSplit = new FileVirtualSplit(
-					path, alignedBeg, alignedEnd, fspl.getLocations()));
+				previousSplit = new FileVirtualSplit(
+                                        path, alignedBeg, alignedEnd, fspl.getLocations());
+				if(DEBUG_BAM_SPLITTER) {	
+					final long byte_offset  = alignedBeg >>> 16;
+                                	final long record_offset = alignedBeg & 0xffff;
+					System.err.println("XXX split " + i +
+						" byte offset: " + byte_offset + " record offset: " + 
+						record_offset + " virtual offset: " + alignedBeg);
+				}
+				newSplits.add(previousSplit);
 			}
 		}
 

@@ -56,7 +56,7 @@ public class BAMSplitGuesser {
 
 	// We want to go through this many BGZF blocks fully, checking that they
 	// contain valid BAM records, when guessing a BAM record position.
-	private final static byte BLOCKS_NEEDED_FOR_GUESS = 2;
+	private final static byte BLOCKS_NEEDED_FOR_GUESS = 3;
 
 	// Since the max size of a BGZF block is 0xffff (64K), and we might be just
 	// one byte off from the start of the previous one, we need 0xfffe bytes for
@@ -190,18 +190,12 @@ public class BAMSplitGuesser {
 						if (!decodedAny)
 							continue;
 					}
-				} catch (SAMFormatException     e) { continue; }
+				}
+                                  catch (SAMFormatException     e) { continue; }
 				  catch (FileTruncatedException e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
-				  catch (RuntimeIOException     e) {
-					// We treat this case here in the same way as a RuntimeEOFException.
-					// This particular case caused problems on the input BAM
-					// ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data/NA12878/high_coverage_alignment/NA12878.mapped.ILLUMINA.bwa.CEU.high_coverage_pcr_free.20130906.bam
-					// TODO: verify the two cases should really be equivalent
-                                        if (!decodedAny && this.in.eof()) {
-                                                continue;
-                                        }
-                                  }
+				  catch (IllegalArgumentException e) { continue; }
+				  catch (RuntimeIOException     e) { continue; }
 				  catch (RuntimeEOFException    e) {
 					// This can happen legitimately if the [beg,end) range is too
 					// small to accommodate BLOCKS_NEEDED_FOR_GUESS and we get cut

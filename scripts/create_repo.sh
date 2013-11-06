@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Script adapted from
-# https://github.com/massie/adam/blob/master/scripts/create-thirdparty-repo.sh
+# https://github.com/massie/adam/blob/a1825f06847ea781d75ea755b8086897e7b447a6/scripts/create-thirdparty-repo.sh
 
 # This script downloads a number of Hadoop-BAM version and creates
 # a maven repository inside TMPDIR that can be then uploaded to a

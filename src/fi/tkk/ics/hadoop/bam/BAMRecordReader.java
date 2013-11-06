@@ -130,6 +130,12 @@ public class BAMRecordReader
 
 		bci.seek(virtualStart);
 		codec.setInputStream(bci);
+		
+		if(BAMInputFormat.DEBUG_BAM_SPLITTER) {
+			final long recordStart = virtualStart & 0xffff;
+                	System.err.println("XXX inizialized BAMRecordReader byte offset: " +
+				fileStart + " record offset: " + recordStart);
+		}
 	}
 	@Override public void close() throws IOException { bci.close(); }
 
