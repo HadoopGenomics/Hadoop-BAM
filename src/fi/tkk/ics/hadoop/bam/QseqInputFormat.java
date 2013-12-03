@@ -48,6 +48,8 @@ import fi.tkk.ics.hadoop.bam.util.ConfHelper;
  * Key: instrument, run number, lane, tile, xpos, ypos, read number, delimited by ':' characters.
  * Value:  a SequencedFragment object representing the entry.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.qseq-input.base-quality-encoding";
@@ -429,7 +431,7 @@ public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 	@Override
 	public boolean isSplitable(JobContext context, Path path)
 	{
-		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
+		CompressionCodec codec = new CompressionCodecFactory(ContextUtil.getConfiguration(context)).getCodec(path);
 		return codec == null;
 	}
 
@@ -438,6 +440,6 @@ public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 	                                        TaskAttemptContext context) throws IOException, InterruptedException
 	{
 		context.setStatus(genericSplit.toString());
-		return new QseqRecordReader(context.getConfiguration(), (FileSplit)genericSplit); // cast as per example in TextInputFormat
+		return new QseqRecordReader(ContextUtil.getConfiguration(context), (FileSplit)genericSplit); // cast as per example in TextInputFormat
 	}
 }

@@ -50,6 +50,8 @@ import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
  * header. If a chromosome name that cannot be found in the contig lines is
  * used, that name is instead hashed to form the upper part of the key.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class VCFRecordReader
 	extends RecordReader<LongWritable,VariantContextWritable>
 {
@@ -72,7 +74,7 @@ public class VCFRecordReader
 		this.length = split.getLength();
 
 		final Path file = split.getPath();
-		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
+		final FileSystem fs = file.getFileSystem(ContextUtil.getConfiguration(ctx));
 
 		final FSDataInputStream ins = fs.open(file);
 

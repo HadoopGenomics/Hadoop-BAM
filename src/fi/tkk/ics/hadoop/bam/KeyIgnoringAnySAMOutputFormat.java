@@ -46,6 +46,8 @@ import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
  * parts, which are easier to concatenate if the header is not present in each
  * file.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 
 	protected SAMFileHeader header;
@@ -121,7 +123,7 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 			throw new IOException(
 				"Can't create a RecordWriter without the SAM header");
 
-		final boolean writeHeader = ctx.getConfiguration().getBoolean(
+		final boolean writeHeader = ContextUtil.getConfiguration(ctx).getBoolean(
 			WRITE_HEADER_PROPERTY, writeHeader_);
 
 		switch (format) {

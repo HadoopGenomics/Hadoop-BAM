@@ -49,6 +49,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 /** A class for heuristically finding BCF record positions inside an area of
  * a BCF file. Handles both compressed and uncompressed BCF.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class BCFSplitGuesser {
 	// cin is the compressed input: a BlockCompressedInputStream for compressed
 	// BCF, otherwise equal to in. Unfortunately the closest common type is then
@@ -476,7 +478,8 @@ public class BCFSplitGuesser {
 		}
 
 		args = parser.getRemainingArgs();
-		final Configuration conf = parser.getConfiguration();
+		//final Configuration conf = ContextUtil.getConfiguration(parser);
+                final Configuration conf = parser.getConfiguration();
 
 		long beg = 0;
 

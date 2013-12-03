@@ -86,7 +86,9 @@ import java.util.*;
  *   return k.toString() + "_" + v.toString();
  * }
  *
- * public class MOReduce extends
+ * import parquet.hadoop.util.ContextUtil;
+
+public class MOReduce extends
  *   Reducer&lt;WritableComparable, Writable,WritableComparable, Writable&gt; {
  * private MultipleOutputs mos;
  * public void setup(Context context) {
@@ -113,6 +115,8 @@ import java.util.*;
  * }
  * </pre>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class MultipleOutputs<KEYOUT, VALUEOUT> {
 
   private static final String MULTIPLE_OUTPUTS = "mapreduce.multipleoutputs";
@@ -194,7 +198,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
   private static List<String> getNamedOutputsList(JobContext job) {
     List<String> names = new ArrayList<String>();
     StringTokenizer st = new StringTokenizer(
-      job.getConfiguration().get(MULTIPLE_OUTPUTS, ""), " ");
+      ContextUtil.getConfiguration(job).get(MULTIPLE_OUTPUTS, ""), " ");
     while (st.hasMoreTokens()) {
       names.add(st.nextToken());
     }
@@ -206,21 +210,21 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
   private static Class<? extends OutputFormat<?, ?>> getNamedOutputFormatClass(
     JobContext job, String namedOutput) {
     return (Class<? extends OutputFormat<?, ?>>)
-      job.getConfiguration().getClass(MO_PREFIX + namedOutput + FORMAT, null,
+      ContextUtil.getConfiguration(job).getClass(MO_PREFIX + namedOutput + FORMAT, null,
       OutputFormat.class);
   }
 
   // Returns the key class for a named output.
   private static Class<?> getNamedOutputKeyClass(JobContext job,
                                                 String namedOutput) {
-    return job.getConfiguration().getClass(MO_PREFIX + namedOutput + KEY, null,
+    return ContextUtil.getConfiguration(job).getClass(MO_PREFIX + namedOutput + KEY, null,
       WritableComparable.class);
   }
 
   // Returns the value class for a named output.
   private static Class<? extends Writable> getNamedOutputValueClass(
       JobContext job, String namedOutput) {
-    return job.getConfiguration().getClass(MO_PREFIX + namedOutput + VALUE,
+    return ContextUtil.getConfiguration(job).getClass(MO_PREFIX + namedOutput + VALUE,
       null, Writable.class);
   }
 
@@ -241,7 +245,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
       Class<? extends OutputFormat> outputFormatClass,
       Class<?> keyClass, Class<?> valueClass) {
     checkNamedOutputName(job, namedOutput, true);
-    Configuration conf = job.getConfiguration();
+    Configuration conf = ContextUtil.getConfiguration(job);
     conf.set(MULTIPLE_OUTPUTS,
       conf.get(MULTIPLE_OUTPUTS, "") + " " + namedOutput);
     conf.setClass(MO_PREFIX + namedOutput + FORMAT, outputFormatClass,
@@ -262,7 +266,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
    * @param enabled indicates if the counters will be enabled or not.
    */
   public static void setCountersEnabled(Job job, boolean enabled) {
-    job.getConfiguration().setBoolean(COUNTERS_ENABLED, enabled);
+    ContextUtil.getConfiguration(job).setBoolean(COUNTERS_ENABLED, enabled);
   }
 
   /**
@@ -273,7 +277,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
    * @return TRUE if the counters are enabled, FALSE if they are disabled.
    */
   public static boolean getCountersEnabled(JobContext job) {
-    return job.getConfiguration().getBoolean(COUNTERS_ENABLED, false);
+    return ContextUtil.getConfiguration(job).getBoolean(COUNTERS_ENABLED, false);
   }
 
   /**
@@ -381,7 +385,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
       throws IOException, InterruptedException {
     checkBaseOutputPath(baseOutputPath);
     TaskAttemptContext taskContext = new TaskAttemptContext(
-      context.getConfiguration(), context.getTaskAttemptID());
+      ContextUtil.getConfiguration(context), context.getTaskAttemptID());
     getRecordWriter(taskContext, baseOutputPath).write(key, value);
   }
 
@@ -398,10 +402,10 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
     // If not in cache, create a new one
     if (writer == null) {
       // get the record writer from context output format
-      taskContext.getConfiguration().set("mapreduce.output.basename", baseFileName);
+      ContextUtil.getConfiguration(taskContext).set("mapreduce.output.basename", baseFileName);
       try {
         writer = ((OutputFormat) ReflectionUtils.newInstance(
-          taskContext.getOutputFormatClass(), taskContext.getConfiguration()))
+          taskContext.getOutputFormatClass(), ContextUtil.getConfiguration(taskContext)))
           .getRecordWriter(taskContext);
       } catch (ClassNotFoundException e) {
         throw new IOException(e);
@@ -424,12 +428,12 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
   private TaskAttemptContext getContext(String nameOutput) throws IOException {
     // The following trick leverages the instantiation of a record writer via
     // the job thus supporting arbitrary output formats.
-    Job job = new Job(context.getConfiguration());
+    Job job = new Job(ContextUtil.getConfiguration(context));
     job.setOutputFormatClass(getNamedOutputFormatClass(context, nameOutput));
     job.setOutputKeyClass(getNamedOutputKeyClass(context, nameOutput));
     job.setOutputValueClass(getNamedOutputValueClass(context, nameOutput));
     TaskAttemptContext taskContext = new TaskAttemptContext(
-      job.getConfiguration(), context.getTaskAttemptID());
+      ContextUtil.getConfiguration(job), context.getTaskAttemptID());
     return taskContext;
   }
 

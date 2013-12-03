@@ -47,6 +47,8 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 /** A class for heuristically finding BAM record positions inside an area of
  * a BAM file.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class BAMSplitGuesser {
 	private       SeekableStream             inFile, in;
 	private       BlockCompressedInputStream bgzf;
@@ -415,7 +417,8 @@ public class BAMSplitGuesser {
 		}
 
 		args = parser.getRemainingArgs();
-		final Configuration conf = parser.getConfiguration();
+		//final Configuration conf = ContextUtil.getConfiguration(parser);
+                final Configuration conf = parser.getConfiguration();
 
 		long beg = 0;
 

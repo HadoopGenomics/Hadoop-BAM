@@ -68,6 +68,8 @@ import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class SummarySort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
 		= new ArrayList<Pair<CmdLineParser.Option, String>>();
@@ -277,7 +279,7 @@ final class BlockCompressedLineRecordReader
 
 	public void initialize(InputSplit genericSplit,
 			TaskAttemptContext context) throws IOException {
-		Configuration conf = context.getConfiguration();
+		Configuration conf = ContextUtil.getConfiguration(context);
 		this.maxLineLength = conf.getInt("mapred.linerecordreader.maxlength",
 			Integer.MAX_VALUE);
 
@@ -338,7 +340,7 @@ final class SortOutputFormat extends TextOutputFormat<NullWritable,Text> {
 		throws IOException
 	{
 		Path path = getDefaultWorkFile(ctx, "");
-		FileSystem fs = path.getFileSystem(ctx.getConfiguration());
+		FileSystem fs = path.getFileSystem(ContextUtil.getConfiguration(ctx));
 
 		final OutputStream file = fs.create(path);
 

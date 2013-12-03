@@ -46,6 +46,8 @@ import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFact
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeRecord} function for subclasses.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public abstract class VCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {
@@ -64,7 +66,7 @@ public abstract class VCFRecordWriter<K>
 		throws IOException
 	{
 		final AsciiLineReader r = new AsciiLineReader(
-			input.getFileSystem(ctx.getConfiguration()).open(input));
+			input.getFileSystem(ContextUtil.getConfiguration(ctx)).open(input));
 
 		final Object h = codec.readHeader(r);
 		if (!(h instanceof VCFHeader))
@@ -80,7 +82,7 @@ public abstract class VCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	public VCFRecordWriter(
@@ -98,7 +100,7 @@ public abstract class VCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
+			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
 			header, writeHeader);
 	}
 	private void init(

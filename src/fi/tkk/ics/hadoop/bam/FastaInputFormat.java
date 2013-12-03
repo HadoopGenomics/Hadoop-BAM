@@ -53,6 +53,8 @@ import java.util.Comparator;
  * Note: here sections in the input file are assumed to be delimited by single
  * line descriptions that start with '>'.
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 {
 
@@ -97,7 +99,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 	    FileSplit fileSplit = (FileSplit)splits.get(0);
 	    Path path = fileSplit.getPath();
 
-	    FileSystem fs = path.getFileSystem(job.getConfiguration());
+	    FileSystem fs = path.getFileSystem(ContextUtil.getConfiguration(job));
 	    FSDataInputStream fis = fs.open(path);
 	    byte[] buffer = new byte[1024];
 
@@ -363,7 +365,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 	@Override
 	public boolean isSplitable(JobContext context, Path path)
 	{
-		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
+		CompressionCodec codec = new CompressionCodecFactory(ContextUtil.getConfiguration(context)).getCodec(path);
 		return codec == null;
 	}
 
@@ -372,6 +374,6 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 	                                        TaskAttemptContext context) throws IOException, InterruptedException
 	{
 		context.setStatus(genericSplit.toString());
-		return new FastaRecordReader(context.getConfiguration(), (FileSplit)genericSplit); // cast as per example in TextInputFormat
+		return new FastaRecordReader(ContextUtil.getConfiguration(context), (FileSplit)genericSplit); // cast as per example in TextInputFormat
 	}
 }

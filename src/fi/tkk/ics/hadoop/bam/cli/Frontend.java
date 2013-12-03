@@ -40,6 +40,8 @@ import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
 
+import parquet.hadoop.util.ContextUtil;
+
 public final class Frontend {
 	public static final int
 		VERSION_MAJOR = 6,
@@ -69,7 +71,8 @@ public final class Frontend {
 		}
 
 		args = parser.getRemainingArgs();
-		final Configuration conf = parser.getConfiguration();
+		//final Configuration conf = ContextUtil.getConfiguration(parser);
+                final Configuration conf = parser.getConfiguration();
 
 		final URLClassLoader
 			loader1 = (URLClassLoader)thread.getContextClassLoader();

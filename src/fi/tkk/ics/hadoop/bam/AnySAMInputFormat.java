@@ -48,6 +48,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  * behaviour is disabled, the first byte of each file is read to determine the
  * file type.</p>
  */
+import parquet.hadoop.util.ContextUtil;
+
 public class AnySAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
@@ -173,7 +175,7 @@ public class AnySAMInputFormat
 				"split '"+split+"' has unknown type: cannot extract path");
 
 		if (this.conf == null)
-			this.conf = ctx.getConfiguration();
+			this.conf = ContextUtil.getConfiguration(ctx);
 
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -192,7 +194,7 @@ public class AnySAMInputFormat
 	 */
 	@Override public boolean isSplitable(JobContext job, Path path) {
 		if (this.conf == null)
-			this.conf = job.getConfiguration();
+			this.conf = ContextUtil.getConfiguration(job);
 
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -213,7 +215,7 @@ public class AnySAMInputFormat
 		throws IOException
 	{
 		if (this.conf == null)
-			this.conf = job.getConfiguration();
+			this.conf = ContextUtil.getConfiguration(job);
 
 		final List<InputSplit> origSplits = super.getSplits(job);
 
@@ -236,7 +238,7 @@ public class AnySAMInputFormat
 			else
 				newSplits.add(split);
 		}
-		newSplits.addAll(bamIF.getSplits(bamOrigSplits, job.getConfiguration()));
+		newSplits.addAll(bamIF.getSplits(bamOrigSplits, ContextUtil.getConfiguration(job)));
 		return newSplits;
 	}
 }
