@@ -12,7 +12,7 @@ TMPDIR=/tmp/hadoop_bam_repo
 
 HADOOPBAM_VERSIONS=( "6.0" )
 SNAPSHOT_VERSION="6.1-SNAPSHOT"
-SNAPSHOT_BRANCH=hadoop_interop
+SNAPSHOT_BRANCH=master
 
 REPO_ID="hadoop-bam-repo"
 OUTPUT_DIR="$TMPDIR/$REPO_ID"

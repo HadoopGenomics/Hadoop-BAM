@@ -58,6 +58,7 @@ public class BAMRecordReader
 	private BlockCompressedInputStream bci;
 	private BAMRecordCodec codec;
 	private long fileStart, virtualEnd;
+	private boolean isInitialized = false;
 
 	/** Note: this is the only getKey function that handles unmapped reads
 	 * specially!
@@ -107,6 +108,15 @@ public class BAMRecordReader
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
+		// This method should only be called once (see Hadoop API). However,
+		// there seems to be disagreement between implementations that call
+		// initialize() and Hadoop-BAM's own code that relies on
+		// {@link BAMInputFormat} to call initialize() when the reader is
+		// created. Therefore we add this check for the time being. 
+		if(isInitialized)
+			close();
+		isInitialized = true;
+
 		final Configuration conf = ContextUtil.getConfiguration(ctx);
 
 		final FileVirtualSplit split = (FileVirtualSplit)spl;

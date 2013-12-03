@@ -59,12 +59,22 @@ public class SAMRecordReader
 	private FSDataInputStream input;
 	private SAMRecordIterator iterator;
 	private long start, end;
+	private boolean isInitialized = false;
 
    private WorkaroundingStream waInput;
 
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
+		// This method should only be called once (see Hadoop API). However,
+		// there seems to be disagreement between implementations that call
+		// initialize() and Hadoop-BAM's own code that relies on
+		// {@link SAMInputFormat} to call initialize() when the reader is
+		// created. Therefore we add this check for the time being. 
+		if(isInitialized)
+			close();
+		isInitialized = true;
+
 		final FileSplit split = (FileSplit)spl;
 
 		this.start =         split.getStart();
