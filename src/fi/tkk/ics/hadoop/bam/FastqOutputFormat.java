@@ -41,6 +41,8 @@ import org.apache.hadoop.util.ReflectionUtils;
 
 import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /**
  * Output format for the fastq format.
  *
@@ -51,8 +53,6 @@ import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
  * @instrument:run number:flowcell ID:lane:tile:x-pos:y-pos \s+ read:is filtered:control number:index sequence
  *
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING         = "hbam.fastq-output.base-quality-encoding";

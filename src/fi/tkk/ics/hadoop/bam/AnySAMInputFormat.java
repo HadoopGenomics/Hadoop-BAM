@@ -39,6 +39,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM and BAM files.
  * Values are the individual records; see {@link BAMRecordReader} for the
  * meaning of the key.
@@ -48,8 +50,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  * behaviour is disabled, the first byte of each file is read to determine the
  * file type.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class AnySAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {

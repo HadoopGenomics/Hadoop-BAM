@@ -35,6 +35,8 @@ import net.sf.samtools.SAMFileHeader;
 
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** Writes only the SAM records, not the key.
  *
  * <p>A {@link SAMFileHeader} must be provided via {@link #setSAMHeader} or
@@ -46,8 +48,6 @@ import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
  * parts, which are easier to concatenate if the header is not present in each
  * file.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 
 	protected SAMFileHeader header;

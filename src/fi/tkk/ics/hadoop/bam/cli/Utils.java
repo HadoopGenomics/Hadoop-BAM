@@ -54,7 +54,7 @@ import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
 public final class Utils {
 	public static void printWrapped(PrintStream out, String str) {

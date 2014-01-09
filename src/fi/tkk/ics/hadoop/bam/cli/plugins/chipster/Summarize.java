@@ -72,7 +72,7 @@ import fi.tkk.ics.hadoop.bam.cli.Utils;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
 public final class Summarize extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

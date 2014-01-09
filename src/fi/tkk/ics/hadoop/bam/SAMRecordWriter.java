@@ -36,13 +36,13 @@ import net.sf.samtools.SAMTextWriter;
 
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** A base {@link RecordWriter} for SAM records.
  *
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeAlignment} function for subclasses.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public abstract class SAMRecordWriter<K>
 	extends RecordWriter<K,SAMRecordWritable>
 {

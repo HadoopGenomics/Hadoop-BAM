@@ -41,13 +41,13 @@ import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** A base {@link RecordWriter} for VCF.
  *
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeRecord} function for subclasses.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public abstract class VCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {

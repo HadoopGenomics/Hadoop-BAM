@@ -43,13 +43,13 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** A base {@link RecordWriter} for compressed BCF.
  *
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeRecord} function for subclasses.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public abstract class BCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {

@@ -47,6 +47,7 @@ public final class VCFHeaderReader {
 		try {
 			header = new VCFCodec().readHeader(new AsciiLineReader(in));
 		} catch (TribbleException e) {
+            System.err.println("warning: while trying to read VCF header from file received exception: "+e.toString());
 
 			in.seek(initialPos);
 

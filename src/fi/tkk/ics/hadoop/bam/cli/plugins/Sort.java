@@ -63,7 +63,7 @@ import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
 public final class Sort extends CLIMRBAMPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

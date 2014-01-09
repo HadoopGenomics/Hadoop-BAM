@@ -44,12 +44,12 @@ import net.sf.samtools.seekablestream.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for VCF files. Values
  * are the individual records; see {@link VCFRecordReader} for the meaning of
  * the key.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class VCFInputFormat
 	extends FileInputFormat<LongWritable,VariantContextWritable>
 {

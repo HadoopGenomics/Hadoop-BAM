@@ -43,6 +43,8 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 
 import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** The key is the bitwise OR of the chromosome index in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
  *
@@ -50,8 +52,6 @@ import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
  * header. If a chromosome name that cannot be found in the contig lines is
  * used, that name is instead hashed to form the upper part of the key.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class VCFRecordReader
 	extends RecordReader<LongWritable,VariantContextWritable>
 {

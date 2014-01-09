@@ -35,14 +35,14 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for BGZF-compressed
  * files.
  *
  * <p>A {@link BGZFBlockIndex} for each Path used is required, or an
  * <code>IOException</code> is thrown out of {@link #getSplits}.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public abstract class BGZFSplitFileInputFormat<K,V>
 	extends FileInputFormat<K,V>
 {

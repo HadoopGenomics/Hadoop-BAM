@@ -68,7 +68,7 @@ import fi.tkk.ics.hadoop.bam.util.Timer;
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
 public final class VCFSort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

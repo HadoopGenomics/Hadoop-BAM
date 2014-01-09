@@ -46,9 +46,9 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
-/** See {@link VCFRecordReader} for the meaning of the key. */
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
+/** See {@link VCFRecordReader} for the meaning of the key. */
 public class BCFRecordReader
 	extends RecordReader<LongWritable,VariantContextWritable>
 {

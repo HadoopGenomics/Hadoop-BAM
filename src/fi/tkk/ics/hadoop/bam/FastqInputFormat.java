@@ -44,7 +44,7 @@ import java.util.regex.*;
 import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 import fi.tkk.ics.hadoop.bam.util.ConfHelper;
 
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
 public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 {

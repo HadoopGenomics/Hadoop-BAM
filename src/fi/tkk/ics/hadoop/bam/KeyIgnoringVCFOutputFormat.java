@@ -36,6 +36,8 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** Writes only the VCF records, not the key.
  *
  * <p>A {@link VCFHeader} must be provided via {@link #setHeader} or {@link
@@ -47,8 +49,6 @@ import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
  * parts, which are easier to concatenate if the header is not present in each
  * file.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 	protected VCFHeader header;
 

@@ -47,9 +47,9 @@ import net.sf.samtools.SAMTextHeaderCodec;
 
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
-/** See {@link BAMRecordReader} for the meaning of the key. */
-import parquet.hadoop.util.ContextUtil;
+import hbparquet.hadoop.util.ContextUtil;
 
+/** See {@link BAMRecordReader} for the meaning of the key. */
 public class SAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
 {

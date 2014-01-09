@@ -40,8 +40,6 @@ import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
 
-import parquet.hadoop.util.ContextUtil;
-
 public final class Frontend {
 	public static final int
 		VERSION_MAJOR = 6,

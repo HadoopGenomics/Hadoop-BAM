@@ -43,13 +43,13 @@ import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** A base {@link RecordWriter} for BAM records.
  *
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeAlignment} function for subclasses.</p>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public abstract class BAMRecordWriter<K>
 	extends RecordWriter<K,SAMRecordWritable>
 {

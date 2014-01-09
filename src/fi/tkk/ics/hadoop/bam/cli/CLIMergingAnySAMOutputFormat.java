@@ -34,11 +34,11 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 // Like a KeyIgnoringAnySAMOutputFormat<K>, but sets the SAMFileHeader to
 // Utils.getSAMHeaderMerger().getMergedHeader() and allows the output directory
 // (the "work directory") to exist.
-import parquet.hadoop.util.ContextUtil;
-
 public class CLIMergingAnySAMOutputFormat<K>
 	extends FileOutputFormat<K, SAMRecordWritable>
 {

@@ -43,13 +43,13 @@ import java.nio.charset.CharacterCodingException;
 import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 import fi.tkk.ics.hadoop.bam.util.ConfHelper;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /**
  * Reads the Illumina qseq sequence format.
  * Key: instrument, run number, lane, tile, xpos, ypos, read number, delimited by ':' characters.
  * Value:  a SequencedFragment object representing the entry.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.qseq-input.base-quality-encoding";

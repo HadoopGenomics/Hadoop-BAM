@@ -41,6 +41,8 @@ import org.apache.hadoop.util.ReflectionUtils;
 
 import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /**
  * Output format for Illumina qseq format.
  * Records are lines of tab-separated fields.  Each record consists of
@@ -56,9 +58,6 @@ import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
  *   - Quality
  *   - Filter
  */
-
-import parquet.hadoop.util.ContextUtil;
-
 public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.qseq-output.base-quality-encoding";

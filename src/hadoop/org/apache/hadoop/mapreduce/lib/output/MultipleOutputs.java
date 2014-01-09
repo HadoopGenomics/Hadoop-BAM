@@ -32,6 +32,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import java.io.IOException;
 import java.util.*;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /**
  * The MultipleOutputs class simplifies writing output data
  * to multiple outputs
@@ -115,8 +117,6 @@ public class MOReduce extends
  * }
  * </pre>
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class MultipleOutputs<KEYOUT, VALUEOUT> {
 
   private static final String MULTIPLE_OUTPUTS = "mapreduce.multipleoutputs";

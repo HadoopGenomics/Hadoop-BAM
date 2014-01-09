@@ -42,11 +42,11 @@ import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class BAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
 {

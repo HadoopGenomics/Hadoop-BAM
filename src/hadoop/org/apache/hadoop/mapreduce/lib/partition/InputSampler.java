@@ -47,12 +47,12 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /**
  * Utility for collecting samples and writing a partition file for
  * {@link TotalOrderPartitioner}.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class InputSampler<K,V> extends Configured implements Tool  {
 
   static int printUsage() {

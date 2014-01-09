@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /**
  * Reads the FASTA reference sequence format.
  * Key: sequence description and position offset, delimited by ':' characters.
@@ -53,8 +55,6 @@ import java.util.Comparator;
  * Note: here sections in the input file are assumed to be delimited by single
  * line descriptions that start with '>'.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 {
 

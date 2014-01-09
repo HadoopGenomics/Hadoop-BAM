@@ -43,12 +43,12 @@ import net.sf.samtools.seekablestream.SeekableStream;
 
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for BAM files. Values
  * are the individual records; see {@link BAMRecordReader} for the meaning of
  * the key.
  */
-import parquet.hadoop.util.ContextUtil;
-
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
