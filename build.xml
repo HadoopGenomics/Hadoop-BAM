@@ -10,10 +10,21 @@
 
 	<property environment="env"/>
 
+	<fileset id="picard_jars" dir="${env.PWD}" >
+                <include name="sam-1.93.jar"/>
+                <include name="picard-1.93.jar"/>
+        </fileset>
+
+        <fileset id="broad_jars" dir="${env.PWD}" >
+                <include name="tribble-1.93.jar"/>
+                <include name="variant-1.93.jar"/>
+        </fileset>
+
 	<!-- look for junit jars on the various platforms -->
 	<fileset id="junit_jars_ubuntu" dir="/usr/share/java">
 		<include name="junit4.jar"/>
 		<include name="hamcrest-*.jar"/>
+		<include name="ant-junit4.jar"/>
 	</fileset>
 
 	<fileset id="junit_jars_gentoo" dir="/usr/share">
@@ -27,6 +38,10 @@
 		<include name="hamcrest/*.jar" />
 	</fileset>
 
+	<fileset id="junit_resources" dir="${env.PWD}">
+                <include name="tests/resources/test.vcf" />
+        </fileset>
+
 	<!-- gives a change to the user to add custom jar paths -->
 	<fileset id="jars_override" dir="/">
 		<include name="${jars.override}" />
@@ -36,6 +51,8 @@
 
 	<path id="classpath">
 		<fileset refid="jars_override" />
+                <fileset refid="picard_jars" />
+                <fileset refid="broad_jars" />
 		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}"
 		         erroronmissingdir="false">
 			<include name="hadoop-*.jar"/>
@@ -43,15 +60,11 @@
 			<include name="share/hadoop/*/*.jar"/>
 			<include name="share/hadoop/*/lib/*.jar"/>
 		</fileset>
+		<fileset refid="junit_resources" />
 
 		<!-- CDH4 installed with Cloudera Manager  -->
 		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client-0.20" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
 		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
-
-		<pathelement path="sam-1.93.jar"/>
-		<pathelement path="picard-1.93.jar"/>
-		<pathelement path="tribble-1.93.jar"/>
-		<pathelement path="variant-1.93.jar"/>
 	</path>
 
 	<!-- Check for whether we need to use our custom back-ported compatibility
@@ -173,6 +186,9 @@
 
 	<target name="build-tests" depends="compile">
 		<mkdir dir="${test.class.dir}"/>
+		<copy todir="${test.class.dir}" verbose="true">
+			<fileset refid="junit_resources"/>
+		</copy>
 		<javac srcdir="${test.dir}" destdir="${test.class.dir}" includeAntRuntime="false" debug="true">
 			<classpath>
 				<pathelement path="${class.dir}"/>
@@ -181,6 +197,8 @@
 				<fileset refid="junit_jars_ubuntu" />
 				<fileset refid="junit_jars_gentoo" />
 				<fileset refid="junit_jars_scientific_linux" />
+				<fileset refid="picard_jars" />
+				<fileset refid="broad_jars" />
 			</classpath>
 
 			<!--
@@ -193,7 +211,7 @@
 	</target>
 
 	<target name="run-tests" depends="build-tests">
-		<junit showoutput="true">
+		<junit showoutput="true" fork="true">
 			<classpath>
 				<pathelement path="${class.dir}"/>
 				<pathelement path="${test.class.dir}"/>
@@ -202,6 +220,9 @@
 				<fileset refid="junit_jars_ubuntu" />
 				<fileset refid="junit_jars_gentoo" />
 				<fileset refid="junit_jars_scientific_linux" />
+                                <fileset refid="picard_jars" />
+                                <fileset refid="broad_jars" />
+				<pathelement path="${env.HADOOP_HOME}/lib/junit-*.jar"/>
 			</classpath>
 			<formatter type="brief" usefile="false"/>
 			<batchtest>
@@ -225,6 +246,8 @@
 				<fileset refid="junit_jars_ubuntu" />
 				<fileset refid="junit_jars_gentoo" />
 				<fileset refid="junit_jars_scientific_linux" />
+                                <fileset refid="picard_jars" />
+                                <fileset refid="broad_jars" />
 			</classpath>
 		</java>
 	</target>
