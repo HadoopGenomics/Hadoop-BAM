@@ -28,8 +28,10 @@ import java.io.IOException;
 
 import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
+
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReaderIterator;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.vcf.VCFCodec;
@@ -45,7 +47,7 @@ public final class VCFHeaderReader {
 		Object header = null;
 		final long initialPos = in.position();
 		try {
-			header = new VCFCodec().readHeader(new AsciiLineReader(in));
+			header = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(in)));
 		} catch (TribbleException e) {
             System.err.println("warning: while trying to read VCF header from file received exception: "+e.toString());
 

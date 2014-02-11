@@ -32,8 +32,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReaderIterator;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.variantcontext.GenotypesContext;
@@ -68,7 +68,7 @@ public abstract class VCFRecordWriter<K>
 		final AsciiLineReader r = new AsciiLineReader(
 			input.getFileSystem(ContextUtil.getConfiguration(ctx)).open(input));
 
-		final Object h = codec.readHeader(r);
+		final Object h = codec.readHeader(new AsciiLineReaderIterator(r));
 		if (!(h instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ input);
 

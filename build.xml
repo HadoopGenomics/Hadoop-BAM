@@ -53,9 +53,12 @@
 		<fileset refid="jars_override" />
 		<fileset refid="picard_jars" />
 		<fileset refid="broad_jars" />
-		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}"
-		         erroronmissingdir="false">
+		<!--fileset id="hadoop_jars" dir="${env.HADOOP_HOME}"
+		         erroronmissingdir="false"-->
+		<fileset id="hadoop_jars" dir="/home/dongclr1/workspace/hadoop-2.2.0/"
+	         erroronmissingdir="false">
 			<include name="share/hadoop/common/hadoop-common-*.jar"/>
+			<include name="share/hadoop/common/lib/*.jar"/>
 			<include name="share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"/>
 			<!--include name="hadoop-*.jar"/-->
 			<!--include name="lib/*.jar"/-->

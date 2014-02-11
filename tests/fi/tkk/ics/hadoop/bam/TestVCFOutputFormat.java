@@ -23,11 +23,13 @@ package tests.fi.tkk.ics.hadoop.bam;
 import fi.tkk.ics.hadoop.bam.KeyIgnoringVCFOutputFormat;
 import fi.tkk.ics.hadoop.bam.VariantContextWritable;
 import net.sf.samtools.seekablestream.SeekableFileStream;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.GenotypesContext;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -63,7 +65,7 @@ public class TestVCFOutputFormat {
         KeyIgnoringVCFOutputFormat<Long> outputFormat = new KeyIgnoringVCFOutputFormat<Long>(conf);
         String header_file = ClassLoader.getSystemClassLoader().getResource("tests/resources/test.vcf").getFile();
         outputFormat.readHeaderFrom(new SeekableFileStream(new File(header_file)));
-        taskAttemptContext = new TaskAttemptContext(conf, mock(TaskAttemptID.class));
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
         writer = outputFormat.getRecordWriter(taskAttemptContext, new Path("file://" + test_vcf_output));
     }
 

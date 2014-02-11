@@ -34,15 +34,14 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReaderIterator;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFContigHeaderLine;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
 import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
-
 import hbparquet.hadoop.util.ContextUtil;
 
 /** The key is the bitwise OR of the chromosome index in the upper 32 bits
@@ -79,7 +78,8 @@ public class VCFRecordReader
 		final FSDataInputStream ins = fs.open(file);
 
 		reader = new AsciiLineReader(ins);
-		final Object h = codec.readHeader(reader);
+		
+		final Object h = codec.readHeader(new AsciiLineReaderIterator(reader));
 		if (!(h instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ file);
 

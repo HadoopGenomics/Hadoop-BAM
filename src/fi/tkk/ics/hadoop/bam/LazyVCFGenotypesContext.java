@@ -23,7 +23,7 @@ package fi.tkk.ics.hadoop.bam;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.readers.LineIterator;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
 import org.broadinstitute.variant.vcf.AbstractVCFCodec;
@@ -114,7 +114,7 @@ class HeaderSettableVCFCodec extends AbstractVCFCodec {
 		this.version = ver;
 	}
 
-	@Override public Object readHeader(LineReader reader) {
+	@Override public Object readActualHeader(LineIterator reader) {
 		throw new UnsupportedOperationException(
 			"Internal error: this shouldn't be called");
 	}
@@ -122,4 +122,5 @@ class HeaderSettableVCFCodec extends AbstractVCFCodec {
 		throw new UnsupportedOperationException(
 			"Internal error: this shouldn't be called");
 	}
+
 }
