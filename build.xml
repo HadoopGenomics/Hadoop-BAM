@@ -11,14 +11,14 @@
 	<property environment="env"/>
 
 	<fileset id="picard_jars" dir="${env.PWD}" >
-                <include name="sam-1.93.jar"/>
-                <include name="picard-1.93.jar"/>
-        </fileset>
+		<include name="libs/sam-1.107.jar"/>
+		<include name="libs/picard-1.107.jar"/>
+	</fileset>
 
-        <fileset id="broad_jars" dir="${env.PWD}" >
-                <include name="tribble-1.93.jar"/>
-                <include name="variant-1.93.jar"/>
-        </fileset>
+	<fileset id="broad_jars" dir="${env.PWD}" >
+		<include name="libs/tribble-1.107.jar"/>
+		<include name="libs/variant-1.107.jar"/>
+	</fileset>
 
 	<!-- look for junit jars on the various platforms -->
 	<fileset id="junit_jars_ubuntu" dir="/usr/share/java">
@@ -39,8 +39,8 @@
 	</fileset>
 
 	<fileset id="junit_resources" dir="${env.PWD}">
-                <include name="tests/resources/test.vcf" />
-        </fileset>
+		<include name="tests/resources/test.vcf" />
+	</fileset>
 
 	<!-- gives a change to the user to add custom jar paths -->
 	<fileset id="jars_override" dir="/">
@@ -51,20 +51,26 @@
 
 	<path id="classpath">
 		<fileset refid="jars_override" />
-                <fileset refid="picard_jars" />
-                <fileset refid="broad_jars" />
+		<fileset refid="picard_jars" />
+		<fileset refid="broad_jars" />
 		<fileset id="hadoop_jars" dir="${env.HADOOP_HOME}"
 		         erroronmissingdir="false">
-			<include name="hadoop-*.jar"/>
-			<include name="lib/*.jar"/>
-			<include name="share/hadoop/*/*.jar"/>
-			<include name="share/hadoop/*/lib/*.jar"/>
+			<include name="share/hadoop/common/hadoop-common-*.jar"/>
+			<include name="share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"/>
+			<!--include name="hadoop-*.jar"/-->
+			<!--include name="lib/*.jar"/-->
+			<!--include name="share/hadoop/*/*.jar"/-->
+			<!-- include name="share/hadoop/*/lib/*.jar"/-->
 		</fileset>
 		<fileset refid="junit_resources" />
 
 		<!-- CDH4 installed with Cloudera Manager  -->
-		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client-0.20" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
-		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client" erroronmissingdir="false"> <include name="**/*.jar" /> </fileset>
+		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client-0.20" erroronmissingdir="false">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${cloudera.cdh.parcel}/lib/hadoop/client" erroronmissingdir="false">
+			<include name="**/*.jar" />
+		</fileset>
 	</path>
 
 	<!-- Check for whether we need to use our custom back-ported compatibility
@@ -220,15 +226,16 @@
 				<fileset refid="junit_jars_ubuntu" />
 				<fileset refid="junit_jars_gentoo" />
 				<fileset refid="junit_jars_scientific_linux" />
-                                <fileset refid="picard_jars" />
-                                <fileset refid="broad_jars" />
+				<fileset refid="picard_jars" />
+				<fileset refid="broad_jars" />
 				<pathelement path="${env.HADOOP_HOME}/lib/junit-*.jar"/>
 			</classpath>
 			<formatter type="brief" usefile="false"/>
 			<batchtest>
 				<fileset dir="${test.class.dir}">
-					 <include name="**/Test*.class" />
-					 <exclude name="**/Test*$*.class" />  <!-- exclude inner classes -->
+					<include name="**/Test*.class" />
+					<exclude name="**/Test*$*.class" />
+					<!-- exclude inner classes -->
 				</fileset>
 			</batchtest>
 		</junit>
@@ -246,8 +253,8 @@
 				<fileset refid="junit_jars_ubuntu" />
 				<fileset refid="junit_jars_gentoo" />
 				<fileset refid="junit_jars_scientific_linux" />
-                                <fileset refid="picard_jars" />
-                                <fileset refid="broad_jars" />
+				<fileset refid="picard_jars" />
+				<fileset refid="broad_jars" />
 			</classpath>
 		</java>
 	</target>

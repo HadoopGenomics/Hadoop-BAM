@@ -22,17 +22,18 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
-import java.io.InputStream;
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
+
+import net.sf.picard.sam.SamPairUtil;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -44,23 +45,17 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
-import net.sf.picard.sam.SamPairUtil;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
-
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
-import fi.tkk.ics.hadoop.bam.cli.CLIMergingAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRBAMPlugin;
+import fi.tkk.ics.hadoop.bam.cli.CLIMergingAnySAMOutputFormat;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.Timer;
-
-import hbparquet.hadoop.util.ContextUtil;
 
 public final class FixMate extends CLIMRBAMPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

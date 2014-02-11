@@ -22,6 +22,8 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,45 +32,42 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
+import net.sf.samtools.util.BlockCompressedOutputStream;
+import net.sf.samtools.util.BlockCompressedStreamConstants;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
-
-import net.sf.samtools.util.BlockCompressedOutputStream;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
-
 import fi.tkk.ics.hadoop.bam.KeyIgnoringVCFOutputFormat;
-import fi.tkk.ics.hadoop.bam.VariantContextWritable;
 import fi.tkk.ics.hadoop.bam.VCFFormat;
 import fi.tkk.ics.hadoop.bam.VCFInputFormat;
 import fi.tkk.ics.hadoop.bam.VCFOutputFormat;
+import fi.tkk.ics.hadoop.bam.VariantContextWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
-
-import hbparquet.hadoop.util.ContextUtil;
 
 public final class VCFSort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

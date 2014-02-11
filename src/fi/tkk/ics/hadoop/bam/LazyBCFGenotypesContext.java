@@ -24,18 +24,17 @@ package fi.tkk.ics.hadoop.bam;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.variant.bcf2.BCF2Decoder;
+import org.broadinstitute.variant.bcf2.BCF2GenotypeFieldDecoders;
+import org.broadinstitute.variant.bcf2.BCF2Utils;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.Genotype;
 import org.broadinstitute.variant.variantcontext.GenotypeBuilder;
 import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
-import org.broadinstitute.variant.bcf2.BCF2Decoder;
-import org.broadinstitute.variant.bcf2.BCF2GenotypeFieldDecoders;
-import org.broadinstitute.variant.bcf2.BCF2Utils;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
 // XXX: Since we cannot use BCF2LazyGenotypesDecoder, the parsing functionality

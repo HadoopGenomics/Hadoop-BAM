@@ -22,17 +22,12 @@
 
 package fi.tkk.ics.hadoop.bam;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.io.Writer;
-
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
 import net.sf.samtools.BAMRecordCodec;
 import net.sf.samtools.SAMFileHeader;
@@ -43,7 +38,11 @@ import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
-import hbparquet.hadoop.util.ContextUtil;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
+import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
 /** A base {@link RecordWriter} for BAM records.
  *

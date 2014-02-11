@@ -22,15 +22,12 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import java.io.DataOutput;
 import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
-
 import org.broadinstitute.variant.variantcontext.VariantContext;
-
-import fi.tkk.ics.hadoop.bam.util.DataOutputWrapper;
 
 /** VariantContexts read here have LazyGenotypesContexts, which need to have a
  * header set before the genotype data in the VariantContexts can be decoded.

@@ -22,17 +22,18 @@
 
 package fi.tkk.ics.hadoop.bam;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.EnumSet;
 
-import org.apache.hadoop.fs.FileSystem;
+import net.sf.samtools.util.BlockCompressedOutputStream;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.variant.variantcontext.GenotypesContext;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.Options;
@@ -43,8 +44,6 @@ import org.broadinstitute.variant.vcf.VCFHeader;
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** A base {@link RecordWriter} for compressed BCF.
  *
  * <p>Handles the output stream, writing the header if requested, and provides
@@ -54,8 +53,6 @@ public abstract class BCFRecordWriter<K>
 	extends RecordWriter<K,VariantContextWritable>
 {
 	private VariantContextWriter writer;
-	private VCFHeader header;
-
 	private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
 		new LazyVCFGenotypesContext.HeaderDataCache();
 	private LazyBCFGenotypesContext.HeaderDataCache bcfHeaderDataCache =
@@ -115,7 +112,7 @@ public abstract class BCFRecordWriter<K>
 		writer.writeHeader(header);
 		stopOut.stopped = false;
 
-		setInputHeader(this.header = header);
+		setInputHeader(header);
 	}
 
 	@Override public void close(TaskAttemptContext ctx) throws IOException {

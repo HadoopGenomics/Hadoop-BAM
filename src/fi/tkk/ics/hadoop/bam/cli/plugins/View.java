@@ -28,26 +28,25 @@ import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
-import org.apache.hadoop.fs.Path;
-
 import net.sf.samtools.BAMFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMFileWriterImpl;
 import net.sf.samtools.SAMFormatException;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.seekablestream.SeekableStream;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
+import org.apache.hadoop.fs.Path;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
 

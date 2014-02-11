@@ -22,20 +22,19 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import java.io.InputStream;
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.IOException;
+import java.io.InputStream;
+
+import net.sf.samtools.SAMFileHeader;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import net.sf.samtools.SAMFileHeader;
-
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
-
-import hbparquet.hadoop.util.ContextUtil;
 
 /** Writes only the SAM records, not the key.
  *

@@ -27,13 +27,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.Seekable;
-
 import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.RuntimeEOFException;
 
-import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
+import org.apache.hadoop.fs.FSDataInputStream;
 
 public class BGZFSplitGuesser {
 	private       FSDataInputStream inFile;

@@ -12,13 +12,11 @@ package fi.tkk.ics.hadoop.bam.custom.jargs.gnu;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Vector;
-import java.util.Enumeration;
-import java.util.Locale;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
 
 /**
  * Largely GNU-compatible command-line options parser. Has short (-v) and

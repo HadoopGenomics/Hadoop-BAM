@@ -20,15 +20,23 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins.chipster;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.FilterOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.BlockCompressedOutputStream;
+import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -54,25 +62,15 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
-import net.sf.samtools.util.BlockCompressedOutputStream;
-
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
-
 import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
-
-import hbparquet.hadoop.util.ContextUtil;
 
 public final class Summarize extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

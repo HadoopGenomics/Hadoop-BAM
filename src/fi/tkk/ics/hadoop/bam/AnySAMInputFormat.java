@@ -22,6 +22,8 @@
 
 package fi.tkk.ics.hadoop.bam;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,17 +31,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-
-import hbparquet.hadoop.util.ContextUtil;
 
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM and BAM files.
  * Values are the individual records; see {@link BAMRecordReader} for the

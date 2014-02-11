@@ -20,21 +20,24 @@
 
 package fi.tkk.ics.hadoop.bam.cli.plugins.chipster;
 
+import hbparquet.hadoop.util.ContextUtil;
+
 import java.io.DataOutputStream;
 import java.io.FilterOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.samtools.util.BlockCompressedInputStream;
+import net.sf.samtools.util.BlockCompressedOutputStream;
+import net.sf.samtools.util.BlockCompressedStreamConstants;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -54,21 +57,14 @@ import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 import org.apache.hadoop.util.LineReader;
 
-import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.BlockCompressedOutputStream;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
-
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-
 import fi.tkk.ics.hadoop.bam.BAMRecordReader;
 import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
 import fi.tkk.ics.hadoop.bam.cli.Utils;
+import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import fi.tkk.ics.hadoop.bam.util.BGZFSplitFileInputFormat;
 import fi.tkk.ics.hadoop.bam.util.Pair;
 import fi.tkk.ics.hadoop.bam.util.Timer;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
-
-import hbparquet.hadoop.util.ContextUtil;
 
 public final class SummarySort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs
