@@ -55,7 +55,7 @@
 		<fileset refid="broad_jars" />
 		<!--fileset id="hadoop_jars" dir="${env.HADOOP_HOME}"
 		         erroronmissingdir="false"-->
-		<fileset id="hadoop_jars" dir="/home/dongclr1/workspace/hadoop-2.2.0/"
+		<fileset id="hadoop_jars" dir="${env.HADOOP_2_HOME}"
 	         erroronmissingdir="false">
 			<include name="share/hadoop/common/hadoop-common-*.jar"/>
 			<include name="share/hadoop/common/lib/*.jar"/>
