@@ -43,12 +43,13 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import hbparquet.hadoop.util.ContextUtil;
+
+import javax.naming.Context;
 
 /**
  * Utility for collecting samples and writing a partition file for
@@ -132,8 +133,8 @@ public class InputSampler<K,V> extends Configured implements Tool  {
       long records = 0;
       for (int i = 0; i < splitsToSample; ++i) {
         RecordReader<K,V> reader = inf.createRecordReader(
-          splits.get(i * splitStep), 
-          new TaskAttemptContextImpl(ContextUtil.getConfiguration(job), new TaskAttemptID()));
+          splits.get(i * splitStep),
+          ContextUtil.newTaskAttemptContext(ContextUtil.getConfiguration(job), new TaskAttemptID()));
         while (reader.nextKeyValue()) {
           samples.add(reader.getCurrentKey());
           ++records;
@@ -209,8 +210,8 @@ public class InputSampler<K,V> extends Configured implements Tool  {
       // the target sample keyset
       for (int i = 0; i < splitsToSample ||
                      (i < splits.size() && samples.size() < numSamples); ++i) {
-        RecordReader<K,V> reader = inf.createRecordReader(splits.get(i), 
-          new TaskAttemptContextImpl(ContextUtil.getConfiguration(job), new TaskAttemptID()));
+        RecordReader<K,V> reader = inf.createRecordReader(splits.get(i),
+          ContextUtil.newTaskAttemptContext(ContextUtil.getConfiguration(job), new TaskAttemptID()));
         while (reader.nextKeyValue()) {
           if (r.nextDouble() <= freq) {
             if (samples.size() < numSamples) {
@@ -278,7 +279,7 @@ public class InputSampler<K,V> extends Configured implements Tool  {
       for (int i = 0; i < splitsToSample; ++i) {
         RecordReader<K,V> reader = inf.createRecordReader(
           splits.get(i * splitStep),
-          new TaskAttemptContextImpl(ContextUtil.getConfiguration(job), new TaskAttemptID()));
+          ContextUtil.newTaskAttemptContext(ContextUtil.getConfiguration(job), new TaskAttemptID()));
         while (reader.nextKeyValue()) {
           ++records;
           if ((double) kept / records < freq) {

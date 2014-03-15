@@ -27,8 +27,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 
 import java.io.IOException;
 import java.util.*;
@@ -385,7 +383,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
   public void write(KEYOUT key, VALUEOUT value, String baseOutputPath)
       throws IOException, InterruptedException {
     checkBaseOutputPath(baseOutputPath);
-    TaskAttemptContext taskContext = new TaskAttemptContextImpl(
+    TaskAttemptContext taskContext = ContextUtil.newTaskAttemptContext(
       ContextUtil.getConfiguration(context), context.getTaskAttemptID());
     getRecordWriter(taskContext, baseOutputPath).write(key, value);
   }
@@ -433,7 +431,7 @@ public class MultipleOutputs<KEYOUT, VALUEOUT> {
     job.setOutputFormatClass(getNamedOutputFormatClass(context, nameOutput));
     job.setOutputKeyClass(getNamedOutputKeyClass(context, nameOutput));
     job.setOutputValueClass(getNamedOutputValueClass(context, nameOutput));
-    TaskAttemptContext taskContext = new TaskAttemptContextImpl(
+    TaskAttemptContext taskContext = ContextUtil.newTaskAttemptContext(
       ContextUtil.getConfiguration(job), context.getTaskAttemptID());
     return taskContext;
   }
