@@ -56,7 +56,7 @@ done
 
 echo "processing $SNAPSHOT_VERSION"
 
-$(cd $TMPDIR && git clone -b $SNAPSHOT_BRANCH git://git.code.sf.net/p/hadoop-bam/code hadoop-bam-${SNAPSHOT_VERSION} > /dev/null 2>&1 )
+$(cd $TMPDIR && git clone -b $SNAPSHOT_BRANCH http://git.code.sf.net/p/hadoop-bam/code hadoop-bam-${SNAPSHOT_VERSION} > /dev/null 2>&1 )
 $(cd "$TMPDIR/hadoop-bam-${SNAPSHOT_VERSION}" && ant > /dev/null 2>&1 )
 
 fetch_and_build $SNAPSHOT_VERSION sam samtools samtools Samtools

@@ -18,10 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package tests.fi.tkk.ics.hadoop.bam;
+package fi.tkk.ics.hadoop.bam;
 
-import fi.tkk.ics.hadoop.bam.VCFInputFormat;
-import fi.tkk.ics.hadoop.bam.VariantContextWritable;
 import hbparquet.hadoop.util.ContextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -45,7 +43,7 @@ public class TestVCFInputFormat {
     @Before
     public void setup() throws IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, InterruptedException, NoSuchFieldException {
         Configuration conf = new Configuration();
-        String input_file = ClassLoader.getSystemClassLoader().getResource("tests/resources/test.vcf").getFile();
+        String input_file = ClassLoader.getSystemClassLoader().getResource("test.vcf").getFile();
         conf.set("hadoopbam.vcf.trust-exts", "true");
         conf.set("mapred.input.dir", "file://" + input_file);
 
@@ -57,6 +55,7 @@ public class TestVCFInputFormat {
         Path file = new Path("file://" + input_file);
         VCFInputFormat inputFormat = new VCFInputFormat(conf);
         List<InputSplit> splits = inputFormat.getSplits(ctx);
+        // TODO: GO ON HERE!!!!
         reader = inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
         reader.initialize(splits.get(0), taskAttemptContext);
     }

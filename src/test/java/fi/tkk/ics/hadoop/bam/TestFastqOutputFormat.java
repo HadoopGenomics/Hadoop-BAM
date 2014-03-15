@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package tests.fi.tkk.ics.hadoop.bam;
+package fi.tkk.ics.hadoop.bam;
 
 import fi.tkk.ics.hadoop.bam.FastqOutputFormat.FastqRecordWriter;
 import fi.tkk.ics.hadoop.bam.SequencedFragment;

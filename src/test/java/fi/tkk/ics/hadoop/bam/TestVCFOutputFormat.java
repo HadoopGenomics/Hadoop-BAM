@@ -18,7 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package tests.fi.tkk.ics.hadoop.bam;
+package fi.tkk.ics.hadoop.bam;
 
 import fi.tkk.ics.hadoop.bam.KeyIgnoringVCFOutputFormat;
 import fi.tkk.ics.hadoop.bam.VariantContextWritable;
@@ -63,7 +63,7 @@ public class TestVCFOutputFormat {
         Configuration conf = new Configuration();
         conf.set("hadoopbam.vcf.output-format", "VCF");
         KeyIgnoringVCFOutputFormat<Long> outputFormat = new KeyIgnoringVCFOutputFormat<Long>(conf);
-        String header_file = ClassLoader.getSystemClassLoader().getResource("tests/resources/test.vcf").getFile();
+        String header_file = ClassLoader.getSystemClassLoader().getResource("test.vcf").getFile();
         outputFormat.readHeaderFrom(new SeekableFileStream(new File(header_file)));
         taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
         writer = outputFormat.getRecordWriter(taskAttemptContext, new Path("file://" + test_vcf_output));

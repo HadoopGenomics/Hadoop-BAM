@@ -33,7 +33,8 @@ Dependencies
 Hadoop. The latest stable release, 1.1.2 at the time of writing, is
 recommended. Older stable versions as far back as 0.20.2 should also work.
 Version 4.2.0 of Cloudera's distribution, CDH, has also been tested. Use other
-versions at your own risk.
+versions at your own risk. You can change the version of Hadoop linked
+against by modifying the corresponding paramter in the pom.xml build file.
 
 Picard SAM-JDK. Version 1.93 is provided in the form of sam-1.93.jar,
 picard-1.93.jar, variant-1.93.jar, and tribble-1.93.jar. Later versions may
@@ -53,38 +54,27 @@ A precompiled "hadoop-bam.jar" built against Hadoop 1.1.2 is provided. You may
 also build it yourself using the commands below --- a necessary step if you are
 using an incompatible version of Hadoop.
 
-The easiest way to compile Hadoop-BAM is to use Apache Ant (version 1.7.1 or
-greater) with the following simple command:
+The easiest way to compile Hadoop-BAM is to use Maven (version 3.0.4 at least)
+with the following simple command:
 
-   ant
+   mvn clean package -DskipTests
 
-Note that for this to work, either the HADOOP_HOME environment variable should
-be set to point to the main Hadoop directory, or the relevant .jar files should
-be in the CLASSPATH environment variable. If one wants to use CLASSPATH
-directly, it should contain the following .jars:
+The previous command will create two files:
 
-   - hadoop-core-1.1.2.jar   For Hadoop 1.1.2; the appropriate core .jar file
-                             for other releases.
+   target/hadoop-bam-X.Y.Z-SNAPSHOT.jar
+   target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
-   - commons-cli-1.2.jar     Apache Commons CLI; provided by Hadoop in its lib/
-                             subdirectory. Hadoop loads it when used so this
-                             should never be necessary when using Hadoop-BAM,
-                             but it is required in this build step.
+The former contains only Hadoop-BAM whereas the latter one also contains all
+dependencies and can be run directly via
 
-   - The provided Picard .jar files (named in the "Dependencies" section
-     above), or any greater version at your own risk.
+   hadoop jar target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
-The previous command will create the 'hadoop-bam.jar' file. For Javadoc
-documentation, run:
+Javadoc documentation is generated automatically and can then be found in
+the target/apidocs subdirectory.
 
-   ant javadoc
+Finally, unit test can be run via:
 
-Documentation can then be found in the "doc" subdirectory.
-
-Finally, to run tests, which require version 4 of the JUnit test framework
-(available at http://junit.sourceforge.net/), run:
-
-   ant run-tests
+   mvn test
 
 -------------
 Library usage
@@ -105,8 +95,60 @@ src/fi/tkk/ics/hadoop/bam/cli/plugins/VCFSort.java.
 
 When using Hadoop-BAM as a library in your program, remember to have
 hadoop-bam.jar as well as the Picard .jars (including the Commons JEXL .jar) in
-your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the "-libjars" argument
-and handle it properly, by using Hadoop's GenericOptionsParser or Tool class.
+your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
+*-jar-with-dependencies.jar which contains already all dependencies.
+
+Linking against Hadoop-BAM
+..........................
+
+If your Maven project relies on Hadoop-BAM the easiest way to link against
+it is by adding our unofficial maven repository which also provides matching
+versions of the dependencies. You need to add the following to your pom.xml:
+
+<project>
+...
+    <repositories>
+        <repository>
+            <id>hadoop-bam-sourceforge</id>
+            <url>http://hadoop-bam.sourceforge.net/maven/</url>
+        </repository>
+    </repositories>
+...
+    <dependencies>
+        <dependency>
+            <groupId>fi.tkk.ics.hadoop.bam</groupId>
+            <artifactId>hadoop-bam</artifactId>
+            <version>6.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>variant</groupId>
+            <artifactId>variant</artifactId>
+            <version>1.93</version>
+        </dependency>
+        <dependency>
+            <groupId>tribble</groupId>
+            <artifactId>tribble</artifactId>
+            <version>1.93</version>
+        </dependency>
+        <dependency>
+            <groupId>cofoja</groupId>
+            <artifactId>cofoja</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>picard</groupId>
+            <artifactId>picard</artifactId>
+            <version>1.93</version>
+        </dependency>
+        <dependency>
+            <groupId>samtools</groupId>
+            <artifactId>samtools</artifactId>
+            <version>1.93</version>
+        </dependency>
+        ...
+    </dependencies>
+    ...
+</project>
 
 ------------------
 Command-line usage
@@ -120,27 +162,25 @@ class path will be used as well.
 Running under Hadoop
 ....................
 
-To use Hadoop-BAM under Hadoop, the Picard .jar files (including the Commons
-JEXL .jar) need to be available. There are two alternative ways of
-accomplishing this. The most straightforward is to use the "-libjars" command
-line argument when running Hadoop-BAM, as follows:
+To use Hadoop-BAM under Hadoop, the easiest method is to use the
+jar that comes packaged with all dependencies via
+
+hadoop jar hadoop-bam-with-dependencies.jar
+
+Alternatively, you can use the "-libjars" command line argument when
+running Hadoop-BAM to provide different versions of dependencies as follows:
 
    hadoop jar hadoop-bam.jar \
       -libjars sam-1.93.jar,picard-1.93.jar,variant-1.93.jar,tribble-1.93.jar,commons-jexl-2.1.1.jar
 
-The other way is to make sure that the Picard .jar files have been added to the
-HADOOP_CLASSPATH in the Hadoop configuration's hadoop-env.sh, along with any
-plugin .jar files that provide other commands. Then, you may run Hadoop-BAM
-simply with a command like:
+Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
+configuration's hadoop-env.sh.
 
-   hadoop jar hadoop-bam.jar
+The command used should print a brief help message listing the Hadoop-BAM
+commands available. To run a command, give it as the first command-line
+argument. For example, the provided SAM/BAM sorting command, "sort":
 
-No matter which method is chosen, the command used should print a brief help
-message listing the Hadoop-BAM commands available. To run a command, give it as
-the first command-line argument. For example, the provided SAM/BAM sorting
-command, "sort":
-
-   hadoop jar hadoop-bam.jar sort
+   hadoop jar hadoop-bam-with-dependencies.jar sort
 
 This will give a help message specific to that command.
 

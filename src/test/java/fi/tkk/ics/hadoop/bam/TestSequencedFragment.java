@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package tests.fi.tkk.ics.hadoop.bam;
+package fi.tkk.ics.hadoop.bam;
 
 import org.junit.*;
 import static org.junit.Assert.*;

@@ -20,10 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package tests.fi.tkk.ics.hadoop.bam;
+package fi.tkk.ics.hadoop.bam;
 
 import fi.tkk.ics.hadoop.bam.FastqInputFormat.FastqRecordReader;
-import fi.tkk.ics.hadoop.bam.SequencedFragment;
 
 import java.io.File;
 import java.io.IOException;
