@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.AsciiLineReaderIterator;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -58,7 +59,8 @@ public class VCFRecordReader
 	private final VariantContextWritable vc = new VariantContextWritable();
 
 	private VCFCodec codec = new VCFCodec();
-	private AsciiLineReader reader;
+    private AsciiLineReaderIterator it;
+    private AsciiLineReader reader;
 
 	private long length;
 
@@ -78,14 +80,17 @@ public class VCFRecordReader
 		final FSDataInputStream ins = fs.open(file);
 
 		reader = new AsciiLineReader(ins);
+        it = new AsciiLineReaderIterator(reader);
 		
-		final Object h = codec.readHeader(new AsciiLineReaderIterator(reader));
-		if (!(h instanceof VCFHeader))
+		final Object h = codec.readHeader(it);
+		if (!(h instanceof FeatureCodecHeader) || !(((FeatureCodecHeader)h).getHeaderValue() instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ file);
 
-		contigDict.clear();
+        final VCFHeader header = (VCFHeader)((FeatureCodecHeader)h).getHeaderValue();
+
+        contigDict.clear();
 		int i = 0;
-		for (final VCFContigHeaderLine contig : ((VCFHeader)h).getContigLines())
+		for (final VCFContigHeaderLine contig : header.getContigLines())
 			contigDict.put(contig.getID(), i++);
 
 		// Note that we create a new reader here, so reader.getPosition() is 0 at
@@ -95,8 +100,18 @@ public class VCFRecordReader
 		if (start != 0) {
 			ins.seek(start-1);
 			reader = new AsciiLineReader(ins);
-			reader.readLine();
-		}
+            it = new AsciiLineReaderIterator(reader);
+		} else { // it seems that newer versions of the reader peek ahead one more line from the input
+            long current_pos = it.getPosition();
+            ins.seek(0);
+            reader = new AsciiLineReader(ins);
+            it = new AsciiLineReaderIterator(reader);
+            while (it.hasNext() && it.getPosition() <= current_pos && it.peek().startsWith("#")) {
+                it.next();
+            }
+            if (!it.hasNext() || it.getPosition() > current_pos)
+                throw new IOException("Empty VCF file "+ file);
+        }
 	}
 	@Override public void close() { reader.close(); }
 
@@ -108,13 +123,10 @@ public class VCFRecordReader
 	@Override public VariantContextWritable getCurrentValue() { return vc; }
 
 	@Override public boolean nextKeyValue() throws IOException {
-		if (reader.getPosition() >= length)
+		if (!it.hasNext())
 			return false;
 
-		final String line = reader.readLine();
-		if (line == null)
-			return false;
-
+		final String line = it.next();
 		final VariantContext v = codec.decode(line);
 
 		Integer chromIdx = contigDict.get(v.getChr());

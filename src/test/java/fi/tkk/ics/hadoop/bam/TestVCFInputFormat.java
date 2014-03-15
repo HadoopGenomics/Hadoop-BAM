@@ -55,7 +55,6 @@ public class TestVCFInputFormat {
         Path file = new Path("file://" + input_file);
         VCFInputFormat inputFormat = new VCFInputFormat(conf);
         List<InputSplit> splits = inputFormat.getSplits(ctx);
-        // TODO: GO ON HERE!!!!
         reader = inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
         reader.initialize(splits.get(0), taskAttemptContext);
     }

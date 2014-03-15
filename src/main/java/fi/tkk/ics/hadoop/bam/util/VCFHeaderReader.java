@@ -29,6 +29,7 @@ import java.io.IOException;
 import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
+import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.AsciiLineReaderIterator;
@@ -44,10 +45,11 @@ public final class VCFHeaderReader {
 	public static VCFHeader readHeaderFrom(final SeekableStream in)
 		throws IOException
 	{
-		Object header = null;
+		Object headerCodec = null;
+        Object header = null;
 		final long initialPos = in.position();
 		try {
-			header = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(in)));
+			headerCodec = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(in)));
 		} catch (TribbleException e) {
             System.err.println("warning: while trying to read VCF header from file received exception: "+e.toString());
 
@@ -57,12 +59,13 @@ public final class VCFHeaderReader {
 			if (BlockCompressedInputStream.isValidFile(bin))
 				bin = new BlockCompressedInputStream(bin);
 
-			header =
+			headerCodec =
 				new BCF2Codec().readHeader(
-					new PositionalBufferedStream(bin)).getHeaderValue();
+					new PositionalBufferedStream(bin));
 		}
-		if (!(header instanceof VCFHeader))
+		if (!(headerCodec instanceof FeatureCodecHeader))
 			throw new IOException("No VCF header found");
+        header = ((FeatureCodecHeader)headerCodec).getHeaderValue();
 		return (VCFHeader)header;
 	}
 }
