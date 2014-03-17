@@ -30,32 +30,30 @@ Hadoop-BAM.
 Dependencies
 ------------
 
-Hadoop. The latest stable release, 1.1.2 at the time of writing, is
-recommended. Older stable versions as far back as 0.20.2 should also work.
-Version 4.2.0 of Cloudera's distribution, CDH, has also been tested. Use other
-versions at your own risk. You can change the version of Hadoop linked
-against by modifying the corresponding paramter in the pom.xml build file.
+Hadoop. Tested with 1.1.2 and 2.2.0. Older stable versions as far back
+as 0.20.2 should also work. Version 4.2.0 of Cloudera's distribution,
+CDH, has also been tested. Use other versions at your own risk. You
+can change the version of Hadoop linked against by modifying the
+corresponding paramter in the pom.xml build file.
 
-Picard SAM-JDK. Version 1.93 is provided in the form of sam-1.93.jar,
-picard-1.93.jar, variant-1.93.jar, and tribble-1.93.jar. Later versions may
-also work but have not been tested. variant-1.93.jar additionally depends on
-Commons JEXL, which is also provided as commons-jexl-2.1.1.jar.
+Picard SAM-JDK. Version 1.107 is required. Later versions may also
+work but have not been tested. A version of Picard is distributed via
+the unofficial maven repository (see below).
 
 Availability:
    Hadoop       - http://hadoop.apache.org/
    Picard       - http://picard.sourceforge.net/
-   Commons JEXL - https://commons.apache.org/proper/commons-jexl/
 
 ------------
 Installation
 ------------
 
-A precompiled "hadoop-bam.jar" built against Hadoop 1.1.2 is provided. You may
+A precompiled "hadoop-bam.jar" built against Hadoop 2.2.0 is provided. You may
 also build it yourself using the commands below --- a necessary step if you are
 using an incompatible version of Hadoop.
 
 The easiest way to compile Hadoop-BAM is to use Maven (version 3.0.4 at least)
-with the following simple command:
+with the following command:
 
    mvn clean package -DskipTests
 
@@ -88,10 +86,10 @@ Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 0.20 Hadoop releases instead of the older, deprecated API.
 
 See the Javadoc as well as the command line plugins' source code (in
-src/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for more information. In
+src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for more information. In
 particular, for MapReduce usage, recommended examples are
-src/fi/tkk/ics/hadoop/bam/cli/plugins/FixMate.java and
-src/fi/tkk/ics/hadoop/bam/cli/plugins/VCFSort.java.
+src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/FixMate.java and
+src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/VCFSort.java.
 
 When using Hadoop-BAM as a library in your program, remember to have
 hadoop-bam.jar as well as the Picard .jars (including the Commons JEXL .jar) in
@@ -123,12 +121,12 @@ versions of the dependencies. You need to add the following to your pom.xml:
         <dependency>
             <groupId>variant</groupId>
             <artifactId>variant</artifactId>
-            <version>1.93</version>
+            <version>1.107</version>
         </dependency>
         <dependency>
             <groupId>tribble</groupId>
             <artifactId>tribble</artifactId>
-            <version>1.93</version>
+            <version>1.107</version>
         </dependency>
         <dependency>
             <groupId>cofoja</groupId>
@@ -138,12 +136,12 @@ versions of the dependencies. You need to add the following to your pom.xml:
         <dependency>
             <groupId>picard</groupId>
             <artifactId>picard</artifactId>
-            <version>1.93</version>
+            <version>1.107</version>
         </dependency>
         <dependency>
             <groupId>samtools</groupId>
             <artifactId>samtools</artifactId>
-            <version>1.93</version>
+            <version>1.107</version>
         </dependency>
         ...
     </dependencies>
@@ -171,7 +169,7 @@ Alternatively, you can use the "-libjars" command line argument when
 running Hadoop-BAM to provide different versions of dependencies as follows:
 
    hadoop jar hadoop-bam.jar \
-      -libjars sam-1.93.jar,picard-1.93.jar,variant-1.93.jar,tribble-1.93.jar,commons-jexl-2.1.1.jar
+      -libjars sam-1.107.jar,picard-1.107.jar,variant-1.107.jar,tribble-1.107.jar,commons-jexl-2.1.1.jar
 
 Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
 configuration's hadoop-env.sh.
@@ -217,7 +215,8 @@ Running without Hadoop
 
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 and Hadoop .jar files as well as the Apache Commons CLI .jar provided by Hadoop
-("lib/commons-cli-1.2.jar" for version 1.1.2) are in the Java class path. In
+("lib/commons-cli-1.2.jar" for version 1.1.2) are in the Java class path.
+Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies.jar). In
 addition, depending on the Hadoop version, there may be more dependencies from
 the Hadoop lib/ directory. A command such as the following:
 
