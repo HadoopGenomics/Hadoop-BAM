@@ -25,6 +25,13 @@
         </license>
     </licenses>
 
+    <scm>
+        <connection>scm:git:git://git.code.sf.net/p/hadoop-bam/code</connection>
+        <developerConnection>scm:git:ssh://aschumach@git.code.sf.net/p/hadoop-bam/code</developerConnection>
+        <url>scm:git:git://git.code.sf.net/p/hadoop-bam/code</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <build>
         <outputDirectory>target/classes</outputDirectory>
         <testOutputDirectory>target/test-classes</testOutputDirectory>
@@ -93,7 +100,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.4.1</version>
+                <version>2.4.2</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
