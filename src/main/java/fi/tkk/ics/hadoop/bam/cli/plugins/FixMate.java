@@ -103,7 +103,7 @@ public final class FixMate extends CLIMRBAMPlugin {
 			return 3;
 
 		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt), "fixmate");
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "fixmate");
 		if (stringency == null)
 			return 3;
 

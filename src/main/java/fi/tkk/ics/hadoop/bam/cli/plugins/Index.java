@@ -72,7 +72,7 @@ public final class Index extends CLIPlugin {
 		}
 
 		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt), "index");
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "index");
 		if (stringency == null)
 			return 3;
 

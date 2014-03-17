@@ -89,10 +89,7 @@ public final class View extends CLIPlugin {
 			return 3;
 		}
 
-		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt), "view");
-		if (stringency == null)
-			return 3;
+        Utils.toStringency(parser.getOptionValue(stringencyOpt, ValidationStringency.DEFAULT_STRINGENCY.toString()), "view");
 
 		final String       path    = args.get(0);
 		final List<String> regions = args.subList(1, args.size());

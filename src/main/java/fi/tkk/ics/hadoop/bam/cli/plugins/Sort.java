@@ -94,7 +94,7 @@ public final class Sort extends CLIMRBAMPlugin {
 			return 3;
 
 		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt), "sort");
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "sort");
 		if (stringency == null)
 			return 3;
 

@@ -100,7 +100,7 @@ public final class Cat extends CLIPlugin {
 		final boolean verbose = parser.getBoolean(verboseOpt);
 
 		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt), "cat");
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "cat");
 		if (stringency == null)
 			return 3;
 
