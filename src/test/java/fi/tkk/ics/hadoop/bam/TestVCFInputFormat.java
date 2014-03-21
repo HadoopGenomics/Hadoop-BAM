@@ -22,7 +22,6 @@ package fi.tkk.ics.hadoop.bam;
 
 import hbparquet.hadoop.util.ContextUtil;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -50,9 +49,6 @@ public class TestVCFInputFormat {
         taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
         JobContext ctx = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
 
-
-        Job job = new Job(conf, "test");
-        Path file = new Path("file://" + input_file);
         VCFInputFormat inputFormat = new VCFInputFormat(conf);
         List<InputSplit> splits = inputFormat.getSplits(ctx);
         reader = inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
@@ -60,7 +56,21 @@ public class TestVCFInputFormat {
     }
 
     @Test
-    public void testSimple() throws Exception {
+    public void countEntries() throws Exception {
+        int counter = 0;
+        while(reader.nextKeyValue()) {
+            writable = reader.getCurrentValue();
+            assert (writable != null && writable.get() != null);
+            VariantContext vc = writable.get();
+            String value = vc.toString();
+            assert(value != null);
+            counter++;
+        }
+        assert(counter == 5);
+    }
+
+    @Test
+    public void testFirstSecond() throws Exception {
         if (!reader.nextKeyValue())
             throw new Exception("could not read first VariantContext");
 

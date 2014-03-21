@@ -100,6 +100,7 @@ public class VCFRecordReader
 		if (start != 0) {
 			ins.seek(start-1);
 			reader = new AsciiLineReader(ins);
+            reader.readLine(); // NOTE: skip incomplete line!
             it = new AsciiLineReaderIterator(reader);
 		} else { // it seems that newer versions of the reader peek ahead one more line from the input
             long current_pos = it.getPosition();
@@ -123,7 +124,7 @@ public class VCFRecordReader
 	@Override public VariantContextWritable getCurrentValue() { return vc; }
 
 	@Override public boolean nextKeyValue() throws IOException {
-		if (!it.hasNext())
+		if (!it.hasNext() || it.getPosition() >= length)
 			return false;
 
 		final String line = it.next();
