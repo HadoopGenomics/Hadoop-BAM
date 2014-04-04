@@ -48,9 +48,9 @@ Availability:
 Installation
 ------------
 
-A precompiled "hadoop-bam.jar" built against Hadoop 2.2.0 is provided. You may
-also build it yourself using the commands below --- a necessary step if you are
-using an incompatible version of Hadoop.
+A precompiled "hadoop-bam-X.Y.jar" built against Hadoop 2.2.0 is provided. You
+may also build it yourself using the commands below --- a necessary step if you
+are using an incompatible version of Hadoop.
 
 The easiest way to compile Hadoop-BAM is to use Maven (version 3.0.4 at least)
 with the following command:
@@ -59,13 +59,13 @@ with the following command:
 
 The previous command will create two files:
 
-   target/hadoop-bam-X.Y.Z-SNAPSHOT.jar
-   target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
+   target/hadoop-bam-X.Y-SNAPSHOT.jar
+   target/hadoop-bam-X.Y-SNAPSHOT-jar-with-dependencies.jar
 
 The former contains only Hadoop-BAM whereas the latter one also contains all
 dependencies and can be run directly via
 
-   hadoop jar target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
+   hadoop jar target/hadoop-bam-X.Y-SNAPSHOT-jar-with-dependencies.jar
 
 Javadoc documentation is generated automatically and can then be found in
 the target/apidocs subdirectory.
@@ -92,8 +92,8 @@ src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/FixMate.java and
 src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/VCFSort.java.
 
 When using Hadoop-BAM as a library in your program, remember to have
-hadoop-bam.jar as well as the Picard .jars (including the Commons JEXL .jar) in
-your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
+hadoop-bam-X.Y.jar as well as the Picard .jars (including the Commons JEXL .jar)
+in your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
 *-jar-with-dependencies.jar which contains already all dependencies.
 
 Linking against Hadoop-BAM
@@ -116,7 +116,7 @@ versions of the dependencies. You need to add the following to your pom.xml:
         <dependency>
             <groupId>fi.tkk.ics.hadoop.bam</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>6.1-SNAPSHOT</version>
+            <version>6.2</version>
         </dependency>
         <dependency>
             <groupId>variant</groupId>
@@ -153,7 +153,7 @@ Command-line usage
 ------------------
 
 Hadoop-BAM can be used as a command-line tool, with functionality in the form
-of plugins that provide commands to which hadoop-bam.jar is a frontend.
+of plugins that provide commands to which hadoop-bam-X.Y.jar is a frontend.
 Hadoop-BAM provides some commands of its own, but any others found in the Java
 class path will be used as well.
 
@@ -168,7 +168,7 @@ hadoop jar hadoop-bam-with-dependencies.jar
 Alternatively, you can use the "-libjars" command line argument when
 running Hadoop-BAM to provide different versions of dependencies as follows:
 
-   hadoop jar hadoop-bam.jar \
+   hadoop jar hadoop-bam-X.Y.jar \
       -libjars sam-1.107.jar,picard-1.107.jar,variant-1.107.jar,tribble-1.107.jar,commons-jexl-2.1.1.jar
 
 Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
@@ -178,7 +178,7 @@ The command used should print a brief help message listing the Hadoop-BAM
 commands available. To run a command, give it as the first command-line
 argument. For example, the provided SAM/BAM sorting command, "sort":
 
-   hadoop jar hadoop-bam-with-dependencies.jar sort
+   hadoop jar hadoop-bam-with-dependencies-X.Y.jar sort
 
 This will give a help message specific to that command.
 
@@ -216,13 +216,13 @@ Running without Hadoop
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 and Hadoop .jar files as well as the Apache Commons CLI .jar provided by Hadoop
 ("lib/commons-cli-1.2.jar" for version 1.1.2) are in the Java class path.
-Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies.jar). In
+Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies-X.Y.jar). In
 addition, depending on the Hadoop version, there may be more dependencies from
 the Hadoop lib/ directory. A command such as the following:
 
    java fi.tkk.ics.hadoop.bam.cli.Frontend
 
-Is equivalent to the "hadoop jar hadoop-bam.jar" command used earlier. This has
+Is equivalent to the "hadoop jar hadoop-bam-X.Y.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.
 
 Note that the "-libjars" way of passing the paths to the Picard .jars will not
@@ -233,17 +233,17 @@ Summarizer plugins
 ------------------
 
 This part explains some behaviour of the summarizing plugins, available in the
-command line interface as "hadoop jar hadoop-bam.jar summarize" and "hadoop jar
-hadoop-bam.jar summarysort". Unless you are a Chipster user, this section is
+command line interface as "hadoop jar hadoop-bam-X.Y.jar summarize" and "hadoop jar
+hadoop-bam-X.Y.jar summarysort". Unless you are a Chipster user, this section is
 unlikely to be relevant to you, and even then, this is not likely to be
 something you are interested in.
 
-Summarization is typically best done with the "hadoop jar hadoop-bam.jar
+Summarization is typically best done with the "hadoop jar hadoop-bam-X.Y.jar
 summarize --sort -o output-directory" command. Then there is no need to worry
 about concatenating nor sorting the output, as both are done automatically in
 this one command. But if you do not pass the "--sort" option, do remember that
 Chipster needs the outputs sorted before it can make use of them. For this, you
-need to run a separate "hadoop jar hadoop-bam.jar summarysort" command for each
+need to run a separate "hadoop jar hadoop-bam-X.Y.jar summarysort" command for each
 summary file output by "summarize".
 
 Output format

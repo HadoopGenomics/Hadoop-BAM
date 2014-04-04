@@ -1,0 +1,13 @@
+
+While we are not using maven-release, this is how to make a release:
+- update CHANGELOG.txt
+- update scripts/create_repo.sh and scripts/create_dependency_repo.sh
+  (if there was an update in dependencies)
+- mvn clean
+- mvn release:prepare
+- run scripts/create_repo.sh (and scripts/create_dependency_repo.sh if
+  necessary)
+- sftp local maven repo to sourceforge:
+  /home/project-web/hadoop-bam/htdocs/maven
+- clean temporary files, create tarball and upload tar.gz and README.txt
+  to sourceforge

@@ -1,3 +1,12 @@
+
+2014-04-04 --- 6.2:
+   - Bugfix: the update of Picard/Tribble introduced a bug into the
+     VCFInputFormat that affects input files loaded from HDFS that are
+     larger than one split
+   - Update to pom.xml:
+     	* SNAPSHOT versions are now two digits, as releases
+	* Added two missing dependencies for CLI tool
+
 2014-03-17 --- 6.1:
    - Update of Picard from 1.93 to 1.107
    - Moving from ant to maven build
