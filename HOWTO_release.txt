@@ -1,13 +1,33 @@
 
-While we are not using maven-release, this is how to make a release:
+While we are not using maven-release, this is how to make a release.
+Note: it is important to do these steps in exactly this order.
+
+1. inside local clone of repo prepare the sourceforge git repo:
+
 - update CHANGELOG.txt
 - update scripts/create_repo.sh and scripts/create_dependency_repo.sh
   (if there was an update in dependencies)
 - mvn clean
 - mvn release:prepare
+  _IMPORTANT_ choose version X.Y as the release tag name
+
+2. prepare the release tarball:
+
+- check out the release tag into separate directory called hadoop-bam-X.Y
+- mvn package
+- copy target/hadoop-bam-X.Y.jar and *-with-dependencies.jar into root
+  directory, then delete target, scripts/, other files such as .git
+- create tarball hadoop-bam-X.Y.tar.gz and upload tar.gz and README.txt to
+  sourceforge (make sure to press "i" on file and select "all OS" so that
+  it appears under the latest release link)
+
+3. update the maven repo on sourceforge website:
+
 - run scripts/create_repo.sh (and scripts/create_dependency_repo.sh if
   necessary)
-- sftp local maven repo to sourceforge:
+- these will create files inside /tmp (a local maven repo)
+- sftp local maven repo to sourceforge, path on ftp server:
   /home/project-web/hadoop-bam/htdocs/maven
-- clean temporary files, create tarball and upload tar.gz and README.txt
-  to sourceforge
+  _Note_: you may need to manually delete old directories, such as
+  6.2-SNAPSHOT after uploading 6.2 release
+
