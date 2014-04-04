@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fi.tkk.ics.hadoop.bam</groupId>
     <artifactId>hadoop-bam</artifactId>
-    <version>6.2-SNAPSHOT</version>
+    <version>6.2</version>
     <packaging>jar</packaging>
     <name>Hadoop-BAM</name>
 
@@ -29,7 +29,7 @@
         <connection>scm:git:git://git.code.sf.net/p/hadoop-bam/code</connection>
         <developerConnection>scm:git:ssh://aschumach@git.code.sf.net/p/hadoop-bam/code</developerConnection>
         <url>scm:git:git://git.code.sf.net/p/hadoop-bam/code</url>
-        <tag>HEAD</tag>
+        <tag>hadoop-bam-6.2</tag>
     </scm>
 
     <build>
