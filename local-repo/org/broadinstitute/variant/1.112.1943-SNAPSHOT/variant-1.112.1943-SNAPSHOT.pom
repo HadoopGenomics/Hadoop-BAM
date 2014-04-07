@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.broadinstitute</groupId>
+    <artifactId>variant</artifactId>
+    <version>1.112.1943-SNAPSHOT</version>
+    <name>variant</name>
+    <dependencies>
+        <dependency>
+            <groupId>org.broad</groupId>
+            <artifactId>tribble</artifactId>
+            <version>1.112.1943-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf</groupId>
+            <artifactId>sam</artifactId>
+            <version>1.112.1943-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-jexl</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+    </dependencies>
+</project>
