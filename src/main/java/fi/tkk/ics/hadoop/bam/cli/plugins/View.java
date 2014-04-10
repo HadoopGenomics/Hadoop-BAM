@@ -147,10 +147,10 @@ public final class View extends CLIPlugin {
 			default: writer = null; assert false;
 		}
 
-		if (regions.isEmpty() || headerOnly) {
-			writer.setSortOrder(header.getSortOrder(), true);
-			writer.setHeader(header);
+        writer.setSortOrder(header.getSortOrder(), true);
+        writer.setHeader(header);
 
+		if (regions.isEmpty() || headerOnly) {
 			if (!headerOnly)
 				if (!writeIterator(writer, reader.iterator(), path))
 					return 4;
