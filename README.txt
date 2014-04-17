@@ -1,3 +1,8 @@
+
+Note: This repository is no longer maintained. The code has been moved to:
+
+https://github.com/HadoopGenomics/Hadoop-BAM
+
 Hadoop-BAM: a library for the manipulation of files in common bioinformatics
 formats using the Hadoop MapReduce framework, and command line tools in the
 vein of SAMtools.
