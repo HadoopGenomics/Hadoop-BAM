@@ -20,7 +20,7 @@
 
 // File created: 2013-06-28 17:17:07
 
-package fi.tkk.ics.hadoop.bam.cli.plugins;
+package org.seqdoop.hadoopbam.cli.plugins;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -54,20 +54,20 @@ import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.KeyIgnoringVCFOutputFormat;
-import fi.tkk.ics.hadoop.bam.VCFFormat;
-import fi.tkk.ics.hadoop.bam.VCFInputFormat;
-import fi.tkk.ics.hadoop.bam.VCFOutputFormat;
-import fi.tkk.ics.hadoop.bam.VariantContextWritable;
-import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
-import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
-import fi.tkk.ics.hadoop.bam.util.Pair;
-import fi.tkk.ics.hadoop.bam.util.Timer;
-import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.KeyIgnoringVCFOutputFormat;
+import org.seqdoop.hadoopbam.VCFFormat;
+import org.seqdoop.hadoopbam.VCFInputFormat;
+import org.seqdoop.hadoopbam.VCFOutputFormat;
+import org.seqdoop.hadoopbam.VariantContextWritable;
+import org.seqdoop.hadoopbam.cli.CLIMRPlugin;
+import org.seqdoop.hadoopbam.cli.Utils;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
+import org.seqdoop.hadoopbam.util.Pair;
+import org.seqdoop.hadoopbam.util.Timer;
+import org.seqdoop.hadoopbam.util.VCFHeaderReader;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 public final class VCFSort extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

@@ -20,10 +20,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
-import fi.tkk.ics.hadoop.bam.FastqOutputFormat.FastqRecordWriter;
-import fi.tkk.ics.hadoop.bam.SequencedFragment;
+import org.seqdoop.hadoopbam.FastqOutputFormat.FastqRecordWriter;
+import org.seqdoop.hadoopbam.SequencedFragment;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;

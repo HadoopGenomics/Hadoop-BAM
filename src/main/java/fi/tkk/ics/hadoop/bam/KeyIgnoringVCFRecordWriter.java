@@ -20,7 +20,7 @@
 
 // File created: 2013-06-27 09:42:56
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.IOException;
 import java.io.OutputStream;

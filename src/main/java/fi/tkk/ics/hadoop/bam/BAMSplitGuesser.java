@@ -20,7 +20,7 @@
 
 // File created: 2011-01-17 15:17:59
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -40,9 +40,9 @@ import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
 import net.sf.samtools.util.RuntimeIOException;
 
-import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
-import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.SAMHeaderReader;
+import org.seqdoop.hadoopbam.util.SeekableArrayStream;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 /** A class for heuristically finding BAM record positions inside an area of
  * a BAM file.

@@ -20,7 +20,7 @@
 
 // File created: 2013-07-04 10:49:20
 
-package fi.tkk.ics.hadoop.bam.util;
+package org.seqdoop.hadoopbam.util;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;

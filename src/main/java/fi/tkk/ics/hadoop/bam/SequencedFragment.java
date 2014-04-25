@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
 
-import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
+import org.seqdoop.hadoopbam.FormatConstants.BaseQualityEncoding;
 
 public class SequencedFragment implements Writable
 {

@@ -20,7 +20,7 @@
 
 // File created: 2013-06-25 16:24:52
 
-package fi.tkk.ics.hadoop.bam.cli;
+package org.seqdoop.hadoopbam.cli;
 
 import java.io.IOException;
 
@@ -31,8 +31,8 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
-import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
+import org.seqdoop.hadoopbam.KeyIgnoringAnySAMOutputFormat;
+import org.seqdoop.hadoopbam.SAMRecordWritable;
 
 import hbparquet.hadoop.util.ContextUtil;
 

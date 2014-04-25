@@ -20,7 +20,7 @@
 
 // File created: 2013-06-26 12:47:26
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import net.sf.samtools.seekablestream.SeekableStream;
 
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 import hbparquet.hadoop.util.ContextUtil;
 

@@ -18,7 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam.cli.plugins.chipster;
+package org.seqdoop.hadoopbam.cli.plugins.chipster;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -62,15 +62,15 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
-import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
-import fi.tkk.ics.hadoop.bam.BAMRecordReader;
-import fi.tkk.ics.hadoop.bam.SAMRecordWritable;
-import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
-import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
-import fi.tkk.ics.hadoop.bam.util.Pair;
-import fi.tkk.ics.hadoop.bam.util.Timer;
+import org.seqdoop.hadoopbam.AnySAMInputFormat;
+import org.seqdoop.hadoopbam.BAMRecordReader;
+import org.seqdoop.hadoopbam.SAMRecordWritable;
+import org.seqdoop.hadoopbam.cli.CLIMRPlugin;
+import org.seqdoop.hadoopbam.cli.Utils;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
+import org.seqdoop.hadoopbam.util.Pair;
+import org.seqdoop.hadoopbam.util.Timer;
 
 public final class Summarize extends CLIMRPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

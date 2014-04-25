@@ -20,11 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
-import fi.tkk.ics.hadoop.bam.QseqInputFormat.QseqRecordReader;
-import fi.tkk.ics.hadoop.bam.SequencedFragment;
-import fi.tkk.ics.hadoop.bam.FormatException;
+import org.seqdoop.hadoopbam.QseqInputFormat.QseqRecordReader;
+import org.seqdoop.hadoopbam.SequencedFragment;
+import org.seqdoop.hadoopbam.FormatException;
 
 import java.io.File;
 import java.io.IOException;

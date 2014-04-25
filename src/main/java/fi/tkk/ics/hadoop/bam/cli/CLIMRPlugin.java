@@ -20,18 +20,18 @@
 
 // File created: 2013-06-20 14:17:25
 
-package fi.tkk.ics.hadoop.bam.cli;
+package org.seqdoop.hadoopbam.cli;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import static org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
-import fi.tkk.ics.hadoop.bam.util.Pair;
+import org.seqdoop.hadoopbam.cli.CLIPlugin;
+import org.seqdoop.hadoopbam.util.Pair;
 
 /** Like CLIPlugin, but has lots of useful defaults for MapReduce-using
  * plugins.

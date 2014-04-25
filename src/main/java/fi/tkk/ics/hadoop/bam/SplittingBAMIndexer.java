@@ -20,7 +20,7 @@
 
 // File created: 2010-08-03 12:20:20
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -42,8 +42,8 @@ import net.sf.samtools.util.BlockCompressedInputStream;
 
 /**
  * An indexing tool for BAM files, making them palatable to {@link
- * fi.tkk.ics.hadoop.bam.BAMInputFormat}. Writes splitting BAM indices as
- * understood by {@link fi.tkk.ics.hadoop.bam.SplittingBAMIndex}.
+ * org.seqdoop.hadoopbam.BAMInputFormat}. Writes splitting BAM indices as
+ * understood by {@link org.seqdoop.hadoopbam.SplittingBAMIndex}.
  *
  * Takes a configuration as input, and uses it to parse the "input" and
  * "granularity" values directly from the configuration.

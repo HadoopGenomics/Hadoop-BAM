@@ -18,10 +18,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
-import fi.tkk.ics.hadoop.bam.KeyIgnoringVCFOutputFormat;
-import fi.tkk.ics.hadoop.bam.VariantContextWritable;
+import org.seqdoop.hadoopbam.KeyIgnoringVCFOutputFormat;
+import org.seqdoop.hadoopbam.VariantContextWritable;
 import hbparquet.hadoop.util.ContextUtil;
 import net.sf.samtools.seekablestream.SeekableFileStream;
 

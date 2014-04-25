@@ -8,7 +8,7 @@
 // - Added Option.setLongForm().
 // - Added getInt() convenience method.
 
-package fi.tkk.ics.hadoop.bam.custom.jargs.gnu;
+package org.seqdoop.hadoopbam.custom.jargs.gnu;
 
 import java.text.NumberFormat;
 import java.text.ParseException;

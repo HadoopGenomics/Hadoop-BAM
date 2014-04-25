@@ -20,9 +20,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
-import fi.tkk.ics.hadoop.bam.util.ConfHelper;
+import org.seqdoop.hadoopbam.util.ConfHelper;
 
 import org.junit.*;
 import static org.junit.Assert.*;

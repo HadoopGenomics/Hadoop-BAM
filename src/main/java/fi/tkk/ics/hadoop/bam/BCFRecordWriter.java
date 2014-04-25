@@ -20,7 +20,7 @@
 
 // File created: 2013-06-28 15:58:08
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -41,8 +41,8 @@ import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.VCFHeaderReader;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 /** A base {@link RecordWriter} for compressed BCF.
  *

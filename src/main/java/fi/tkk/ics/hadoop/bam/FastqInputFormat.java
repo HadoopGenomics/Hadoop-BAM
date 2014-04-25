@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -41,8 +41,8 @@ import java.io.EOFException;
 
 import java.util.regex.*;
 
-import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
-import fi.tkk.ics.hadoop.bam.util.ConfHelper;
+import org.seqdoop.hadoopbam.FormatConstants.BaseQualityEncoding;
+import org.seqdoop.hadoopbam.util.ConfHelper;
 
 import hbparquet.hadoop.util.ContextUtil;
 

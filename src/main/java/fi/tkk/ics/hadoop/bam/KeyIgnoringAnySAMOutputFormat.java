@@ -20,7 +20,7 @@
 
 // File created: 2010-08-11 12:19:23
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
+import org.seqdoop.hadoopbam.util.SAMHeaderReader;
 
 /** Writes only the SAM records, not the key.
  *

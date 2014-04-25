@@ -20,7 +20,7 @@
 
 // File created: 2013-07-05 16:18:57
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
 import org.broadinstitute.variant.vcf.VCFHeader;

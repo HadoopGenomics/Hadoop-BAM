@@ -20,7 +20,7 @@
 
 // File created: 2012-07-26 14:36:03
 
-package fi.tkk.ics.hadoop.bam.util;
+package org.seqdoop.hadoopbam.util;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -36,7 +36,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
-import fi.tkk.ics.hadoop.bam.SAMFormat;
+import org.seqdoop.hadoopbam.SAMFormat;
 
 public class SAMOutputPreparer {
 	private ByteBuffer buf;
