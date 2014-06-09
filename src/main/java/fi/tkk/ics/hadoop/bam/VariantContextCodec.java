@@ -33,32 +33,58 @@ import java.util.Map;
 import java.util.Set;
 import java.lang.reflect.Array;
 
+import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
+import org.broadinstitute.variant.vcf.VCFConstants;
+import org.broadinstitute.variant.vcf.VCFEncoder;
+import org.broadinstitute.variant.vcf.VCFHeader;
 
 // See the comment in VariantContextWritable explaining what this is used for.
 public final class VariantContextCodec {
 	public static void write(final DataOutput out, final VariantContext vc)
 		throws IOException
 	{
-		// We would need the header to build the genotype fields. Fortunately,
-		// unless the VariantContext is a result of a fullyDecode(), it saves the
-		// genotypes as an uninterpreted String.
-		if (!vc.getGenotypes().isLazyWithData())
-			throw new IllegalStateException(
-				"Cannot write fully decoded VariantContext: need lazy genotypes");
+        Object genotypesData;
+        int numGenotypes;
+        if (vc.getGenotypes().isLazyWithData()) {
+            final org.broadinstitute.variant.variantcontext.LazyGenotypesContext gc =
+                    (org.broadinstitute.variant.variantcontext.LazyGenotypesContext)
+                            vc.getGenotypes();
 
-		final org.broadinstitute.variant.variantcontext.LazyGenotypesContext gc =
-			(org.broadinstitute.variant.variantcontext.LazyGenotypesContext)
-				vc.getGenotypes();
+            genotypesData = gc.getUnparsedGenotypeData();
+            numGenotypes = gc.size();
+        }
+        else if (vc instanceof VariantContextWithHeader) {
 
-		final Object geno = gc.getUnparsedGenotypeData();
-		if (!(geno instanceof String || geno instanceof BCF2Codec.LazyData))
+            final VCFHeader header = ((VariantContextWithHeader)vc).getHeader();
+            final List<String> genotypeAttributeKeys = vc.calcVCFGenotypeKeys(header);
+            final StringBuilder builder = new StringBuilder();
+            if ( ! genotypeAttributeKeys.isEmpty()) {
+                // TODO: the VCFEncoder equivalent of this code checks for missing header fields here.  do we care?
+
+                final String genotypeFormatString = ParsingUtils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, genotypeAttributeKeys);
+
+                builder.append(VCFConstants.FIELD_SEPARATOR);
+                builder.append(genotypeFormatString);
+
+                final VCFEncoder encoder = new VCFEncoder(header, true);
+                final Map<Allele, String> alleleStrings = encoder.buildAlleleStrings(vc);
+                encoder.addGenotypeData(vc, alleleStrings, genotypeAttributeKeys, builder);
+            }
+            genotypesData = builder.toString();
+            numGenotypes = vc.getGenotypes().size();
+        }
+        else {
+            throw new IllegalStateException( "Cannot write fully decoded VariantContext: need lazy genotypes or VCF Header" );
+        }
+
+		if (!(genotypesData instanceof String || genotypesData instanceof BCF2Codec.LazyData))
 			throw new IllegalStateException(
 				"Unrecognized unparsed genotype data, expected String or "+
-				"BCF2Codec.LazyData: "+ geno.getClass());
+				"BCF2Codec.LazyData: "+ genotypesData.getClass());
 
 		final byte[] chrom = vc.getChr().getBytes("UTF-8");
 		out.writeInt(chrom.length);
@@ -107,16 +133,16 @@ public final class VariantContextCodec {
 			encodeAttrVal(out, ent.getValue());
 		}
 
-		out.writeInt(gc.size());
+		out.writeInt(numGenotypes);
 
-		if (geno instanceof String) {
+		if (genotypesData instanceof String) {
 			out.writeByte(0);
-			final byte[] genob = ((String)geno).getBytes("UTF-8");
+			final byte[] genob = ((String)genotypesData).getBytes("UTF-8");
 			out.writeInt(genob.length);
 			out.write   (genob);
 		} else {
-			assert geno instanceof BCF2Codec.LazyData;
-			final BCF2Codec.LazyData data = (BCF2Codec.LazyData)geno;
+			assert genotypesData instanceof BCF2Codec.LazyData;
+			final BCF2Codec.LazyData data = (BCF2Codec.LazyData)genotypesData;
 			out.writeByte(1);
 			out.writeInt(data.bytes.length);
 			out.write   (data.bytes);
