@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -42,8 +42,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
-import fi.tkk.ics.hadoop.bam.util.ConfHelper;
+import org.seqdoop.hadoopbam.FormatConstants.BaseQualityEncoding;
+import org.seqdoop.hadoopbam.util.ConfHelper;
 
 /**
  * Reads the Illumina qseq sequence format.

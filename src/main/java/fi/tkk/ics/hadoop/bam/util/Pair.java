@@ -20,7 +20,7 @@
 
 // File created: 2011-06-17 15:48:33
 
-package fi.tkk.ics.hadoop.bam.util;
+package org.seqdoop.hadoopbam.util;
 
 public class Pair<A,B> {
 	public A fst;

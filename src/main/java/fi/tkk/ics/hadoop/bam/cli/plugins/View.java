@@ -20,7 +20,7 @@
 
 // File created: 2011-06-14 13:38:57
 
-package fi.tkk.ics.hadoop.bam.cli.plugins;
+package org.seqdoop.hadoopbam.cli.plugins;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -41,14 +41,14 @@ import net.sf.samtools.seekablestream.SeekableStream;
 
 import org.apache.hadoop.fs.Path;
 
-import fi.tkk.ics.hadoop.bam.SAMFormat;
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
-import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
-import fi.tkk.ics.hadoop.bam.util.Pair;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.SAMFormat;
+import org.seqdoop.hadoopbam.cli.CLIPlugin;
+import org.seqdoop.hadoopbam.cli.Utils;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.BooleanOption;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.StringOption;
+import org.seqdoop.hadoopbam.util.Pair;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 public final class View extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

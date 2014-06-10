@@ -20,7 +20,7 @@
 
 // File created: 2010-08-12 09:57:45
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.DataOutput;
 import java.io.DataInput;
@@ -31,8 +31,8 @@ import org.apache.hadoop.io.Writable;
 import net.sf.samtools.BAMRecordCodec;
 import net.sf.samtools.SAMRecord;
 
-import fi.tkk.ics.hadoop.bam.util.DataInputWrapper;
-import fi.tkk.ics.hadoop.bam.util.DataOutputWrapper;
+import org.seqdoop.hadoopbam.util.DataInputWrapper;
+import org.seqdoop.hadoopbam.util.DataOutputWrapper;
 
 /** A {@link Writable} {@link SAMRecord}.
  *

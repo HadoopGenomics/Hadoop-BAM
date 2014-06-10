@@ -20,14 +20,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import org.junit.*;
 import static org.junit.Assert.*;
 
-import fi.tkk.ics.hadoop.bam.SequencedFragment;
-import fi.tkk.ics.hadoop.bam.FormatConstants;
-import fi.tkk.ics.hadoop.bam.FormatException;
+import org.seqdoop.hadoopbam.SequencedFragment;
+import org.seqdoop.hadoopbam.FormatConstants;
+import org.seqdoop.hadoopbam.FormatException;
 
 import java.io.IOException;
 import java.io.DataInput;

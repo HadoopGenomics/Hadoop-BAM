@@ -20,7 +20,7 @@
 
 // File created: 2012-02-22 20:40:39
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import hbparquet.hadoop.util.ContextUtil;
 

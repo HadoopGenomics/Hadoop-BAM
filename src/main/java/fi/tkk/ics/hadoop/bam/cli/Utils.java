@@ -20,7 +20,7 @@
 
 // File created: 2011-06-14 14:52:20
 
-package fi.tkk.ics.hadoop.bam.cli;
+package org.seqdoop.hadoopbam.cli;
 
 import java.io.File;
 import java.io.InputStream;
@@ -50,9 +50,9 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
-import fi.tkk.ics.hadoop.bam.SAMFormat;
-import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
-import fi.tkk.ics.hadoop.bam.util.Timer;
+import org.seqdoop.hadoopbam.SAMFormat;
+import org.seqdoop.hadoopbam.util.SAMOutputPreparer;
+import org.seqdoop.hadoopbam.util.Timer;
 
 import hbparquet.hadoop.util.ContextUtil;
 

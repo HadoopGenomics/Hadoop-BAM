@@ -20,7 +20,7 @@
 
 // File created: 2013-06-28 13:49:57
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
@@ -42,9 +42,9 @@ import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
+import org.seqdoop.hadoopbam.util.SeekableArrayStream;
 
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 /** A class for heuristically finding BCF record positions inside an area of
  * a BCF file. Handles both compressed and uncompressed BCF.

@@ -20,7 +20,7 @@
 
 // File created: 2013-06-28 16:12:58
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -43,8 +43,8 @@ import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.vcf.VCFContigHeaderLine;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.MurmurHash3;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 import hbparquet.hadoop.util.ContextUtil;
 

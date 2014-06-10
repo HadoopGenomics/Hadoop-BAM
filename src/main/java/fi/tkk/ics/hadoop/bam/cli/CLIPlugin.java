@@ -20,7 +20,7 @@
 
 // File created: 2011-06-14 13:41:56
 
-package fi.tkk.ics.hadoop.bam.cli;
+package org.seqdoop.hadoopbam.cli;
 
 import java.io.PrintStream;
 import java.util.Collections;
@@ -29,9 +29,9 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configured;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
 
-import fi.tkk.ics.hadoop.bam.util.Pair;
+import org.seqdoop.hadoopbam.util.Pair;
 
 public abstract class CLIPlugin extends Configured {
 	protected final String command, desc, usageTail, version, longDesc;

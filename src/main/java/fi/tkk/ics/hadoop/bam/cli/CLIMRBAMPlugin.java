@@ -20,7 +20,7 @@
 
 // File created: 2013-06-20 14:22:25
 
-package fi.tkk.ics.hadoop.bam.cli;
+package org.seqdoop.hadoopbam.cli;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,15 +28,15 @@ import java.util.Locale;
 
 import org.apache.hadoop.conf.Configuration;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import static org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-import fi.tkk.ics.hadoop.bam.AnySAMInputFormat;
-import fi.tkk.ics.hadoop.bam.AnySAMOutputFormat;
-import fi.tkk.ics.hadoop.bam.KeyIgnoringAnySAMOutputFormat;
-import fi.tkk.ics.hadoop.bam.SAMFormat;
-import fi.tkk.ics.hadoop.bam.cli.CLIMRPlugin;
-import fi.tkk.ics.hadoop.bam.util.Pair;
+import org.seqdoop.hadoopbam.AnySAMInputFormat;
+import org.seqdoop.hadoopbam.AnySAMOutputFormat;
+import org.seqdoop.hadoopbam.KeyIgnoringAnySAMOutputFormat;
+import org.seqdoop.hadoopbam.SAMFormat;
+import org.seqdoop.hadoopbam.cli.CLIMRPlugin;
+import org.seqdoop.hadoopbam.util.Pair;
 
 /** Like CLIMRPlugin, with added useful defaults for plugins working solely on
  * BAM/SAM files.

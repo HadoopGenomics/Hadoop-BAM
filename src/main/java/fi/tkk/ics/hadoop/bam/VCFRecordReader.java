@@ -20,7 +20,7 @@
 
 // File created: 2013-06-26 12:49:12
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -42,7 +42,7 @@ import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFContigHeaderLine;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
+import org.seqdoop.hadoopbam.util.MurmurHash3;
 import hbparquet.hadoop.util.ContextUtil;
 
 /** The key is the bitwise OR of the chromosome index in the upper 32 bits

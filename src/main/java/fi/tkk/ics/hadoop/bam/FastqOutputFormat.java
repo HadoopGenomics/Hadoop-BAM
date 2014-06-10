@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -39,7 +39,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 
-import fi.tkk.ics.hadoop.bam.FormatConstants.BaseQualityEncoding;
+import org.seqdoop.hadoopbam.FormatConstants.BaseQualityEncoding;
 
 /**
  * Output format for the fastq format.

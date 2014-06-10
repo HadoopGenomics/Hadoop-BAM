@@ -20,7 +20,7 @@
 
 // File created: 2010-08-11 12:19:23
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
+import org.seqdoop.hadoopbam.util.SAMHeaderReader;
 
 /** Writes only the BAM records, not the key.
  *

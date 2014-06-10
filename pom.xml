@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>fi.tkk.ics.hadoop.bam</groupId>
+    <groupId>org.seqdoop.hadoopbam</groupId>
     <artifactId>hadoop-bam</artifactId>
     <version>6.3-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -133,7 +133,7 @@
                         <index>true</index>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>fi.tkk.ics.hadoop.bam.cli.Frontend</mainClass>
+                            <mainClass>org.seqdoop.hadoopbam.cli.Frontend</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

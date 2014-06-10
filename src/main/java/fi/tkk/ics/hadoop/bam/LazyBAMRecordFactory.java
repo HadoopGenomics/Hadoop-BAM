@@ -20,7 +20,7 @@
 
 // File created: 2011-11-15 11:58:23
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import net.sf.samtools.BAMRecord;
 import net.sf.samtools.SAMFileHeader;

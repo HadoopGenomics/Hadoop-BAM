@@ -20,7 +20,7 @@
 
 // File created: 2010-08-11 12:17:33
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 

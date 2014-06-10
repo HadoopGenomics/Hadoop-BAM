@@ -20,7 +20,7 @@
 
 // File created: 2010-08-20 13:54:10
 
-package fi.tkk.ics.hadoop.bam.util;
+package org.seqdoop.hadoopbam.util;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 
-import fi.tkk.ics.hadoop.bam.SAMFormat;
+import org.seqdoop.hadoopbam.SAMFormat;
 
 public final class GetSortedBAMHeader {
 	public static void main(String[] args) throws IOException {

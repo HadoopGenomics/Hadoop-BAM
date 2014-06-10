@@ -20,7 +20,7 @@
 
 // File created: 2010-08-09 14:34:08
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.IOException;
 
@@ -38,9 +38,9 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
-import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
-import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.MurmurHash3;
+import org.seqdoop.hadoopbam.util.SAMHeaderReader;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 import hbparquet.hadoop.util.ContextUtil;
 

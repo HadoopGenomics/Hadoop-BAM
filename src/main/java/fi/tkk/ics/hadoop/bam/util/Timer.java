@@ -20,7 +20,7 @@
 
 // File created: 2011-06-29 11:55:41
 
-package fi.tkk.ics.hadoop.bam.util;
+package org.seqdoop.hadoopbam.util;
 
 public class Timer {
 	private long t0, td;

@@ -20,12 +20,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import org.junit.*;
 import static org.junit.Assert.*;
 
-import fi.tkk.ics.hadoop.bam.LineReader;
+import org.seqdoop.hadoopbam.LineReader;
 
 import org.apache.hadoop.io.Text;
 

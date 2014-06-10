@@ -20,7 +20,7 @@
 
 // File created: 2012-02-02 11:39:46
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -45,7 +45,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMTextHeaderCodec;
 
-import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
+import org.seqdoop.hadoopbam.util.SAMHeaderReader;
 
 import hbparquet.hadoop.util.ContextUtil;
 

@@ -20,7 +20,7 @@
 
 // File created: 2013-06-26 15:19:41
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
 import java.io.IOException;
 
@@ -33,8 +33,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import net.sf.samtools.seekablestream.SeekableStream;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
-import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.VCFHeaderReader;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 import hbparquet.hadoop.util.ContextUtil;
 

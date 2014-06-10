@@ -20,7 +20,7 @@
 
 // File created: 2011-07-18 10:10:45
 
-package fi.tkk.ics.hadoop.bam.cli.plugins;
+package org.seqdoop.hadoopbam.cli.plugins;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,13 +33,13 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFormatException;
 import net.sf.samtools.SAMRecordIterator;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import static org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
-import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.util.Pair;
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.cli.CLIPlugin;
+import org.seqdoop.hadoopbam.cli.Utils;
+import org.seqdoop.hadoopbam.util.Pair;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 
 public final class Index extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

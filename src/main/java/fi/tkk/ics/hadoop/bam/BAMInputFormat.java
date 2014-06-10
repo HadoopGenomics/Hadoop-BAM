@@ -20,9 +20,9 @@
 
 // File created: 2010-08-03 11:50:19
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoopbam;
 
-import fi.tkk.ics.hadoop.bam.util.WrapSeekable;
+import org.seqdoop.hadoopbam.util.WrapSeekable;
 import hbparquet.hadoop.util.ContextUtil;
 
 import java.io.IOException;

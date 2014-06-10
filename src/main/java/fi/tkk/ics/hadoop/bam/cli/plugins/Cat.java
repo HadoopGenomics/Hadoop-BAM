@@ -20,7 +20,7 @@
 
 // File created: 2012-03-08 14:58:13
 
-package fi.tkk.ics.hadoop.bam.cli.plugins;
+package org.seqdoop.hadoopbam.cli.plugins;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -43,14 +43,14 @@ import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
-import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
-import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
+import org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser;
+import static org.seqdoop.hadoopbam.custom.jargs.gnu.CmdLineParser.Option.*;
 
-import fi.tkk.ics.hadoop.bam.SAMFormat;
-import fi.tkk.ics.hadoop.bam.cli.CLIPlugin;
-import fi.tkk.ics.hadoop.bam.cli.Utils;
-import fi.tkk.ics.hadoop.bam.util.Pair;
-import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
+import org.seqdoop.hadoopbam.SAMFormat;
+import org.seqdoop.hadoopbam.cli.CLIPlugin;
+import org.seqdoop.hadoopbam.cli.Utils;
+import org.seqdoop.hadoopbam.util.Pair;
+import org.seqdoop.hadoopbam.util.SAMOutputPreparer;
 
 public final class Cat extends CLIPlugin {
 	private static final List<Pair<CmdLineParser.Option, String>> optionDescs

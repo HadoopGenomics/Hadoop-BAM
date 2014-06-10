@@ -20,7 +20,7 @@
 
 // File created: 2011-06-14 13:00:09
 
-package fi.tkk.ics.hadoop.bam.cli;
+package org.seqdoop.hadoopbam.cli;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
