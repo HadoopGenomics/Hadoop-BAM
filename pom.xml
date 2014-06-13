@@ -84,8 +84,8 @@
                                     <message>Hadoop-BAM requires Maven 3.0.4 or greater</message>
                                 </requireMavenVersion>
                                 <requireJavaVersion>
-                                    <version>[1.7,)</version>
-                                    <message>Hadoop-BAM requires Java 1.7 or greater</message>
+                                    <version>[1.6,)</version>
+                                    <message>Hadoop-BAM requires Java 1.6 or greater</message>
                                 </requireJavaVersion>
                             </rules>
                         </configuration>
