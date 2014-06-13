@@ -14,7 +14,16 @@
         <samtools.version>1.107</samtools.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
-        <!-- <hadoop.version>1.1.2</hadoop.version> -->
+        <!--
+        Below you'll find some example hadoop.version tags.  The value you set
+        must have a corresponding version in one of the repositories that are
+        checked during installation.
+
+        <hadoop.version>2.0.0-cdh4.6.0</hadoop.version>
+        <hadoop.version>2.0.0-alpha</hadoop.version>
+        <hadoop.version>1.2.1</hadoop.version>
+        <hadoop.version>1.1.2</hadoop.version>
+        -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
