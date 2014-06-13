@@ -1,7 +1,6 @@
 
-Note: This repository is no longer maintained. The code has been moved to:
-
-https://github.com/HadoopGenomics/Hadoop-BAM
+  Hadoop-BAM
+==============
 
 Hadoop-BAM: a library for the manipulation of files in common bioinformatics
 formats using the Hadoop MapReduce framework, and command line tools in the
@@ -53,16 +52,29 @@ Availability:
 Installation
 ------------
 
-A precompiled "hadoop-bam-X.Y.jar" built against Hadoop 2.2.0 is provided. You
-may also build it yourself using the commands below --- a necessary step if you
-are using an incompatible version of Hadoop.
+If you're using Hadoop 2.2.0, a precompiled "hadoop-bam-X.Y.jar" is available
+that you can use.  Otherwise, you'll have to build Hadoop-BAM yourself by
+by using Maven (version 3.0.4 at least) and following the instructions below.
 
-The easiest way to compile Hadoop-BAM is to use Maven (version 3.0.4 at least)
-with the following command:
+### Hadoop version
+
+You must set the <hadoop.version> tag in pom.xml appropriately for the version
+of hadoop you're using.  Run "hadoop version" and copy the string from the output:
+
+    [luca@vm Hadoop-BAM]# hadoop version 2>/dev/null | grep Hadoop
+    Hadoop 2.0.0-cdh4.6.0
+
+In the output above, the version string is "2.0.0-cdh4.6.0".
+
+You should also set the value of the java.version property appropriately.
+
+### Build
+
+Build Hadoop-BAM with the following command:
 
    mvn clean package -DskipTests
 
-The previous command will create two files:
+It will create two files:
 
    target/hadoop-bam-X.Y-SNAPSHOT.jar
    target/hadoop-bam-X.Y-SNAPSHOT-jar-with-dependencies.jar

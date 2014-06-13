@@ -14,7 +14,16 @@
         <samtools.version>1.107</samtools.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
-        <!-- <hadoop.version>1.1.2</hadoop.version> -->
+        <!--
+        Below you'll find some example hadoop.version tags.  The value you set
+        must have a corresponding version in one of the repositories that are
+        checked during installation.
+
+        <hadoop.version>2.0.0-cdh4.6.0</hadoop.version>
+        <hadoop.version>2.0.0-alpha</hadoop.version>
+        <hadoop.version>1.2.1</hadoop.version>
+        <hadoop.version>1.1.2</hadoop.version>
+        -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -84,8 +93,8 @@
                                     <message>Hadoop-BAM requires Maven 3.0.4 or greater</message>
                                 </requireMavenVersion>
                                 <requireJavaVersion>
-                                    <version>[1.7,)</version>
-                                    <message>Hadoop-BAM requires Java 1.7 or greater</message>
+                                    <version>[1.6,)</version>
+                                    <message>Hadoop-BAM requires Java 1.6 or greater</message>
                                 </requireJavaVersion>
                             </rules>
                         </configuration>
@@ -176,6 +185,11 @@
             <!-- mirror for this purpose -->
             <id>hadoop-bam-sourceforge</id>
             <url>http://hadoop-bam.sourceforge.net/maven/</url>
+        </repository>
+
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
         </repository>
     </repositories>
 
