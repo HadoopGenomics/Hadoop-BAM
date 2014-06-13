@@ -32,13 +32,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.GenericOptionsParser;
 
-import net.sf.samtools.BAMRecordCodec;
-import net.sf.samtools.FileTruncatedException;
-import net.sf.samtools.SAMFormatException;
-import net.sf.samtools.seekablestream.SeekableStream;
-import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.RuntimeEOFException;
-import net.sf.samtools.util.RuntimeIOException;
+import htsjdk.samtools.BAMRecordCodec;
+import htsjdk.samtools.FileTruncatedException;
+import htsjdk.samtools.SAMFormatException;
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.RuntimeEOFException;
+import htsjdk.samtools.util.RuntimeIOException;
 
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;

@@ -22,8 +22,8 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.variantcontext.LazyGenotypesContext;
+import htsjdk.variant.vcf.VCFHeader;
 
 /** You need to call getParser().setHeader() here before trying to decode() a
  * GenotypesContext in any VariantContext that came about via

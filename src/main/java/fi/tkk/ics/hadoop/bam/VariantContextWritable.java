@@ -27,8 +27,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFHeader;
 
 /** VariantContexts read here have LazyGenotypesContexts, which need to have a
  * header set before the genotype data in the VariantContexts can be decoded.

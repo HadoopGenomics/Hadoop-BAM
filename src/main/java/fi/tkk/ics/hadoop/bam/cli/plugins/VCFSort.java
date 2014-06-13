@@ -32,8 +32,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
-import net.sf.samtools.util.BlockCompressedOutputStream;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
+import htsjdk.samtools.util.BlockCompressedStreamConstants;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -49,10 +49,10 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
-import org.broadinstitute.variant.variantcontext.writer.Options;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.vcf.VCFHeader;
 
 import fi.tkk.ics.hadoop.bam.KeyIgnoringVCFOutputFormat;
 import fi.tkk.ics.hadoop.bam.VCFFormat;

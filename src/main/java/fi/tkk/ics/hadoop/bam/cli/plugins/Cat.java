@@ -37,11 +37,12 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.BlockCompressedOutputStream;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
+import htsjdk.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
@@ -99,8 +100,8 @@ public final class Cat extends CLIPlugin {
 
 		final boolean verbose = parser.getBoolean(verboseOpt);
 
-		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "cat");
+		final ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, ValidationStringency.DEFAULT_STRINGENCY.toString()), "cat");
 		if (stringency == null)
 			return 3;
 

@@ -26,8 +26,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 
@@ -45,7 +46,7 @@ public final class GetSortedBAMHeader {
 		}
 
 		SAMFileReader.setDefaultValidationStringency(
-			SAMFileReader.ValidationStringency.SILENT);
+			ValidationStringency.SILENT);
 		final SAMFileHeader h =
 			new SAMFileReader(new File(args[0])).getFileHeader();
 		h.setSortOrder(SAMFileHeader.SortOrder.coordinate);

@@ -27,11 +27,12 @@ import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 
-import net.sf.samtools.BAMIndexer;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFormatException;
-import net.sf.samtools.SAMRecordIterator;
+import htsjdk.samtools.BAMIndexer;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFormatException;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.ValidationStringency;
 
 import fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser;
 import static fi.tkk.ics.hadoop.bam.custom.jargs.gnu.CmdLineParser.Option.*;
@@ -71,8 +72,8 @@ public final class Index extends CLIPlugin {
 			return 3;
 		}
 
-		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "index");
+		final ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, ValidationStringency.DEFAULT_STRINGENCY.toString()), "index");
 		if (stringency == null)
 			return 3;
 

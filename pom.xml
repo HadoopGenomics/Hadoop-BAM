@@ -10,11 +10,11 @@
 
     <properties>
         <java.version>1.7</java.version>
-        <picard.version>1.112.1943-SNAPSHOT</picard.version>
+        <htsjdk.version>1.114</htsjdk.version>
         <!-- samtools, tribble, and variant will usually match picard -->
-        <samtools.version>${picard.version}</samtools.version>
+        <!-- <samtools.version>${picard.version}</samtools.version>
         <tribble.version>${picard.version}</tribble.version>
-        <variant.version>${picard.version}</variant.version>
+        <variant.version>${picard.version}</variant.version> -->
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
         <!-- <hadoop.version>1.1.2</hadoop.version> -->
@@ -176,9 +176,9 @@
 
     <repositories>
         <repository>
-            <id>local-repo</id>
-            <name>Local Repository for picard, samtools, tribble, variant</name>
-            <url>file:local-repo</url>
+            <id>hadoop-bam-sourceforge</id>
+            <name>Unofficial Picard repository</name>
+            <url>http://hadoop-bam.sourceforge.net/maven/</url>
         </repository>
     </repositories>
 
@@ -198,7 +198,7 @@
             <artifactId>commons-httpclient</artifactId>
             <version>3.1</version>
         </dependency>
-        <dependency>
+        <!-- <dependency>
             <groupId>org.broadinstitute</groupId>
             <artifactId>variant</artifactId>
             <version>${variant.version}</version>
@@ -207,17 +207,17 @@
             <groupId>org.broad</groupId>
             <artifactId>tribble</artifactId>
             <version>${tribble.version}</version>
-        </dependency>
+        </dependency>-->
         <dependency>
-            <groupId>net.sf</groupId>
-            <artifactId>picard</artifactId>
-            <version>${picard.version}</version>
+            <groupId>htsjdk</groupId>
+            <artifactId>htsjdk</artifactId>
+            <version>${htsjdk.version}</version>
         </dependency>
-        <dependency>
+        <!-- <dependency>
             <groupId>net.sf</groupId>
             <artifactId>sam</artifactId>
             <version>${samtools.version}</version>
-        </dependency>
+        </dependency> -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

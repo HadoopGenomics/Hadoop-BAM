@@ -28,7 +28,7 @@ import java.io.OutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeader;
 
 /** A convenience class that you can use as a RecordWriter for VCF files.
  *

@@ -24,7 +24,7 @@ import hbparquet.hadoop.util.ContextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.junit.Before;
 import org.junit.Test;
 

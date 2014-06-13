@@ -33,14 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.lang.reflect.Array;
 
-import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
-import org.broadinstitute.variant.vcf.VCFConstants;
-import org.broadinstitute.variant.vcf.VCFEncoder;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.tribble.util.ParsingUtils;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.bcf2.BCF2Codec;
+import htsjdk.variant.vcf.VCFConstants;
+import htsjdk.variant.vcf.VCFEncoder;
+import htsjdk.variant.vcf.VCFHeader;
 
 // See the comment in VariantContextWritable explaining what this is used for.
 public final class VariantContextCodec {
@@ -50,8 +50,8 @@ public final class VariantContextCodec {
         Object genotypesData;
         int numGenotypes;
         if (vc.getGenotypes().isLazyWithData()) {
-            final org.broadinstitute.variant.variantcontext.LazyGenotypesContext gc =
-                    (org.broadinstitute.variant.variantcontext.LazyGenotypesContext)
+            final htsjdk.variant.variantcontext.LazyGenotypesContext gc =
+                    (htsjdk.variant.variantcontext.LazyGenotypesContext)
                             vc.getGenotypes();
 
             genotypesData = gc.getUnparsedGenotypeData();

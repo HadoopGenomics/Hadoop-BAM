@@ -36,12 +36,12 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-import net.sf.samtools.util.BlockCompressedInputStream;
-import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
-import org.broadinstitute.variant.vcf.VCFContigHeaderLine;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.tribble.readers.PositionalBufferedStream;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.bcf2.BCF2Codec;
+import htsjdk.variant.vcf.VCFContigHeaderLine;
+import htsjdk.variant.vcf.VCFHeader;
 
 import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;

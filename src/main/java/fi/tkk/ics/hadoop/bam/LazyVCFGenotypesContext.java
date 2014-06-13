@@ -23,13 +23,13 @@ package fi.tkk.ics.hadoop.bam;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-import org.broad.tribble.readers.LineIterator;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
-import org.broadinstitute.variant.vcf.AbstractVCFCodec;
-import org.broadinstitute.variant.vcf.VCFHeader;
-import org.broadinstitute.variant.vcf.VCFHeaderLine;
-import org.broadinstitute.variant.vcf.VCFHeaderVersion;
+import htsjdk.tribble.readers.LineIterator;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.LazyGenotypesContext;
+import htsjdk.variant.vcf.AbstractVCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFHeaderVersion;
 
 // File created: 2013-07-03 15:41:21
 

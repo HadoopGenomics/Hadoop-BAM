@@ -22,10 +22,10 @@
 
 package fi.tkk.ics.hadoop.bam;
 
-import net.sf.samtools.BAMRecord;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordFactory;
+import htsjdk.samtools.BAMRecord;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordFactory;
 
 /** A factory for the kind of lazy {@link BAMRecord} used internally. */
 public class LazyBAMRecordFactory implements SAMRecordFactory {

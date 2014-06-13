@@ -38,12 +38,13 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFormatException;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMTextHeaderCodec;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFormatException;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMTextHeaderCodec;
+import htsjdk.samtools.ValidationStringency;
 
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
 
@@ -82,7 +83,7 @@ public class SAMRecordReader
 
 		final Configuration conf = ContextUtil.getConfiguration(ctx);
 
-		final SAMFileReader.ValidationStringency stringency =
+		final ValidationStringency stringency =
 			SAMHeaderReader.getValidationStringency(conf);
 
 		final Path file = split.getPath();
@@ -115,7 +116,7 @@ public class SAMRecordReader
 		// from reading the last partial line, so our stream actually allows
 		// reading to the next newline after the actual end.
 
-		SAMFileReader.ValidationStringency origStringency = null;
+		ValidationStringency origStringency = null;
 		try {
 			if (stringency != null) {
 				origStringency = SAMFileReader.getDefaultValidationStringency();

@@ -24,7 +24,7 @@ package fi.tkk.ics.hadoop.bam.util;
 
 import java.io.IOException;
 
-import net.sf.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.seekablestream.SeekableStream;
 
 public class SeekableArrayStream extends SeekableStream {
 	private final byte[] arr;

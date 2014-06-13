@@ -1,7 +1,7 @@
 package fi.tkk.ics.hadoop.bam;
 
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFHeader;
 
 public class VariantContextWithHeader extends VariantContext {
     private final VCFHeader header;

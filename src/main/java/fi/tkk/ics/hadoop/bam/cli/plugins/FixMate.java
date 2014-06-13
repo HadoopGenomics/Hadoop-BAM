@@ -29,9 +29,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.samtools.SamPairUtil;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SamPairUtil;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -102,8 +103,8 @@ public final class FixMate extends CLIMRBAMPlugin {
 		if (!cacheAndSetProperties(parser))
 			return 3;
 
-		final SAMFileReader.ValidationStringency stringency =
-			Utils.toStringency(parser.getOptionValue(stringencyOpt, SAMFileReader.ValidationStringency.DEFAULT_STRINGENCY.toString()), "fixmate");
+		final ValidationStringency stringency =
+			Utils.toStringency(parser.getOptionValue(stringencyOpt, ValidationStringency.DEFAULT_STRINGENCY.toString()), "fixmate");
 		if (stringency == null)
 			return 3;
 

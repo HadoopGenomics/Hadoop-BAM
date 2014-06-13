@@ -30,8 +30,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import net.sf.samtools.seekablestream.SeekableStream;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.variant.vcf.VCFHeader;
 
 import fi.tkk.ics.hadoop.bam.util.VCFHeaderReader;
 import fi.tkk.ics.hadoop.bam.util.WrapSeekable;

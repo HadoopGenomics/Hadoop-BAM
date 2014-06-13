@@ -14,8 +14,7 @@ TMPDIR=/tmp/hadoop_bam_dependency_repo
 REPO_ID="hadoop-bam-repo"
 OUTPUT_DIR="$TMPDIR/$REPO_ID"
 OUTPUT_URL="file://$OUTPUT_DIR"
-PICARD_VERSIONS=( "1.93" "1.107" )
-SNAPSHOT_VERSION="6.1-SNAPSHOT"
+PICARD_VERSIONS=( "1.93" "1.107" "1.114" )
 
 rm -rf "$TMPDIR"
 mkdir -p "$TMPDIR"
@@ -26,7 +25,8 @@ function fetch_and_build() {
     groupid=$3
     artifactid=$4
 
-    DEPENDENCY_PATH="/tmp/picard-tools-$version" 
+    DEPENDENCY_PATH="${6}-${version}"
+	#"/tmp/picard-tools-$version" 
 
     jar_file=$(find $DEPENDENCY_PATH -name "${prefix}*.jar")
     if [[ -e $jar_file ]]; then
@@ -41,9 +41,10 @@ function fetch_and_build() {
 
 for version in ${PICARD_VERSIONS[@]}; do
         echo "Processing version $version"
-	fetch_and_build $version sam samtools samtools Samtools
-	fetch_and_build $version picard picard picard Picard
-	fetch_and_build $version tribble tribble tribble Tribble
-	fetch_and_build $version variant variant variant Variant
+	fetch_and_build $version sam samtools samtools Samtools /tmp/picard-tools
+	fetch_and_build $version picard picard picard Picard /tmp/picard-tools
+	fetch_and_build $version tribble tribble tribble Tribble /tmp/picard-tools
+	fetch_and_build $version variant variant variant Variant /tmp/picard-tools
 done
 
+fetch_and_build 1.114 htsjdk htsjdk htsjdk htsjdk /tmp/htsjdk
