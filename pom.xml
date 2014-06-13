@@ -177,6 +177,11 @@
             <id>hadoop-bam-sourceforge</id>
             <url>http://hadoop-bam.sourceforge.net/maven/</url>
         </repository>
+
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+        </repository>
     </repositories>
 
     <dependencies>
