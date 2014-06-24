@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.picard.sam.SamPairUtil;
+import net.sf.samtools.SamPairUtil;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 

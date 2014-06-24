@@ -10,8 +10,11 @@
 
     <properties>
         <java.version>1.7</java.version>
-        <picard.version>1.107</picard.version>
-        <samtools.version>1.107</samtools.version>
+        <picard.version>1.112.1943-SNAPSHOT</picard.version>
+        <!-- samtools, tribble, and variant will usually match picard -->
+        <samtools.version>${picard.version}</samtools.version>
+        <tribble.version>${picard.version}</tribble.version>
+        <variant.version>${picard.version}</variant.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
         <!--
@@ -69,6 +72,8 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <!-- disable cofoja for Variant -->
+                    <compilerArgument>-proc:none</compilerArgument>
                 </configuration>
             </plugin>
             <plugin>
@@ -180,11 +185,9 @@
 
     <repositories>
         <repository>
-            <!-- Note: since Picard/Samtools does not publish all -->
-            <!-- versions as artifacts we need to reply on our own -->
-            <!-- mirror for this purpose -->
-            <id>hadoop-bam-sourceforge</id>
-            <url>http://hadoop-bam.sourceforge.net/maven/</url>
+            <id>local-repo</id>
+            <name>Local Repository for picard, samtools, tribble, variant</name>
+            <url>file:local-repo</url>
         </repository>
 
         <repository>
@@ -208,25 +211,25 @@
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>
             <version>3.1</version>
-        </dependency>    
+        </dependency>
         <dependency>
-            <groupId>variant</groupId>
+            <groupId>org.broadinstitute</groupId>
             <artifactId>variant</artifactId>
-            <version>${picard.version}</version>
+            <version>${variant.version}</version>
         </dependency>
         <dependency>
-            <groupId>tribble</groupId>
+            <groupId>org.broad</groupId>
             <artifactId>tribble</artifactId>
-            <version>${picard.version}</version>
+            <version>${tribble.version}</version>
         </dependency>
         <dependency>
-            <groupId>picard</groupId>
+            <groupId>net.sf</groupId>
             <artifactId>picard</artifactId>
             <version>${picard.version}</version>
         </dependency>
         <dependency>
-            <groupId>samtools</groupId>
-            <artifactId>samtools</artifactId>
+            <groupId>net.sf</groupId>
+            <artifactId>sam</artifactId>
             <version>${samtools.version}</version>
         </dependency>
         <dependency>

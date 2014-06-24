@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.vcf.VCFHeader;
 
 /** VariantContexts read here have LazyGenotypesContexts, which need to have a
  * header set before the genotype data in the VariantContexts can be decoded.
@@ -38,6 +39,7 @@ public class VariantContextWritable implements Writable {
 
 	public VariantContext get()                  { return vc; }
 	public void           set(VariantContext vc) { this.vc = vc; }
+    public void           set(VariantContext vc, VCFHeader header) { this.vc = new VariantContextWithHeader(vc, header); }
 
 	// XXX: Unfortunately there's no simple way to just pass a BCF record
 	// through. Contrasting to BAM, there's no equivalent of the BAMRecord
