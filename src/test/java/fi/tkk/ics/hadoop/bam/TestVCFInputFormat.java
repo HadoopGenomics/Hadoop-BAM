@@ -18,7 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package fi.tkk.ics.hadoop.bam;
+package org.seqdoop.hadoop_bam;
 
 import hbparquet.hadoop.util.ContextUtil;
 import org.apache.hadoop.conf.Configuration;

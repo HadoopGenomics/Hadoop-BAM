@@ -1,8 +1,8 @@
-fi.tkk.ics.hadoop.bam.cli.plugins.View
-fi.tkk.ics.hadoop.bam.cli.plugins.Sort
-fi.tkk.ics.hadoop.bam.cli.plugins.Index
-fi.tkk.ics.hadoop.bam.cli.plugins.Cat
-fi.tkk.ics.hadoop.bam.cli.plugins.FixMate
-fi.tkk.ics.hadoop.bam.cli.plugins.VCFSort
-fi.tkk.ics.hadoop.bam.cli.plugins.chipster.Summarize
-fi.tkk.ics.hadoop.bam.cli.plugins.chipster.SummarySort
+org.seqdoop.hadoop_bam.cli.plugins.View
+org.seqdoop.hadoop_bam.cli.plugins.Sort
+org.seqdoop.hadoop_bam.cli.plugins.Index
+org.seqdoop.hadoop_bam.cli.plugins.Cat
+org.seqdoop.hadoop_bam.cli.plugins.FixMate
+org.seqdoop.hadoop_bam.cli.plugins.VCFSort
+org.seqdoop.hadoop_bam.cli.plugins.chipster.Summarize
+org.seqdoop.hadoop_bam.cli.plugins.chipster.SummarySort

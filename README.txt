@@ -103,10 +103,10 @@ Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 0.20 Hadoop releases instead of the older, deprecated API.
 
 See the Javadoc as well as the command line plugins' source code (in
-src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/*.java) for more information. In
+src/main/java/org.seqdoop.hadoop_bam/cli/plugins/*.java) for more information. In
 particular, for MapReduce usage, recommended examples are
-src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/FixMate.java and
-src/main/java/fi/tkk/ics/hadoop/bam/cli/plugins/VCFSort.java.
+src/main/java/org.seqdoop.hadoop_bam/cli/plugins/FixMate.java and
+src/main/java/org.seqdoop.hadoop_bam/cli/plugins/VCFSort.java.
 
 When using Hadoop-BAM as a library in your program, remember to have
 hadoop-bam-X.Y.jar as well as the Picard .jars (including the Commons JEXL .jar)
@@ -131,7 +131,7 @@ versions of the dependencies. You need to add the following to your pom.xml:
 ...
     <dependencies>
         <dependency>
-            <groupId>fi.tkk.ics.hadoop.bam</groupId>
+            <groupId>org.seqdoop.hadoop_bam</groupId>
             <artifactId>hadoop-bam</artifactId>
             <version>6.2</version>
         </dependency>
@@ -237,7 +237,7 @@ Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies-X.Y.jar). In
 addition, depending on the Hadoop version, there may be more dependencies from
 the Hadoop lib/ directory. A command such as the following:
 
-   java fi.tkk.ics.hadoop.bam.cli.Frontend
+   java org.seqdoop.hadoop_bam.cli.Frontend
 
 Is equivalent to the "hadoop jar hadoop-bam-X.Y.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.

@@ -48,7 +48,7 @@ for version in ${HADOOPBAM_VERSIONS[@]}; do
 	    wget http://sourceforge.net/projects/hadoop-bam/files/hadoop-bam-${version}.tar.gz > /dev/null 2>&1 && \
 	    tar xvpzf hadoop-bam-${version}.tar.gz > /dev/null 2>&1 )
 
-        fetch_and_build $version hadoop-bam fi.tkk.ics.hadoop.bam hadoop-bam Hadoop-BAM
+        fetch_and_build $version hadoop-bam org.seqdoop.hadoop_bam hadoop-bam Hadoop-BAM
 done
 
 echo "processing $SNAPSHOT_VERSION"
@@ -57,4 +57,4 @@ $(cd $TMPDIR && git clone -b $SNAPSHOT_BRANCH http://git.code.sf.net/p/hadoop-ba
 $(cd "$TMPDIR/hadoop-bam-${SNAPSHOT_VERSION}" && mvn clean package > /dev/null 2>&1 )
 
 mvn deploy:deploy-file -Durl=$OUTPUT_URL -DrepositoryId=$REPO_ID -Dfile=$TMPDIR/hadoop-bam-${SNAPSHOT_VERSION}/target/hadoop-bam-${SNAPSHOT_MAVEN_VERSION}.jar \
-    -DgroupId=fi.tkk.ics.hadoop.bam -DartifactId=hadoop-bam -Dversion="$SNAPSHOT_VERSION" -DgeneratePom.description="Hadoop-BAM"
+    -DgroupId=org.seqdoop.hadoop_bam -DartifactId=hadoop-bam -Dversion="$SNAPSHOT_VERSION" -DgeneratePom.description="Hadoop-BAM"
