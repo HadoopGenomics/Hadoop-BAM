@@ -33,10 +33,10 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import net.sf.samtools.BAMRecordCodec;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.BAMRecordCodec;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.BlockCompressedInputStream;
 
 import fi.tkk.ics.hadoop.bam.util.MurmurHash3;
 import fi.tkk.ics.hadoop.bam.util.SAMHeaderReader;
@@ -53,7 +53,7 @@ public class BAMRecordReader
 	private final LongWritable key = new LongWritable();
 	private final SAMRecordWritable record = new SAMRecordWritable();
 
-	private SAMFileReader.ValidationStringency stringency;
+	private ValidationStringency stringency;
 
 	private BlockCompressedInputStream bci;
 	private BAMRecordCodec codec;

@@ -31,7 +31,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
 
-import net.sf.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.seekablestream.SeekableStream;
 
 /** Wraps Hadoop's "seekable stream" abstraction so that we can give such a one
  * to BlockCompressedInputStream and retain seekability.

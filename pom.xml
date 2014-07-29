@@ -10,8 +10,11 @@
 
     <properties>
         <java.version>1.7</java.version>
-        <picard.version>1.107</picard.version>
-        <samtools.version>1.107</samtools.version>
+        <htsjdk.version>1.114</htsjdk.version>
+        <!-- samtools, tribble, and variant will usually match picard -->
+        <!-- <samtools.version>${picard.version}</samtools.version>
+        <tribble.version>${picard.version}</tribble.version>
+        <variant.version>${picard.version}</variant.version> -->
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
         <!--
@@ -69,6 +72,8 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <!-- disable cofoja for Variant -->
+                    <compilerArgument>-proc:none</compilerArgument>
                 </configuration>
             </plugin>
             <plugin>
@@ -180,10 +185,8 @@
 
     <repositories>
         <repository>
-            <!-- Note: since Picard/Samtools does not publish all -->
-            <!-- versions as artifacts we need to reply on our own -->
-            <!-- mirror for this purpose -->
             <id>hadoop-bam-sourceforge</id>
+            <name>Unofficial Picard repository</name>
             <url>http://hadoop-bam.sourceforge.net/maven/</url>
         </repository>
 
@@ -208,27 +211,27 @@
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>
             <version>3.1</version>
-        </dependency>    
-        <dependency>
-            <groupId>variant</groupId>
+        </dependency>
+        <!-- <dependency>
+            <groupId>org.broadinstitute</groupId>
             <artifactId>variant</artifactId>
-            <version>${picard.version}</version>
+            <version>${variant.version}</version>
         </dependency>
         <dependency>
-            <groupId>tribble</groupId>
+            <groupId>org.broad</groupId>
             <artifactId>tribble</artifactId>
-            <version>${picard.version}</version>
-        </dependency>
+            <version>${tribble.version}</version>
+        </dependency>-->
         <dependency>
-            <groupId>picard</groupId>
-            <artifactId>picard</artifactId>
-            <version>${picard.version}</version>
+            <groupId>htsjdk</groupId>
+            <artifactId>htsjdk</artifactId>
+            <version>${htsjdk.version}</version>
         </dependency>
-        <dependency>
-            <groupId>samtools</groupId>
-            <artifactId>samtools</artifactId>
+        <!-- <dependency>
+            <groupId>net.sf</groupId>
+            <artifactId>sam</artifactId>
             <version>${samtools.version}</version>
-        </dependency>
+        </dependency> -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

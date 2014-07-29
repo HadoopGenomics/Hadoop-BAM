@@ -26,17 +26,17 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 
-import net.sf.samtools.seekablestream.SeekableStream;
-import net.sf.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.util.BlockCompressedInputStream;
 
-import org.broad.tribble.FeatureCodecHeader;
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.AsciiLineReaderIterator;
-import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
-import org.broadinstitute.variant.vcf.VCFCodec;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.tribble.FeatureCodecHeader;
+import htsjdk.tribble.TribbleException;
+import htsjdk.tribble.readers.AsciiLineReader;
+import htsjdk.tribble.readers.AsciiLineReaderIterator;
+import htsjdk.tribble.readers.PositionalBufferedStream;
+import htsjdk.variant.bcf2.BCF2Codec;
+import htsjdk.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
 
 /** Can read a VCF header without being told beforehand whether the input is
  * VCF or BCF.

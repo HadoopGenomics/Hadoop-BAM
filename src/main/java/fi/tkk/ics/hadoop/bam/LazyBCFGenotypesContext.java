@@ -27,15 +27,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.broad.tribble.TribbleException;
-import org.broadinstitute.variant.bcf2.BCF2Decoder;
-import org.broadinstitute.variant.bcf2.BCF2GenotypeFieldDecoders;
-import org.broadinstitute.variant.bcf2.BCF2Utils;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.Genotype;
-import org.broadinstitute.variant.variantcontext.GenotypeBuilder;
-import org.broadinstitute.variant.variantcontext.LazyGenotypesContext;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.tribble.TribbleException;
+import htsjdk.variant.bcf2.BCF2Decoder;
+import htsjdk.variant.bcf2.BCF2GenotypeFieldDecoders;
+import htsjdk.variant.bcf2.BCF2Utils;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.GenotypeBuilder;
+import htsjdk.variant.variantcontext.LazyGenotypesContext;
+import htsjdk.variant.vcf.VCFHeader;
 
 // XXX: Since we cannot use BCF2LazyGenotypesDecoder, the parsing functionality
 //      is, unfortunately, simply copied from there.

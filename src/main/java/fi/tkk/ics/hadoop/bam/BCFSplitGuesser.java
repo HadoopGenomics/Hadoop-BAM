@@ -33,14 +33,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.GenericOptionsParser;
 
-import net.sf.samtools.FileTruncatedException;
-import net.sf.samtools.seekablestream.SeekableStream;
-import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.RuntimeEOFException;
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.samtools.FileTruncatedException;
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.RuntimeEOFException;
+import htsjdk.tribble.TribbleException;
+import htsjdk.tribble.readers.PositionalBufferedStream;
+import htsjdk.variant.bcf2.BCF2Codec;
+import htsjdk.variant.vcf.VCFHeader;
 
 import fi.tkk.ics.hadoop.bam.util.SeekableArrayStream;
 

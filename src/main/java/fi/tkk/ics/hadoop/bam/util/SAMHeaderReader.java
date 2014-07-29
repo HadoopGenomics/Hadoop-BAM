@@ -28,11 +28,12 @@ import java.io.InputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 
 public final class SAMHeaderReader {
-	/** A String property corresponding to a SAMFileReader.ValidationStringency
+	/** A String property corresponding to a ValidationStringency
 	 * value. If set, the given stringency is used when any part of the
 	 * Hadoop-BAM library reads SAM or BAM.
 	 */
@@ -54,12 +55,12 @@ public final class SAMHeaderReader {
 	{
 		final SAMFileHeader header;
 
-		final SAMFileReader.ValidationStringency
+		final ValidationStringency
 			stringency = getValidationStringency(conf);
-		SAMFileReader.ValidationStringency origStringency = null;
+		ValidationStringency origStringency = null;
 		try {
 			if (stringency != null) {
-				origStringency = SAMFileReader.getDefaultValidationStringency();
+				origStringency = ValidationStringency.DEFAULT_STRINGENCY;
 				SAMFileReader.setDefaultValidationStringency(stringency);
 			}
 			header = new SAMFileReader(in, false).getFileHeader();
@@ -70,10 +71,10 @@ public final class SAMHeaderReader {
 		return header;
 	}
 
-	public static SAMFileReader.ValidationStringency getValidationStringency(
+	public static ValidationStringency getValidationStringency(
 		final Configuration conf)
 	{
 		final String p = conf.get(VALIDATION_STRINGENCY_PROPERTY);
-		return p == null ? null : SAMFileReader.ValidationStringency.valueOf(p);
+		return p == null ? null : ValidationStringency.valueOf(p);
 	}
 }

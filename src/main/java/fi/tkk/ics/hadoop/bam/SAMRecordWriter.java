@@ -27,9 +27,9 @@ import hbparquet.hadoop.util.ContextUtil;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMTextWriter;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMTextWriter;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;

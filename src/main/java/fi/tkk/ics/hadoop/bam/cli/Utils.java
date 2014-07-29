@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import htsjdk.samtools.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
@@ -43,12 +44,7 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 
-import net.sf.picard.sam.ReservedTagConstants;
-import net.sf.picard.sam.SamFileHeaderMerger;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.BlockCompressedStreamConstants;
+import htsjdk.samtools.util.BlockCompressedStreamConstants;
 
 import fi.tkk.ics.hadoop.bam.SAMFormat;
 import fi.tkk.ics.hadoop.bam.util.SAMOutputPreparer;
@@ -374,8 +370,8 @@ public final class Utils {
 			"set Picard's validation stringency to S (");
 
 		String last = null;
-		for (final SAMFileReader.ValidationStringency v
-		     : SAMFileReader.ValidationStringency.values())
+		for (final ValidationStringency v
+		     : ValidationStringency.values())
 		{
 			if (last != null) {
 				sb.append(last);
@@ -390,13 +386,13 @@ public final class Utils {
 	}
 
 	/** Sets the default validation stringency in addition to returning it. */
-	public static SAMFileReader.ValidationStringency toStringency(
+	public static ValidationStringency toStringency(
 		Object o, String cmdName)
 	{
 		final String s = (String)o;
 		try {
-			final SAMFileReader.ValidationStringency stringency =
-				SAMFileReader.ValidationStringency.valueOf(s);
+			final ValidationStringency stringency =
+				ValidationStringency.valueOf(s);
 			SAMFileReader.setDefaultValidationStringency(stringency);
 			return stringency;
 		} catch (IllegalArgumentException e) {

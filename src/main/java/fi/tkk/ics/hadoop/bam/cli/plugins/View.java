@@ -28,16 +28,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
-import net.sf.samtools.BAMFileWriter;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMFileWriterImpl;
-import net.sf.samtools.SAMFormatException;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMTextWriter;
-import net.sf.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.BamFileIoUtils;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.SAMFileWriterImpl;
+import htsjdk.samtools.SAMFormatException;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMTextWriter;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.seekablestream.SeekableStream;
 
 import org.apache.hadoop.fs.Path;
 
@@ -139,8 +140,9 @@ public final class View extends CLIPlugin {
 		final SAMFileWriterImpl writer;
 		switch (format) {
 			case BAM:
-				writer = new BAMFileWriter(System.out, new File("<stdout>"));
-				break;
+				// BAM output inside view no longer supported since Picard made the class private
+                System.err.println("BAM output inside view no longer supported");
+                return 1;
 			case SAM:
 				writer = new SAMTextWriter(System.out);
 				break;
