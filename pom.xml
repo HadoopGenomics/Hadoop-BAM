@@ -10,17 +10,17 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.seqdoop</groupId>
     <artifactId>hadoop-bam</artifactId>
-    <version>6.3-SNAPSHOT</version>
+    <version>7.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Hadoop-BAM</name>
     <description>A Java library for the manipulation of files in common bioinformatics formats using the Hadoop MapReduce framework.</description>
-    <url>https://github.com/HadoopGenomics/Hadoop-BAM</url>
+    <url>http://sourceforge.net/projects/hadoop-bam/</url>
 
     <properties>
         <java.version>1.6</java.version>
         <htsjdk.version>1.114</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
-        <hadoop.version>1.1.2</hadoop.version>
+        <hadoop.version>1.2.1</hadoop.version>
         <!--
         Below you'll find some example hadoop.version tags.  The value you set
         must have a corresponding version in one of the repositories that are
@@ -71,6 +71,21 @@
         <outputDirectory>target/classes</outputDirectory>
         <testOutputDirectory>target/test-classes</testOutputDirectory>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                    <useReleaseProfile>false</useReleaseProfile>
+                    <arguments>-Psonatype-oss-release</arguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -133,11 +148,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
                 <version>2.5.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.4.2</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -234,6 +244,11 @@
             <groupId>htsjdk</groupId>
             <artifactId>htsjdk</artifactId>
             <version>${htsjdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cofoja</groupId>
+            <artifactId>cofoja</artifactId>
+            <version>1.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
