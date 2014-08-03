@@ -204,9 +204,9 @@ public class SequencedFragment implements Writable
 	/**
 	 * Convert quality scores in-place.
 	 *
-	 * @raise FormatException if quality scores are out of the range
+	 * @throws FormatException if quality scores are out of the range
 	 * allowed by the current encoding.
-	 * @raise IllegalArgumentException if current and  target quality encodings are the same.
+	 * @throws IllegalArgumentException if current and  target quality encodings are the same.
 	 */
 	public static void convertQuality(Text quality, BaseQualityEncoding current, BaseQualityEncoding target)
 	{

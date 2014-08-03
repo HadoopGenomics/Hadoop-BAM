@@ -33,7 +33,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 
 /** Like a {@link org.apache.hadoop.mapreduce.lib.input.FileSplit}, but uses
  * BGZF virtual offsets to fit with {@link
- * net.sf.samtools.util.BlockCompressedInputStream}.
+ * htsjdk.samtools.util.BlockCompressedInputStream}.
  */
 public class FileVirtualSplit extends InputSplit implements Writable {
 	private Path file;

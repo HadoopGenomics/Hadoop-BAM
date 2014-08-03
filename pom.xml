@@ -178,6 +178,7 @@
                             <mainClass>org.seqdoop.hadoop_bam.cli.Frontend</mainClass>
                         </manifest>
                     </archive>
+                    <attach>false</attach>
                 </configuration>
                 <executions>
                     <execution>
@@ -244,11 +245,6 @@
             <groupId>htsjdk</groupId>
             <artifactId>htsjdk</artifactId>
             <version>${htsjdk.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>cofoja</groupId>
-            <artifactId>cofoja</artifactId>
-            <version>1.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

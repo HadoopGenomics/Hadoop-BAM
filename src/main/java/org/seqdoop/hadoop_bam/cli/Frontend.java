@@ -41,7 +41,7 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public final class Frontend {
 	public static final int
-		VERSION_MAJOR = 6,
+		VERSION_MAJOR = 7,
 		VERSION_MINOR = 0;
 
 	public static void main(String[] args) {

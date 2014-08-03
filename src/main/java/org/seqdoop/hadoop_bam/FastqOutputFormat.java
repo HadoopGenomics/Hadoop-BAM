@@ -43,14 +43,13 @@ import org.seqdoop.hadoop_bam.FormatConstants.BaseQualityEncoding;
 
 /**
  * Output format for the fastq format.
- *
- * If a key is provided with the SequencedFragment, the key is used as the sequence
- * id and the meta-info from the SequencedFragment (if any) is dropped.
- * If the key is null, then the format will attempt to create an 
- * Illumina-style fastq id as specified in the Casava users' guide v1.8:
- * @instrument:run number:flowcell ID:lane:tile:x-pos:y-pos \s+ read:is filtered:control number:index sequence
- *
  */
+// If a key is provided with the SequencedFragment, the key is used as the sequence
+// id and the meta-info from the SequencedFragment (if any) is dropped.
+// If the key is null, then the format will attempt to create an
+// Illumina-style fastq id as specified in the Casava users' guide v1.8:
+// @instrument:run number:flowcell ID:lane:tile:x-pos:y-pos \s+ read:is filtered:control number:index sequence
+//
 public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING         = "hbam.fastq-output.base-quality-encoding";

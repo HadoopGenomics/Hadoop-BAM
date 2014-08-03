@@ -25,8 +25,6 @@ import java.util.Vector;
  * can be explicitly terminated by the argument '--'.
  *
  * @author Steve Purcell
- * @version $Revision$
- * @see jargs.examples.gnu.OptionTest
  */
 public class CmdLineParser {
     public final boolean getBoolean(Option opt) {
