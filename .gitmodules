@@ -1,0 +1,3 @@
+[submodule "3rdparty/htsjdk"]
+	path = 3rdparty/htsjdk
+	url = https://github.com/HadoopGenomics/htsjdk.git
