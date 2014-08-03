@@ -244,6 +244,13 @@
             <groupId>org.seqdoop</groupId>
             <artifactId>htsjdk</artifactId>
             <version>${htsjdk.version}</version>
+            <exclusions>
+                <!-- testng breaks our tests so exclude it -->
+                <exclusion>
+                    <groupId>org.testng</groupId>
+                    <artifactId>testng</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
