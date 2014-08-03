@@ -18,7 +18,7 @@
 
     <properties>
         <java.version>1.6</java.version>
-        <htsjdk.version>1.114</htsjdk.version>
+        <htsjdk.version>1.118-SNAPSHOT</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>1.2.1</hadoop.version>
         <!--
@@ -214,11 +214,10 @@
 
     <repositories>
         <repository>
-            <id>hadoop-bam-sourceforge</id>
-            <name>Unofficial Picard repository</name>
-            <url>http://hadoop-bam.sourceforge.net/maven/</url>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
-
         <repository>
             <id>cloudera</id>
             <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
@@ -242,7 +241,7 @@
             <version>3.1</version>
         </dependency>
         <dependency>
-            <groupId>htsjdk</groupId>
+            <groupId>org.seqdoop</groupId>
             <artifactId>htsjdk</artifactId>
             <version>${htsjdk.version}</version>
         </dependency>
