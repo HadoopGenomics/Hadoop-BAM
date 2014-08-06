@@ -9,7 +9,7 @@
     <name>Hadoop-BAM</name>
 
     <properties>
-        <java.version>1.7</java.version>
+        <java.version>1.6</java.version>
         <htsjdk.version>1.114</htsjdk.version>
         <!-- samtools, tribble, and variant will usually match picard -->
         <!-- <samtools.version>${picard.version}</samtools.version>
