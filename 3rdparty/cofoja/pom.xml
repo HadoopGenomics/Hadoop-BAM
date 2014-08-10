@@ -22,7 +22,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.seqdoop</groupId>
     <artifactId>cofoja</artifactId>
-    <version>1.1-r150</version>
+    <version>1.1-r150-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Cofoja</name>
     <description>Contracts for Java enables you to annotate your code with contracts in the form of preconditions, postconditions and invariants.</description>
