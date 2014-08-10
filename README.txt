@@ -30,17 +30,20 @@ understandable to all users, but they are limited in scope. SeqPig is a more
 versatile and higher-level interface to the file formats supported by
 Hadoop-BAM.
 
+For examples of how to use Hadoop-BAM as a library to read data files
+in Hadoop see the examples/ directory.
+
 ------------
 Dependencies
 ------------
 
-Hadoop. Tested with 1.1.2 and 2.2.0. Older stable versions as far back
+Hadoop. Tested with 1.1.2, 1.2.1 and 2.2.0. Older stable versions as far back
 as 0.20.2 should also work. Version 4.2.0 of Cloudera's distribution,
 CDH, has also been tested. Use other versions at your own risk. You
 can change the version of Hadoop linked against by modifying the
 corresponding paramter in the pom.xml build file.
 
-HTSJDK (formerly Picard SAM-JDK) Version 1.114 is required. Later versions
+HTSJDK (formerly Picard SAM-JDK) Version 1.118 is required. Later versions
 may also work but have not been tested. A version of Picard is distributed
 via the unofficial maven repository (see below).
 
@@ -52,7 +55,7 @@ Availability:
 Installation
 ------------
 
-If you're using Hadoop 1.1.2, a precompiled "hadoop-bam-X.Y.jar" is available
+If you're using Hadoop 1.2.1, a precompiled "hadoop-bam-X.Y.jar" is available
 that you can use.  Otherwise, you'll have to build Hadoop-BAM yourself by
 by using Maven (version 3.0.4 at least) and following the instructions below.
 
@@ -107,6 +110,10 @@ src/main/java/org.seqdoop.hadoop_bam/cli/plugins/*.java) for more information. I
 particular, for MapReduce usage, recommended examples are
 src/main/java/org/seqdoop/hadoop_bam/cli/plugins/FixMate.java and
 src/main/java/org/seqdoop/hadoop_bam/cli/plugins/VCFSort.java.
+
+There is also an examples/ subdirectory that contains an independently
+built Maven project with several examples for how to use Hadoop-BAM as
+a library.
 
 When using Hadoop-BAM as a library in your program, remember to have
 hadoop-bam-X.Y.jar as well as the Picard .jars (including the Commons JEXL .jar)
