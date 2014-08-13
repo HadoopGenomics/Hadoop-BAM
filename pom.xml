@@ -40,7 +40,7 @@
 
     <properties>
         <java.version>1.6</java.version>
-        <htsjdk.version>1.118-SNAPSHOT</htsjdk.version>
+        <htsjdk.version>1.118</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>1.2.1</hadoop.version>
         <!--
@@ -235,11 +235,6 @@
     </build>
 
     <repositories>
-        <repository>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Sonatype Nexus Snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
         <repository>
             <id>cloudera</id>
             <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
