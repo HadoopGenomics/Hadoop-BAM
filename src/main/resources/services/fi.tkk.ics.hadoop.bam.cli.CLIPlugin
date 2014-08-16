@@ -1,8 +1,0 @@
-fi.tkk.ics.hadoop.bam.cli.plugins.View
-fi.tkk.ics.hadoop.bam.cli.plugins.Sort
-fi.tkk.ics.hadoop.bam.cli.plugins.Index
-fi.tkk.ics.hadoop.bam.cli.plugins.Cat
-fi.tkk.ics.hadoop.bam.cli.plugins.FixMate
-fi.tkk.ics.hadoop.bam.cli.plugins.VCFSort
-fi.tkk.ics.hadoop.bam.cli.plugins.chipster.Summarize
-fi.tkk.ics.hadoop.bam.cli.plugins.chipster.SummarySort

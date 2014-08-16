@@ -1,22 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2014 Aalto University
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+  ~ of this software and associated documentation files (the "Software"), to
+  ~ deal in the Software without restriction, including without limitation the
+  ~ rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  ~ sell copies of the Software, and to permit persons to whom the Software is
+  ~ furnished to do so, subject to the following conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be included in
+  ~ all copies or substantial portions of the Software.
+  ~
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  ~ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  ~ IN THE SOFTWARE.
+  -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+        <relativePath />
+    </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>fi.tkk.ics.hadoop.bam</groupId>
+    <groupId>org.seqdoop</groupId>
     <artifactId>hadoop-bam</artifactId>
-    <version>6.3-SNAPSHOT</version>
+    <version>7.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Hadoop-BAM</name>
+    <description>A Java library for the manipulation of files in common bioinformatics formats using the Hadoop MapReduce framework.</description>
+    <url>http://sourceforge.net/projects/hadoop-bam/</url>
 
     <properties>
-        <java.version>1.7</java.version>
-        <htsjdk.version>1.114</htsjdk.version>
-        <!-- samtools, tribble, and variant will usually match picard -->
-        <!-- <samtools.version>${picard.version}</samtools.version>
-        <tribble.version>${picard.version}</tribble.version>
-        <variant.version>${picard.version}</variant.version> -->
+        <java.version>1.6</java.version>
+        <htsjdk.version>1.118</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
-        <hadoop.version>2.2.0</hadoop.version>
+        <hadoop.version>1.2.1</hadoop.version>
         <!--
         Below you'll find some example hadoop.version tags.  The value you set
         must have a corresponding version in one of the repositories that are
@@ -33,21 +59,55 @@
     <licenses>
         <license>
             <name>MIT-License</name>
+            <url>https://raw.githubusercontent.com/HadoopGenomics/Hadoop-BAM/master/LICENSE.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
 
     <scm>
-        <connection>scm:git:git://git.code.sf.net/p/hadoop-bam/code</connection>
-        <developerConnection>scm:git:ssh://aschumach@git.code.sf.net/p/hadoop-bam/code</developerConnection>
-        <url>scm:git:git://git.code.sf.net/p/hadoop-bam/code</url>
-        <tag>HEAD</tag>
+        <connection>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</connection>
+        <developerConnection>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</developerConnection>
+        <url>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</url>
+        <tag>master</tag>
     </scm>
+    <developers>
+        <developer>
+            <id>andre</id>
+            <name>Andre Schumacher</name>
+            <email>andre.schumacher@iki.fi</email>
+            <url>https://github.com/AndreSchumacher</url>
+        </developer>
+        <developer>
+            <id>ridvan</id>
+            <name>Ridvan Dongelci</name>
+            <email>ridvandongelci@gmail.com</email>
+            <organization>Aalto University</organization>
+        </developer>
+    </developers>
+    <issueManagement>
+        <system>github</system>
+        <url>https://github.com/HadoopGenomics/Hadoop-BAM/issues</url>
+    </issueManagement>
 
     <build>
         <outputDirectory>target/classes</outputDirectory>
         <testOutputDirectory>target/test-classes</testOutputDirectory>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                    <useReleaseProfile>false</useReleaseProfile>
+                    <arguments>-Psonatype-oss-release</arguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -113,11 +173,6 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.4.2</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>2.6</version>
             </plugin>
@@ -125,11 +180,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>2.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -147,9 +197,10 @@
                         <index>true</index>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>fi.tkk.ics.hadoop.bam.cli.Frontend</mainClass>
+                            <mainClass>org.seqdoop.hadoop_bam.cli.Frontend</mainClass>
                         </manifest>
                     </archive>
+                    <attach>false</attach>
                 </configuration>
                 <executions>
                     <execution>
@@ -185,12 +236,6 @@
 
     <repositories>
         <repository>
-            <id>hadoop-bam-sourceforge</id>
-            <name>Unofficial Picard repository</name>
-            <url>http://hadoop-bam.sourceforge.net/maven/</url>
-        </repository>
-
-        <repository>
             <id>cloudera</id>
             <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
         </repository>
@@ -212,26 +257,18 @@
             <artifactId>commons-httpclient</artifactId>
             <version>3.1</version>
         </dependency>
-        <!-- <dependency>
-            <groupId>org.broadinstitute</groupId>
-            <artifactId>variant</artifactId>
-            <version>${variant.version}</version>
-        </dependency>
         <dependency>
-            <groupId>org.broad</groupId>
-            <artifactId>tribble</artifactId>
-            <version>${tribble.version}</version>
-        </dependency>-->
-        <dependency>
-            <groupId>htsjdk</groupId>
+            <groupId>org.seqdoop</groupId>
             <artifactId>htsjdk</artifactId>
             <version>${htsjdk.version}</version>
+            <exclusions>
+                <!-- testng breaks our tests so exclude it -->
+                <exclusion>
+                    <groupId>org.testng</groupId>
+                    <artifactId>testng</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-        <!-- <dependency>
-            <groupId>net.sf</groupId>
-            <artifactId>sam</artifactId>
-            <version>${samtools.version}</version>
-        </dependency> -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -244,6 +281,57 @@
             <version>1.9.5</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
+
+    <!-- The following shamelessly copied from ADAM -->
+    <profiles>
+        <!-- Only sign artifacts when we are performing a release, not snapshots -->
+        <profile>
+            <id>sonatype-oss-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>2.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -1,0 +1,8 @@
+org.seqdoop.hadoop_bam.cli.plugins.View
+org.seqdoop.hadoop_bam.cli.plugins.Sort
+org.seqdoop.hadoop_bam.cli.plugins.Index
+org.seqdoop.hadoop_bam.cli.plugins.Cat
+org.seqdoop.hadoop_bam.cli.plugins.FixMate
+org.seqdoop.hadoop_bam.cli.plugins.VCFSort
+org.seqdoop.hadoop_bam.cli.plugins.chipster.Summarize
+org.seqdoop.hadoop_bam.cli.plugins.chipster.SummarySort
