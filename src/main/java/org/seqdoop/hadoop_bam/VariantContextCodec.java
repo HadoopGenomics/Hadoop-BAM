@@ -60,6 +60,11 @@ public final class VariantContextCodec {
         else if (vc instanceof VariantContextWithHeader) {
 
             final VCFHeader header = ((VariantContextWithHeader)vc).getHeader();
+
+            if (header == null) {
+                throw new IllegalStateException( "Header not set inside VariantContextWithHeader" );
+            }
+
             final List<String> genotypeAttributeKeys = vc.calcVCFGenotypeKeys(header);
             final StringBuilder builder = new StringBuilder();
             if ( ! genotypeAttributeKeys.isEmpty()) {
