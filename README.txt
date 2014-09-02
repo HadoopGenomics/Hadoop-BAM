@@ -69,7 +69,8 @@ of hadoop you're using.  Run "hadoop version" and copy the string from the outpu
 
 In the output above, the version string is "2.0.0-cdh4.6.0".
 
-You should also set the value of the java.version property appropriately.
+You should also set the value of the java.version property appropriately. The
+default is Java version 1.6.
 
 ### Build
 
@@ -79,13 +80,13 @@ Build Hadoop-BAM with the following command:
 
 It will create two files:
 
-   target/hadoop-bam-X.Y-SNAPSHOT.jar
-   target/hadoop-bam-X.Y-SNAPSHOT-jar-with-dependencies.jar
+   target/hadoop-bam-X.Y.Z-SNAPSHOT.jar
+   target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
 The former contains only Hadoop-BAM whereas the latter one also contains all
 dependencies and can be run directly via
 
-   hadoop jar target/hadoop-bam-X.Y-SNAPSHOT-jar-with-dependencies.jar
+   hadoop jar target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
 Javadoc documentation is generated automatically and can then be found in
 the target/apidocs subdirectory.
@@ -105,52 +106,47 @@ and a FileOutputFormat and one or more RecordWriters for output.
 Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 0.20 Hadoop releases instead of the older, deprecated API.
 
-See the Javadoc as well as the command line plugins' source code (in
-src/main/java/org.seqdoop.hadoop_bam/cli/plugins/*.java) for more information. In
-particular, for MapReduce usage, recommended examples are
+For examples of how to link to Hadoop-BAM in your own Maven project
+see the examples/ folder. There are example for reading and writing
+BAM as well as VCF files.
+
+For more information see the Javadoc as well as the command line plugins'
+source code (in src/main/java/org/seqdoop/hadoop_bam/cli/plugins/*.java).
+In particular, for MapReduce usage, recommended examples are
 src/main/java/org/seqdoop/hadoop_bam/cli/plugins/FixMate.java and
 src/main/java/org/seqdoop/hadoop_bam/cli/plugins/VCFSort.java.
 
-There is also an examples/ subdirectory that contains an independently
-built Maven project with several examples for how to use Hadoop-BAM as
-a library.
-
 When using Hadoop-BAM as a library in your program, remember to have
-hadoop-bam-X.Y.jar as well as the Picard .jars (including the Commons JEXL .jar)
-in your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
+hadoop-bam-X.Y.Z.jar as well as the Picard .jars (including the Commons
+JEXL .jar) in your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
 *-jar-with-dependencies.jar which contains already all dependencies.
 
 Linking against Hadoop-BAM
 ..........................
 
 If your Maven project relies on Hadoop-BAM the easiest way to link against
-it is by adding our unofficial maven repository which also provides matching
-versions of the dependencies. You need to add the following to your pom.xml:
+it is by relying on the Sonatype Nexus Snapshot repository:
 
 <project>
 ...
     <repositories>
         <repository>
-            <id>hadoop-bam-sourceforge</id>
-            <url>http://hadoop-bam.sourceforge.net/maven/</url>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
     </repositories>
 ...
     <dependencies>
         <dependency>
-            <groupId>org.seqdoop.hadoop_bam</groupId>
+            <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>6.3</version>
+            <version>7.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>cofoja</groupId>
-            <artifactId>cofoja</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>htsjdk</groupId>
+            <groupId>org.seqdoop</groupId>
             <artifactId>htsjdk</artifactId>
-            <version>1.114</version>
+            <version>1.118</version>
         </dependency>
         ...
     </dependencies>
@@ -162,7 +158,7 @@ Command-line usage
 ------------------
 
 Hadoop-BAM can be used as a command-line tool, with functionality in the form
-of plugins that provide commands to which hadoop-bam-X.Y.jar is a frontend.
+of plugins that provide commands to which hadoop-bam-X.Y.Z.jar is a frontend.
 Hadoop-BAM provides some commands of its own, but any others found in the Java
 class path will be used as well.
 
@@ -172,13 +168,13 @@ Running under Hadoop
 To use Hadoop-BAM under Hadoop, the easiest method is to use the
 jar that comes packaged with all dependencies via
 
-hadoop jar hadoop-bam-with-dependencies.jar
+hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar
 
 Alternatively, you can use the "-libjars" command line argument when
 running Hadoop-BAM to provide different versions of dependencies as follows:
 
-   hadoop jar hadoop-bam-X.Y.jar \
-      -libjars htsjdk-1.114.jar,commons-jexl-2.1.1.jar
+   hadoop jar hadoop-bam-X.Y.Z.jar \
+      -libjars htsjdk-1.118.jar,commons-jexl-2.1.1.jar
 
 Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
 configuration's hadoop-env.sh.
@@ -187,7 +183,7 @@ The command used should print a brief help message listing the Hadoop-BAM
 commands available. To run a command, give it as the first command-line
 argument. For example, the provided SAM/BAM sorting command, "sort":
 
-   hadoop jar hadoop-bam-with-dependencies-X.Y.jar sort
+   hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar sort
 
 This will give a help message specific to that command.
 
@@ -225,13 +221,13 @@ Running without Hadoop
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 and Hadoop .jar files as well as the Apache Commons CLI .jar provided by Hadoop
 ("lib/commons-cli-1.2.jar" for version 1.1.2) are in the Java class path.
-Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies-X.Y.jar). In
+Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies-X.Y.Z.jar). In
 addition, depending on the Hadoop version, there may be more dependencies from
 the Hadoop lib/ directory. A command such as the following:
 
    java org.seqdoop.hadoop_bam.cli.Frontend
 
-Is equivalent to the "hadoop jar hadoop-bam-X.Y.jar" command used earlier. This has
+Is equivalent to the "hadoop jar hadoop-bam-X.Y.Z.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.
 
 Note that the "-libjars" way of passing the paths to the Picard .jars will not
@@ -242,17 +238,17 @@ Summarizer plugins
 ------------------
 
 This part explains some behaviour of the summarizing plugins, available in the
-command line interface as "hadoop jar hadoop-bam-X.Y.jar summarize" and "hadoop jar
-hadoop-bam-X.Y.jar summarysort". Unless you are a Chipster user, this section is
+command line interface as "hadoop jar hadoop-bam-X.Y.Z.jar summarize" and "hadoop jar
+hadoop-bam-X.Y.Z.jar summarysort". Unless you are a Chipster user, this section is
 unlikely to be relevant to you, and even then, this is not likely to be
 something you are interested in.
 
-Summarization is typically best done with the "hadoop jar hadoop-bam-X.Y.jar
+Summarization is typically best done with the "hadoop jar hadoop-bam-X.Y.Z.jar
 summarize --sort -o output-directory" command. Then there is no need to worry
 about concatenating nor sorting the output, as both are done automatically in
 this one command. But if you do not pass the "--sort" option, do remember that
 Chipster needs the outputs sorted before it can make use of them. For this, you
-need to run a separate "hadoop jar hadoop-bam-X.Y.jar summarysort" command for each
+need to run a separate "hadoop jar hadoop-bam-X.Y.Z.jar summarysort" command for each
 summary file output by "summarize".
 
 Output format
