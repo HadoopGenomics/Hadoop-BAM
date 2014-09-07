@@ -20,44 +20,30 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.seqdoop.hadoop_bam.KeyIgnoringVCFOutputFormat;
-import org.seqdoop.hadoop_bam.VariantContextWritable;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.seekablestream.SeekableFileStream;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.vcf.*;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.util.ByteArray;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import htsjdk.variant.variantcontext.Allele;
-import htsjdk.variant.variantcontext.GenotypesContext;
-import htsjdk.variant.variantcontext.LazyGenotypesContext;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.VariantContextBuilder;
-import htsjdk.variant.vcf.VCFHeader;
-
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.LineNumberReader;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import org.apache.commons.io.FileUtils;
+
+import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
+import hbparquet.hadoop.util.ContextUtil;
 
 import static org.mockito.Mockito.mock;
 
@@ -65,29 +51,30 @@ public class TestVCFOutputFormat {
     private VariantContextWritable writable;
     private RecordWriter<Long, VariantContextWritable> writer;
     private TaskAttemptContext taskAttemptContext;
-    private String test_vcf_output = "/tmp/test_vcf_output";
+    private String test_vcf_output = new File(FileUtils.getTempDirectory(), "test_vcf_output").getAbsolutePath();
 
     @Before
     public void setup() throws IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         writable = new VariantContextWritable();
-
         Configuration conf = new Configuration();
         conf.set("hadoopbam.vcf.output-format", "VCF");
         KeyIgnoringVCFOutputFormat<Long> outputFormat = new KeyIgnoringVCFOutputFormat<Long>(conf);
-        String header_file = ClassLoader.getSystemClassLoader().getResource("test.vcf").getFile();
-        outputFormat.readHeaderFrom(new SeekableFileStream(new File(header_file)));
+        outputFormat.setHeader(readHeader());
         taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
         writer = outputFormat.getRecordWriter(taskAttemptContext, new Path("file://" + test_vcf_output));
     }
 
+    @After
+    public void cleanup() {
+        FileUtils.deleteQuietly(new File(test_vcf_output));
+    }
+
     private void skipHeader(LineNumberReader reader) throws IOException {
         String line = reader.readLine();
-
         while (line.startsWith("#")) {
             reader.mark(1000);
             line = reader.readLine();
         }
-
         reader.reset();
     }
 
@@ -127,16 +114,22 @@ public class TestVCFOutputFormat {
     }
     
     @Test
-    public void testVariantContextReadWrite() throws IOException
+    public void testVariantContextReadWrite() throws IOException, InterruptedException
     {
+        // This is to check whether issue https://github.com/HadoopGenomics/Hadoop-BAM/issues/1 has been
+        // resolved
     	VariantContextBuilder vctx_builder = new VariantContextBuilder();
 
         ArrayList<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(Allele.create("A", false));
-        alleles.add(Allele.create("C", true));
+        alleles.add(Allele.create("C", false));
+        alleles.add(Allele.create("G", true));
         vctx_builder.alleles(alleles);
 
-        GenotypesContext genotypes = GenotypesContext.NO_GENOTYPES;
+        ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
+        GenotypeBuilder builder = new GenotypeBuilder();
+        genotypes.add(builder.alleles(alleles.subList(0, 1)).name("NA00001").GQ(48).DP(1).make());
+        genotypes.add(builder.alleles(alleles.subList(0, 1)).name("NA00002").GQ(42).DP(2).make());
+        genotypes.add(builder.alleles(alleles.subList(0, 1)).name("NA00003").GQ(39).DP(3).make());
         vctx_builder.genotypes(genotypes);
 
         HashSet<String> filters = new HashSet<String>();
@@ -150,22 +143,41 @@ public class TestVCFOutputFormat {
         vctx_builder.log10PError(-8.0);
 
         VariantContext ctx = vctx_builder.make();
-        VariantContextWithHeader ctxh = new VariantContextWithHeader(ctx, new VCFHeader());
+        VariantContextWithHeader ctxh = new VariantContextWithHeader(ctx, readHeader());
         writable.set(ctxh);
+
         DataOutputBuffer out = new DataOutputBuffer(1000);
         writable.write(out);
         
         byte[] data = out.getData();
         ByteArrayInputStream bis = new ByteArrayInputStream(data);
 
-        writable.set(null);
+        writable = new VariantContextWritable();
         writable.readFields(new DataInputStream(bis));
-        
+
         VariantContext vc = writable.get();
         Assert.assertArrayEquals("comparing Alleles",ctx.getAlleles().toArray(),vc.getAlleles().toArray());
         Assert.assertEquals("comparing Log10PError",ctx.getLog10PError(),vc.getLog10PError(),0.01);
         Assert.assertArrayEquals("comparing Filters",ctx.getFilters().toArray(),vc.getFilters().toArray());
         Assert.assertEquals("comparing Attributes",ctx.getAttributes(),vc.getAttributes());
-      
+
+        // Now check the genotypes. Note: we need to make the header accessible before decoding the genotypes.
+        GenotypesContext gc = vc.getGenotypes();
+        assert(gc instanceof LazyVCFGenotypesContext);
+        LazyVCFGenotypesContext.HeaderDataCache headerDataCache = new LazyVCFGenotypesContext.HeaderDataCache();
+        headerDataCache.setHeader(readHeader());
+        ((LazyVCFGenotypesContext) gc).getParser().setHeaderDataCache(headerDataCache);
+
+        for (Genotype genotype : genotypes) {
+            Assert.assertEquals("checking genotype name", genotype.getSampleName(), gc.get(genotypes.indexOf(genotype)).getSampleName());
+            Assert.assertEquals("checking genotype quality", genotype.getGQ(), gc.get(genotypes.indexOf(genotype)).getGQ());
+            Assert.assertEquals("checking genotype read depth", genotype.getDP(), gc.get(genotypes.indexOf(genotype)).getDP());
+        }
+    }
+
+    private VCFHeader readHeader() throws IOException {
+        String header_file = ClassLoader.getSystemClassLoader().getResource("test.vcf").getFile();
+        VCFHeader header = VCFHeaderReader.readHeaderFrom(new SeekableFileStream(new File(header_file)));
+        return header;
     }
 }
