@@ -22,22 +22,33 @@ package org.seqdoop.hadoop_bam;
 
 import org.seqdoop.hadoop_bam.KeyIgnoringVCFOutputFormat;
 import org.seqdoop.hadoop_bam.VariantContextWritable;
+
 import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.seekablestream.SeekableFileStream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.util.ByteArray;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.GenotypesContext;
+import htsjdk.variant.variantcontext.LazyGenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.vcf.VCFHeader;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -113,5 +124,48 @@ public class TestVCFOutputFormat {
         skipHeader(reader);
         String[] fields = Arrays.copyOf(reader.readLine().split("\t"), expected.length);
         Assert.assertArrayEquals("comparing VCF single line", expected, fields);
+    }
+    
+    @Test
+    public void testVariantContextReadWrite() throws IOException
+    {
+    	VariantContextBuilder vctx_builder = new VariantContextBuilder();
+
+        ArrayList<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(Allele.create("A", false));
+        alleles.add(Allele.create("C", true));
+        vctx_builder.alleles(alleles);
+
+        GenotypesContext genotypes = GenotypesContext.NO_GENOTYPES;
+        vctx_builder.genotypes(genotypes);
+
+        HashSet<String> filters = new HashSet<String>();
+        vctx_builder.filters(filters);
+
+        HashMap<String, Object> attributes = new HashMap<String, Object>();
+        attributes.put("NS", new Integer(4));
+        vctx_builder.attributes(attributes);
+
+        vctx_builder.loc("20", 2, 2);
+        vctx_builder.log10PError(-8.0);
+
+        VariantContext ctx = vctx_builder.make();
+        VariantContextWithHeader ctxh = new VariantContextWithHeader(ctx, new VCFHeader());
+        writable.set(ctxh);
+        DataOutputBuffer out = new DataOutputBuffer(1000);
+        writable.write(out);
+        
+        byte[] data = out.getData();
+        ByteArrayInputStream bis = new ByteArrayInputStream(data);
+
+        writable.set(null);
+        writable.readFields(new DataInputStream(bis));
+        
+        VariantContext vc = writable.get();
+        Assert.assertArrayEquals("comparing Alleles",ctx.getAlleles().toArray(),vc.getAlleles().toArray());
+        Assert.assertEquals("comparing Log10PError",ctx.getLog10PError(),vc.getLog10PError(),0.01);
+        Assert.assertArrayEquals("comparing Filters",ctx.getFilters().toArray(),vc.getFilters().toArray());
+        Assert.assertEquals("comparing Attributes",ctx.getAttributes(),vc.getAttributes());
+      
     }
 }
