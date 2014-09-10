@@ -31,11 +31,11 @@
     <name>Hadoop-BAM examples</name>
 
     <repositories>
-        <repository>
+        <!-- <repository>
             <id>sonatype-nexus-snapshots</id>
             <name>Sonatype Nexus Snapshots</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
+        </repository> -->
         <repository>
             <id>cloudera</id>
             <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
@@ -45,7 +45,7 @@
     <properties>
         <java.version>1.6</java.version>
         <htsjdk.version>1.118</htsjdk.version>
-        <hadoopbam.version>7.0.0-SNAPSHOT</hadoopbam.version>
+        <hadoopbam.version>7.0.0</hadoopbam.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>1.2.1</hadoop.version>
         <!--

@@ -1,4 +1,12 @@
 
+2014-09-10 --- 7.0.0:
+   - Switching from Picard/Samtools to HTSJDK
+   - First release to OSS Sonatype
+   - Renaming of packages
+   - Changes to VariantContextCodec: encoding of genotypes generated
+     by other means than VCF import (thanks to Joel Thibault)
+   - Change of JDK version requirements (>= 1.6)
+
 2014-04-04 --- 6.2:
    - Bugfix: the update of Picard/Tribble introduced a bug into the
      VCFInputFormat that affects input files loaded from HDFS that are

@@ -125,23 +125,15 @@ Linking against Hadoop-BAM
 ..........................
 
 If your Maven project relies on Hadoop-BAM the easiest way to link against
-it is by relying on the Sonatype Nexus Snapshot repository:
+it is by relying on the OSS Sonatype repository:
 
 <project>
-...
-    <repositories>
-        <repository>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Sonatype Nexus Snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
 ...
     <dependencies>
         <dependency>
             <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>7.0.0-SNAPSHOT</version>
+            <version>7.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.seqdoop</groupId>
