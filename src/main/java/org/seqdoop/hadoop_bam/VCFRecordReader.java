@@ -62,6 +62,8 @@ public class VCFRecordReader
     private AsciiLineReaderIterator it;
     private AsciiLineReader reader;
 
+    private VCFHeader header;
+
 	private long length;
 
 	private final Map<String,Integer> contigDict =
@@ -86,7 +88,7 @@ public class VCFRecordReader
 		if (!(h instanceof FeatureCodecHeader) || !(((FeatureCodecHeader)h).getHeaderValue() instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ file);
 
-        final VCFHeader header = (VCFHeader)((FeatureCodecHeader)h).getHeaderValue();
+        header = (VCFHeader)((FeatureCodecHeader)h).getHeaderValue();
 
         contigDict.clear();
 		int i = 0;
@@ -135,7 +137,7 @@ public class VCFRecordReader
 			chromIdx = (int)MurmurHash3.murmurhash3(v.getChr(), 0);
 
 		key.set((long)chromIdx << 32 | (long)(v.getStart() - 1));
-		vc.set(v);
+		vc.set(v, header);
 		return true;
 	}
 }
