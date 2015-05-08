@@ -75,7 +75,7 @@ public final class VariantContextCodec {
                 builder.append(VCFConstants.FIELD_SEPARATOR);
                 builder.append(genotypeFormatString);
 
-                final VCFEncoder encoder = new VCFEncoder(header, true);
+                final VCFEncoder encoder = new VCFEncoder(header, true, false);
                 final Map<Allele, String> alleleStrings = encoder.buildAlleleStrings(vc);
                 encoder.addGenotypeData(vc, alleleStrings, genotypeAttributeKeys, builder);
             }
