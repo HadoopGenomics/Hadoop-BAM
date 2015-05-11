@@ -25,6 +25,7 @@ package org.seqdoop.hadoop_bam;
 import hbparquet.hadoop.util.ContextUtil;
 
 import java.io.DataOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -68,17 +69,17 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
     protected static final String delim = "\t";
 		static {
 			try {
-				newLine = "\n".getBytes("UTF-8");
+				newLine = "\n".getBytes("us-ascii");
 			} catch (java.io.UnsupportedEncodingException e) {
-				throw new RuntimeException("UTF-8 enconding not supported!");
+				throw new RuntimeException("us-ascii encoding not supported!");
 			}
 		}
 
 		protected StringBuilder sBuilder = new StringBuilder(800);
-		protected DataOutputStream out;
+		protected OutputStream out;
 		BaseQualityEncoding baseQualityFormat;
 
-    public QseqRecordWriter(Configuration conf, DataOutputStream out)
+    public QseqRecordWriter(Configuration conf, OutputStream out)
 		{
 			baseQualityFormat = BaseQualityEncoding.Illumina;
 			this.out = out;
@@ -183,7 +184,7 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 		Path file = getDefaultWorkFile(task, extension);
 		FileSystem fs = file.getFileSystem(conf);
 
-		DataOutputStream output;
+		OutputStream output;
 
 		if (isCompressed)
 		{

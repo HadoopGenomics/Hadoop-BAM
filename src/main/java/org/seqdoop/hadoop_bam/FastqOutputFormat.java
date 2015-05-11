@@ -25,6 +25,7 @@ package org.seqdoop.hadoop_bam;
 import hbparquet.hadoop.util.ContextUtil;
 
 import java.io.DataOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -55,16 +56,25 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 	public static final String CONF_BASE_QUALITY_ENCODING         = "hbam.fastq-output.base-quality-encoding";
 	public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "sanger";
 
+	protected static final byte[] PLUS_LINE;
+	static {
+		try {
+			PLUS_LINE = "\n+\n".getBytes("us-ascii");
+		} catch (java.io.UnsupportedEncodingException e) {
+			throw new RuntimeException("us-ascii encoding not supported!");
+		}
+	}
+
 	protected BaseQualityEncoding baseQualityFormat = BaseQualityEncoding.Sanger;
 
 	public static class FastqRecordWriter extends RecordWriter<Text,SequencedFragment>
 	{
 		protected StringBuilder       sBuilder          = new StringBuilder(800);
 		protected Text                buffer            = new Text();
-		protected DataOutputStream    out;
+		protected OutputStream        out;
 		protected BaseQualityEncoding baseQualityFormat;
 
-    public FastqRecordWriter(Configuration conf, DataOutputStream out)
+    public FastqRecordWriter(Configuration conf, OutputStream out)
 		{
 			this.out = out;
 			setConf(conf);
@@ -109,16 +119,16 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
     public void write(Text key, SequencedFragment seq) throws IOException
 		{
 			// write the id line
-			out.writeByte('@');
+			out.write('@');
 			if (key != null)
 				out.write(key.getBytes(), 0, key.getLength());
 			else
-				out.writeBytes(makeId(seq));
-			out.writeByte('\n');
+				out.write(makeId(seq).getBytes());
+			out.write('\n');
 
 			// write the sequence and separator
 			out.write(seq.getSequence().getBytes(), 0, seq.getSequence().getLength());
-			out.writeBytes("\n+\n");
+			out.write(PLUS_LINE);
 
 			// now the quality
 			if (baseQualityFormat == BaseQualityEncoding.Sanger)
@@ -133,7 +143,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 				throw new RuntimeException("FastqOutputFormat: unknown base quality format " + baseQualityFormat);
 
 			// and the final newline
-			out.writeByte('\n');
+			out.write('\n');
     }
 
     public void close(TaskAttemptContext task) throws IOException
@@ -161,7 +171,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 		Path file = getDefaultWorkFile(task, extension);
 		FileSystem fs = file.getFileSystem(conf);
 
-		DataOutputStream output;
+		OutputStream output;
 
 		if (isCompressed)
 		{
