@@ -74,7 +74,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 		protected OutputStream        out;
 		protected BaseQualityEncoding baseQualityFormat;
 
-    public FastqRecordWriter(Configuration conf, OutputStream out)
+		public FastqRecordWriter(Configuration conf, OutputStream out)
 		{
 			this.out = out;
 			setConf(conf);
@@ -98,7 +98,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 
 			sBuilder.append( seq.getInstrument() == null ? "" : seq.getInstrument() ).append(delim);
 			sBuilder.append( seq.getRunNumber()  == null ? "" : seq.getRunNumber().toString() ).append(delim);
-			sBuilder.append( seq.getFlowcellId()  == null ? "" : seq.getFlowcellId() ).append(delim);
+			sBuilder.append( seq.getFlowcellId() == null ? "" : seq.getFlowcellId() ).append(delim);
 			sBuilder.append( seq.getLane()       == null ? "" : seq.getLane().toString() ).append(delim);
 			sBuilder.append( seq.getTile()       == null ? "" : seq.getTile().toString() ).append(delim);
 			sBuilder.append( seq.getXpos()       == null ? "" : seq.getXpos().toString() ).append(delim);
@@ -116,7 +116,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			return sBuilder.toString();
 		}
 
-    public void write(Text key, SequencedFragment seq) throws IOException
+		public void write(Text key, SequencedFragment seq) throws IOException
 		{
 			// write the id line
 			out.write('@');
@@ -144,15 +144,15 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 
 			// and the final newline
 			out.write('\n');
-    }
+		}
 
-    public void close(TaskAttemptContext task) throws IOException
+		public void close(TaskAttemptContext task) throws IOException
 		{
-      out.close();
-    }
+			out.close();
+		}
   }
 
-  public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
+	public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
 		Configuration conf = ContextUtil.getConfiguration(task);
