@@ -25,6 +25,7 @@ package org.seqdoop.hadoop_bam;
 import hbparquet.hadoop.util.ContextUtil;
 
 import java.io.DataOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -64,21 +65,21 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 
 	public static class QseqRecordWriter extends RecordWriter<Text,SequencedFragment>
 	{
-    protected static final byte[] newLine;
-    protected static final String delim = "\t";
+		protected static final byte[] newLine;
+		protected static final String delim = "\t";
 		static {
 			try {
-				newLine = "\n".getBytes("UTF-8");
+				newLine = "\n".getBytes("us-ascii");
 			} catch (java.io.UnsupportedEncodingException e) {
-				throw new RuntimeException("UTF-8 enconding not supported!");
+				throw new RuntimeException("us-ascii encoding not supported!");
 			}
 		}
 
 		protected StringBuilder sBuilder = new StringBuilder(800);
-		protected DataOutputStream out;
+		protected OutputStream out;
 		BaseQualityEncoding baseQualityFormat;
 
-    public QseqRecordWriter(Configuration conf, DataOutputStream out)
+		public QseqRecordWriter(Configuration conf, OutputStream out)
 		{
 			baseQualityFormat = BaseQualityEncoding.Illumina;
 			this.out = out;
@@ -96,7 +97,7 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 				throw new RuntimeException("Invalid property value '" + setting + "' for " + CONF_BASE_QUALITY_ENCODING + ".  Valid values are 'illumina' or 'sanger'");
 		}
 
-    public void write(Text ignored_key, SequencedFragment seq) throws IOException
+		public void write(Text ignored_key, SequencedFragment seq) throws IOException
 		{
 			sBuilder.delete(0, sBuilder.length()); // clear
 
@@ -146,7 +147,6 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			}
 			sBuilder.append(delim);
 			/////////
-
 			sBuilder.append((seq.getFilterPassed() == null || seq.getFilterPassed() ) ? 1 : 0);
 
 			try {
@@ -155,16 +155,16 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			} catch (java.nio.charset.CharacterCodingException e) {
 				throw new RuntimeException("Error encoding qseq record: " + seq);
 			}
-      out.write(newLine, 0, newLine.length);
-    }
+			out.write(newLine, 0, newLine.length);
+		}
 
-    public void close(TaskAttemptContext context) throws IOException
+		public void close(TaskAttemptContext context) throws IOException
 		{
-      out.close();
-    }
-  }
+			out.close();
+		}
+	}
 
-  public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
+	public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
 		Configuration conf = ContextUtil.getConfiguration(task);
@@ -183,7 +183,7 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 		Path file = getDefaultWorkFile(task, extension);
 		FileSystem fs = file.getFileSystem(conf);
 
-		DataOutputStream output;
+		OutputStream output;
 
 		if (isCompressed)
 		{
