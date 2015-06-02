@@ -306,7 +306,7 @@ public class InputSampler<K,V> extends Configured implements Tool  {
     final InputFormat inf = 
         ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
     int numPartitions = job.getNumReduceTasks();
-    K[] samples = sampler.getSample(inf, job);
+    K[] samples = (K[])sampler.getSample(inf, job);
     RawComparator<K> comparator =
       (RawComparator<K>) job.getSortComparator();
     Arrays.sort(samples, comparator);
