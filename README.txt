@@ -6,6 +6,11 @@ Hadoop-BAM: a library for the manipulation of files in common bioinformatics
 formats using the Hadoop MapReduce framework, and command line tools in the
 vein of SAMtools.
 
+Build status
+------------
+[![Build Status](https://travis-ci.org/HadoopGenomics/Hadoop-BAM.svg?branch=master)](https://travis-ci.org/HadoopGenomics/Hadoop-BAM)
+
+
 The file formats currently supported are:
 
    - BAM (Binary Alignment/Map)
