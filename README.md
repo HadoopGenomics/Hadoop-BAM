@@ -53,8 +53,9 @@ may also work but have not been tested. A version of Picard is distributed
 via the unofficial maven repository (see below).
 
 Availability:
-   Hadoop              - http://hadoop.apache.org/
-   HTSJDK/Picard       - http://picard.sourceforge.net/
+
+   - Hadoop              http://hadoop.apache.org/
+   - HTSJDK/Picard       https://github.com/samtools/htsjdk
 
 ------------
 Installation
@@ -85,20 +86,19 @@ Build Hadoop-BAM with the following command:
 
 It will create two files:
 
-   target/hadoop-bam-X.Y.Z-SNAPSHOT.jar
-   target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
+    target/hadoop-bam-X.Y.Z-SNAPSHOT.jar
+    target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
 The former contains only Hadoop-BAM whereas the latter one also contains all
 dependencies and can be run directly via
 
-   hadoop jar target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
+    hadoop jar target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
-Javadoc documentation is generated automatically and can then be found in
-the target/apidocs subdirectory.
+Javadoc documentation is generated automatically and can then be found in the target/apidocs subdirectory.
 
 Finally, unit test can be run via:
 
-   mvn test
+    mvn test
 
 -------------
 Library usage
@@ -127,11 +127,12 @@ JEXL .jar) in your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
 *-jar-with-dependencies.jar which contains already all dependencies.
 
 Linking against Hadoop-BAM
-..........................
+--------------------------
 
 If your Maven project relies on Hadoop-BAM the easiest way to link against
 it is by relying on the OSS Sonatype repository:
 
+~~~~~~~
 <project>
 ...
     <dependencies>
@@ -140,15 +141,11 @@ it is by relying on the OSS Sonatype repository:
             <artifactId>hadoop-bam</artifactId>
             <version>7.0.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.seqdoop</groupId>
-            <artifactId>htsjdk</artifactId>
-            <version>1.118</version>
-        </dependency>
         ...
     </dependencies>
     ...
 </project>
+~~~~~~~
 
 ------------------
 Command-line usage
@@ -160,17 +157,17 @@ Hadoop-BAM provides some commands of its own, but any others found in the Java
 class path will be used as well.
 
 Running under Hadoop
-....................
+--------------------
 
 To use Hadoop-BAM under Hadoop, the easiest method is to use the
 jar that comes packaged with all dependencies via
 
-hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar
+    hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar
 
 Alternatively, you can use the "-libjars" command line argument when
 running Hadoop-BAM to provide different versions of dependencies as follows:
 
-   hadoop jar hadoop-bam-X.Y.Z.jar \
+    hadoop jar hadoop-bam-X.Y.Z.jar \
       -libjars htsjdk-1.118.jar,commons-jexl-2.1.1.jar
 
 Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
@@ -180,12 +177,12 @@ The command used should print a brief help message listing the Hadoop-BAM
 commands available. To run a command, give it as the first command-line
 argument. For example, the provided SAM/BAM sorting command, "sort":
 
-   hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar sort
+    hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar sort
 
 This will give a help message specific to that command.
 
 File paths under Hadoop
-.......................
+-----------------------
 
 When running under Hadoop, keep in mind that file paths refer to the
 distributed file system, HDFS. To explicitly access a local file, instead of
@@ -193,7 +190,7 @@ using the plain path such as "/foo/bar", you must use a file: URI, such as
 "file:/foo/bar". Note that paths in file: URIs must be absolute.
 
 Output of MapReduce-using commands
-..................................
+----------------------------------
 
 An example of a MapReduce-using command is "sort". Like all such commands
 should, it takes a working directory argument in which to place its output in
@@ -213,7 +210,7 @@ not use MapReduce: they are merely useful to operate directly on files stored
 in HDFS.
 
 Running without Hadoop
-......................
+----------------------
 
 Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
 and Hadoop .jar files as well as the Apache Commons CLI .jar provided by Hadoop
@@ -222,7 +219,7 @@ Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies-X.Y.Z.jar). 
 addition, depending on the Hadoop version, there may be more dependencies from
 the Hadoop lib/ directory. A command such as the following:
 
-   java org.seqdoop.hadoop_bam.cli.Frontend
+    java org.seqdoop.hadoop_bam.cli.Frontend
 
 Is equivalent to the "hadoop jar hadoop-bam-X.Y.Z.jar" command used earlier. This has
 limited application, but it can be used e.g. for testing purposes.
@@ -249,12 +246,12 @@ need to run a separate "hadoop jar hadoop-bam-X.Y.Z.jar summarysort" command for
 summary file output by "summarize".
 
 Output format
-.............
+-------------
 
 The summarizer's output format is tabix-compatible. It is composed of rows of
 tab-separated data:
 
-   <reference sequence ID> <left coordinate> <right coordinate> <count>
+    <reference sequence ID> <left coordinate> <right coordinate> <count>
 
 The coordinate columns are 1-based and both ends are inclusive.
 
