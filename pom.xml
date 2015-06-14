@@ -32,7 +32,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.seqdoop</groupId>
     <artifactId>hadoop-bam</artifactId>
-    <version>7.0.1-SNAPSHOT</version>
+    <version>7.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Hadoop-BAM</name>
     <description>A Java library for the manipulation of files in common bioinformatics formats using the Hadoop MapReduce framework.</description>

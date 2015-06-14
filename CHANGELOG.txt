@@ -1,4 +1,9 @@
 
+2015-06-14 --- 7.1.0:
+   - Changes to Fastq/Qseq output format
+   - Upgrade to htsjdk 1.131 (Java 8 support) (thanks Tom White)
+   - Include VCF Header info in output from VCFRecordReader (thanks Andrew Jefferson)
+
 2014-09-10 --- 7.0.0:
    - Switching from Picard/Samtools to HTSJDK
    - First release to OSS Sonatype
