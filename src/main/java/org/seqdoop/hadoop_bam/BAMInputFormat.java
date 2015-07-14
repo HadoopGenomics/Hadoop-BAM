@@ -110,6 +110,7 @@ public class BAMInputFormat
 		throws IOException
 	{
 		final Path file = ((FileSplit)splits.get(i)).getPath();
+		List<InputSplit> potentialSplits = new ArrayList<InputSplit>();
 
 		final SplittingBAMIndex idx = new SplittingBAMIndex(
 			file.getFileSystem(cfg).open(getIdxPath(file)));
@@ -133,20 +134,26 @@ public class BAMInputFormat
 			// format for this: we can just set the end to the maximal length of
 			// the final BGZF block (0xffff), and then read until BAMRecordCodec
 			// hits EOF.
-			final Long blockEnd =
-				j == splitsEnd-1 ? idx.prevAlignment(end) | 0xffff
-				                 : idx.nextAlignment(end);
+			Long blockEnd;
+			if (j == splitsEnd - 1) {
+				blockEnd = idx.prevAlignment(end) | 0xffff;
+			} else {
+				blockEnd = idx.nextAlignment(end);
+			}
 
-			if (blockStart == null)
-				throw new RuntimeException(
-					"Internal error or invalid index: no block start for " +start);
+			if (blockStart == null || blockEnd == null) {
+				System.err.println("Warning: index for " + file.toString() +
+						" was not good. Generating probabilistic splits.");
 
-			if (blockEnd == null)
-				throw new RuntimeException(
-					"Internal error or invalid index: no block end for " +end);
+				return addProbabilisticSplits(splits, i, newSplits, cfg);
+			}
 
-			newSplits.add(new FileVirtualSplit(
-				file, blockStart, blockEnd, fileSplit.getLocations()));
+			potentialSplits.add(new FileVirtualSplit(
+						file, blockStart, blockEnd, fileSplit.getLocations()));
+		}
+
+		for (InputSplit s : potentialSplits) {
+			newSplits.add(s);
 		}
 		return splitsEnd;
 	}
