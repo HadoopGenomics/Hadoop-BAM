@@ -90,6 +90,7 @@ public abstract class SAMRecordWriter<K>
 		this.header = header;
 		writer = new SAMTextWriter(output);
 
+		writer.setSortOrder(header.getSortOrder(), false);
 		if (writeHeader)
 			writer.setHeader(header);
 	}
