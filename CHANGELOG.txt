@@ -1,3 +1,6 @@
+2015-10-11 --- 7.1.1:
+   - SAMRecordWriter: sort order now set according to SAM header
+     (thanks Ryan Williams)
 
 2015-06-14 --- 7.1.0:
    - Changes to Fastq/Qseq output format
