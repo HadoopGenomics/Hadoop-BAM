@@ -48,7 +48,7 @@ CDH, has also been tested. Use other versions at your own risk. You
 can change the version of Hadoop linked against by modifying the
 corresponding paramter in the pom.xml build file.
 
-HTSJDK (formerly Picard SAM-JDK) Version 1.118 is required. Later versions
+HTSJDK (formerly Picard SAM-JDK) Version 1.133 is required. Later versions
 may also work but have not been tested. A version of Picard is distributed
 via the unofficial maven repository (see below).
 
@@ -61,7 +61,7 @@ Availability:
 Installation
 ------------
 
-If you're using Hadoop 1.2.1, a precompiled "hadoop-bam-X.Y.jar" is available
+If you're using Hadoop 2.2.0, a precompiled "hadoop-bam-X.Y.Z.jar" is available
 that you can use.  Otherwise, you'll have to build Hadoop-BAM yourself by
 by using Maven (version 3.0.4 at least) and following the instructions below.
 
@@ -139,7 +139,7 @@ it is by relying on the OSS Sonatype repository:
         <dependency>
             <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>7.1.0</version>
+            <version>7.2.0</version>
         </dependency>
         ...
     </dependencies>
