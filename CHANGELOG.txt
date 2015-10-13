@@ -1,3 +1,8 @@
+2015-10-14 --- 7.2.0:
+   - Update to HTSJDK 1.133 (thanks Frank Nothaft)
+   - Fallback to probabilistic splits if splitting index (.splitting-bai file)
+     results in incorrect value (thanks Alec Harmsel)
+
 2015-10-11 --- 7.1.1:
    - SAMRecordWriter: sort order now set according to SAM header
      (thanks Ryan Williams)

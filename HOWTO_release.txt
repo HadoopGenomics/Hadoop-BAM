@@ -1,4 +1,5 @@
 
+- update CHANGELOG.txt
 - mvn clean package
 - mvn release:prepare
 - mvn release:perform
