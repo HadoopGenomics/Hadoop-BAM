@@ -89,4 +89,7 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 		vStart = in.readLong();
 		vEnd   = in.readLong();
 	}
+
+	@Override
+	public String toString() { return file + ":" + vStart + "-" + vEnd; }
 }
