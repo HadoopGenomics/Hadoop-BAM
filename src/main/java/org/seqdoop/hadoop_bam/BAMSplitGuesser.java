@@ -350,6 +350,11 @@ public class BAMSplitGuesser {
 				bgzf.read(buf.array(), 0, 4);
 
 				final int nameLength = buf.getInt(0) & 0xff;
+				if (nameLength < 1) {
+					// Names are null-terminated so length must be at least one
+					up = nextUP;
+					continue;
+				}
 
 				final int nullTerminator = up + 36 + nameLength-1;
 
