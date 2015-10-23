@@ -122,5 +122,7 @@ class HeaderSettableVCFCodec extends AbstractVCFCodec {
 		throw new UnsupportedOperationException(
 			"Internal error: this shouldn't be called");
 	}
-
+	@Override public boolean canDecode(String s) {
+		return true;
+	}
 }
