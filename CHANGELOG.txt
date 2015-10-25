@@ -1,3 +1,6 @@
+2015-10-25 --- 7.2.1:
+   - Checking read name length in BAMSplitGuesser (thanks Tom White)
+
 2015-10-14 --- 7.2.0:
    - Update to HTSJDK 1.133 (thanks Frank Nothaft)
    - Fallback to probabilistic splits if splitting index (.splitting-bai file)

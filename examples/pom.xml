@@ -45,7 +45,7 @@
     <properties>
         <java.version>1.6</java.version>
         <htsjdk.version>1.133</htsjdk.version>
-        <hadoopbam.version>7.2.0</hadoopbam.version>
+        <hadoopbam.version>7.2.1</hadoopbam.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
         <!--

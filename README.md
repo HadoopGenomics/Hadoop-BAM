@@ -139,7 +139,7 @@ it is by relying on the OSS Sonatype repository:
         <dependency>
             <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>7.2.0</version>
+            <version>7.2.1</version>
         </dependency>
         ...
     </dependencies>
