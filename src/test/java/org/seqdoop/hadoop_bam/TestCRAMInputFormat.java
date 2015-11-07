@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +41,7 @@ public class TestCRAMInputFormat {
   public void setup() throws Exception {
     Configuration conf = new Configuration();
     input = ClassLoader.getSystemClassLoader().getResource("test.cram").getFile();
-    reference = ClassLoader.getSystemClassLoader().getResource("auxf.fa").getFile();
+    reference = ClassLoader.getSystemClassLoader().getResource("auxf.fa").toURI().toString();
     conf.set("mapred.input.dir", "file://" + input);
     conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, reference);
 
@@ -52,7 +53,7 @@ public class TestCRAMInputFormat {
   public void testReader() throws Exception {
     int expectedCount = 0;
     SamReader samReader = SamReaderFactory.makeDefault()
-        .referenceSequence(new File(reference)).open(new File(input));
+        .referenceSequence(new File(URI.create(reference))).open(new File(input));
     for (SAMRecord r : samReader) {
       expectedCount++;
     }
@@ -134,7 +135,7 @@ public class TestCRAMInputFormat {
 
     List<String> samStrings = new ArrayList<String>();
     SamReader samReader = SamReaderFactory.makeDefault()
-        .referenceSequence(new File(reference)).open(new File(input));
+        .referenceSequence(new File(URI.create(reference))).open(new File(input));
     for (SAMRecord r : samReader) {
       samStrings.add(r.getSAMString().trim());
     }

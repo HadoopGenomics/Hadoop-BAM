@@ -40,7 +40,7 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <htsjdk.version>1.141</htsjdk.version>
+        <htsjdk.version>2.0.1</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
         <!--
@@ -267,6 +267,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.github.jsr203hadoop</groupId>
+            <artifactId>jsr203hadoop</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
@@ -277,6 +282,36 @@
             <artifactId>mockito-all</artifactId>
             <version>1.10.19</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+            <classifier>tests</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+            <classifier>tests</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
