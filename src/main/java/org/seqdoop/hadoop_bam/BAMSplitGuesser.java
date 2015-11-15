@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.SAMRecord;
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -168,8 +169,13 @@ public class BAMSplitGuesser {
 				try {
 					byte b = 0;
 					int prevCP = cp0;
-					while (b < BLOCKS_NEEDED_FOR_GUESS && bamCodec.decode() != null)
+					while (b < BLOCKS_NEEDED_FOR_GUESS)
 					{
+						SAMRecord record = bamCodec.decode();
+						if (record == null) {
+							break;
+						}
+						record.getCigar(); // force decoding of CIGAR
 						decodedAny = true;
 
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
