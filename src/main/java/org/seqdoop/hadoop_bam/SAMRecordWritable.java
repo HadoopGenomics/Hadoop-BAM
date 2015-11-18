@@ -67,4 +67,9 @@ public class SAMRecordWritable implements Writable {
 		lazyCodec.setInputStream(new DataInputWrapper(in));
 		record = lazyCodec.decode();
 	}
+
+	@Override
+	public String toString() {
+		return record.getSAMString().trim(); // remove trailing newline
+	}
 }
