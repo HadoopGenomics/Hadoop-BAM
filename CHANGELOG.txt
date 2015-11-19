@@ -1,3 +1,12 @@
+2015-11-19 --- 7.3.0:
+   - Updating dependency of HTSJDK to 1.140
+   - Adding first version of CRAMInputFormat
+     (limitation: reference needs to be local file)
+     (thanks Tom White)
+   - Improving BAMSplitGuesser by forcing decoding of CIGAR
+     (solves at least one problem with BAM splitting)
+     (thanks Tom White)
+
 2015-10-25 --- 7.2.1:
    - Checking read name length in BAMSplitGuesser (thanks Tom White)
 
