@@ -29,7 +29,7 @@ import org.apache.hadoop.fs.Path;
 
 /** Describes a SAM format. */
 public enum SAMFormat {
-	SAM, BAM;
+	SAM, BAM, CRAM;
 
 	/** Infers the SAM format by looking at the filename of the given path.
 	 *
@@ -40,11 +40,12 @@ public enum SAMFormat {
 	}
 
 	/** Infers the SAM format by looking at the extension of the given file
-	 * name. <code>*.sam</code> is recognized as {@link #SAM} and
-	 * <code>*.bam</code> as {@link #BAM}.
+	 * name. <code>*.sam</code> is recognized as {@link #SAM},
+	 * <code>*.bam</code> as {@link #BAM}, and <code>*.bam</code> as {@link #CRAM}.
 	 */
 	public static SAMFormat inferFromFilePath(final String name) {
 		if (name.endsWith(".bam")) return BAM;
+		if (name.endsWith(".cram")) return CRAM;
 		if (name.endsWith(".sam")) return SAM;
 		return null;
 	}
@@ -54,6 +55,7 @@ public enum SAMFormat {
 		in.close();
 		switch (b) {
 			case 0x1f: return SAMFormat.BAM;
+			case 0x43: return SAMFormat.CRAM;
 			case '@':  return SAMFormat.SAM;
 		}
 		return null;

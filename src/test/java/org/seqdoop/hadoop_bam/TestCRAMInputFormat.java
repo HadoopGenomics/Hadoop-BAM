@@ -57,7 +57,7 @@ public class TestCRAMInputFormat {
       expectedCount++;
     }
 
-    CRAMInputFormat inputFormat = new CRAMInputFormat();
+    AnySAMInputFormat inputFormat = new AnySAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
     assertEquals(1, splits.size());
     RecordReader<LongWritable, SAMRecordWritable> reader = inputFormat

@@ -40,11 +40,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-/** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM and BAM files.
+/** An {@link org.apache.hadoop.mapreduce.InputFormat} for SAM, BAM, and CRAM files.
  * Values are the individual records; see {@link BAMRecordReader} for the
  * meaning of the key.
  *
- * <p>By default, files are recognized as SAM or BAM based on their file
+ * <p>By default, files are recognized as SAM, BAM, or CRAM based on their file
  * extensions: see {@link #TRUST_EXTS_PROPERTY}. If that fails, or this
  * behaviour is disabled, the first byte of each file is read to determine the
  * file type.</p>
@@ -61,6 +61,7 @@ public class AnySAMInputFormat
 		"hadoopbam.anysam.trust-exts";
 
 	private final BAMInputFormat bamIF = new BAMInputFormat();
+	private final CRAMInputFormat cramIF = new CRAMInputFormat();
 	private final SAMInputFormat samIF = new SAMInputFormat();
 
 	private final Map<Path,SAMFormat> formatMap;
@@ -157,7 +158,7 @@ public class AnySAMInputFormat
 	 * <p>Throws {@link IllegalArgumentException} if the given input split is
 	 * not a {@link FileVirtualSplit} (used by {@link BAMInputFormat}) or a
 	 * {@link FileSplit} (used by {@link SAMInputFormat}), or if the path
-	 * referred to is not recognized as a SAM or BAM file (see {@link
+	 * referred to is not recognized as a SAM, BAM, or CRAM file (see {@link
 	 * #getFormat}).</p>
 	 */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
@@ -184,12 +185,13 @@ public class AnySAMInputFormat
 		switch (fmt) {
 			case SAM: return samIF.createRecordReader(split, ctx);
 			case BAM: return bamIF.createRecordReader(split, ctx);
+			case CRAM: return cramIF.createRecordReader(split, ctx);
 			default: assert false; return null;
 		}
 	}
 
-	/** Defers to {@link BAMInputFormat} or {@link SAMInputFormat} as
-	 * appropriate for the given path.
+	/** Defers to {@link BAMInputFormat}, {@link CRAMInputFormat}, or
+	 * {@link SAMInputFormat} as appropriate for the given path.
 	 */
 	@Override public boolean isSplitable(JobContext job, Path path) {
 		if (this.conf == null)
@@ -202,12 +204,13 @@ public class AnySAMInputFormat
 		switch (fmt) {
 			case SAM: return samIF.isSplitable(job, path);
 			case BAM: return bamIF.isSplitable(job, path);
+			case CRAM: return cramIF.isSplitable(job, path);
 			default: assert false; return false;
 		}
 	}
 
-	/** Defers to {@link BAMInputFormat} as appropriate for each individual
-	 * path. SAM paths do not require special handling, so their splits are left
+	/** Defers to {@link BAMInputFormat} or {@link CRAMInputFormat} as appropriate for each
+	 * individual path. SAM paths do not require special handling, so their splits are left
 	 * unchanged.
 	 */
 	@Override public List<InputSplit> getSplits(JobContext job)
@@ -221,12 +224,12 @@ public class AnySAMInputFormat
 		// We have to partition the splits by input format and hand them over to
 		// the *InputFormats for any further handling.
 		//
-		// At least for now, BAMInputFormat is the only one that needs to mess
-		// with them any further, so we can just extract the BAM ones and leave
-		// the rest as they are.
+		// BAMInputFormat and CRAMInputFormat need to change the split boundaries, so we can
+		// just extract the BAM and CRAM ones and leave the rest as they are.
 
 		final List<InputSplit>
 			bamOrigSplits = new ArrayList<InputSplit>(origSplits.size()),
+			cramOrigSplits = new ArrayList<InputSplit>(origSplits.size()),
 			newSplits     = new ArrayList<InputSplit>(origSplits.size());
 
 		for (final InputSplit iSplit : origSplits) {
@@ -234,10 +237,13 @@ public class AnySAMInputFormat
 
 			if (SAMFormat.BAM.equals(getFormat(split.getPath())))
 				bamOrigSplits.add(split);
+			else if (SAMFormat.CRAM.equals(getFormat(split.getPath())))
+				cramOrigSplits.add(split);
 			else
 				newSplits.add(split);
 		}
 		newSplits.addAll(bamIF.getSplits(bamOrigSplits, ContextUtil.getConfiguration(job)));
+		newSplits.addAll(cramIF.getSplits(cramOrigSplits, ContextUtil.getConfiguration(job)));
 		return newSplits;
 	}
 }
