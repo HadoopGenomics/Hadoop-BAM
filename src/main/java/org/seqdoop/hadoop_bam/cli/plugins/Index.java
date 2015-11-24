@@ -29,9 +29,11 @@ import org.apache.hadoop.fs.Path;
 
 import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMFormatException;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 
 import org.seqdoop.hadoop_bam.custom.jargs.gnu.CmdLineParser;
@@ -80,10 +82,14 @@ public final class Index extends CLIPlugin {
 		final String path = args.get(0);
 		final String out  = args.size() > 1 ? args.get(1) : path + ".bai";
 
-		final SAMFileReader reader;
+		final SamReader reader;
 		try {
-			reader = new SAMFileReader(
-				WrapSeekable.openPath(getConf(), new Path(path)), false);
+			reader = SamReaderFactory.makeDefault()
+					// Necessary lest the BAMIndexer complain
+					.setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
+					.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+					.validationStringency(stringency)
+					.open(SamInputResource.of(WrapSeekable.openPath(getConf(), new Path(path))));
 		} catch (Exception e) {
 			System.err.printf("index :: Could not open '%s': %s\n",
 			                  path, e.getMessage());
@@ -109,9 +115,6 @@ public final class Index extends CLIPlugin {
 			                  out, e.getMessage());
 			return 5;
 		}
-
-		// Necessary lest the BAMIndexer complain
-		reader.enableFileSource(true);
 
 		final SAMRecordIterator it = reader.iterator();
 		try {

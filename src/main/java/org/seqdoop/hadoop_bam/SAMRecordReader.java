@@ -39,11 +39,13 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMFormatException;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SAMTextHeaderCodec;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
@@ -116,46 +118,45 @@ public class SAMRecordReader
 		// from reading the last partial line, so our stream actually allows
 		// reading to the next newline after the actual end.
 
-		ValidationStringency origStringency = null;
-		try {
-			if (stringency != null) {
-				origStringency = SAMFileReader.getDefaultValidationStringency();
-				SAMFileReader.setDefaultValidationStringency(stringency);
-			}
-			final SAMFileHeader header =
-				new SAMFileReader(input, false).getFileHeader();
+		final SAMFileHeader header = createSamReader(input, stringency).getFileHeader();
 
-			waInput = new WorkaroundingStream(input, header);
+		waInput = new WorkaroundingStream(input, header);
 
-			final boolean firstSplit = this.start == 0;
+		final boolean firstSplit = this.start == 0;
 
-			if (firstSplit) {
-				// Skip the header because we already have it, and adjust the start
-				// to match.
-				final int headerLength = waInput.getRemainingHeaderLength();
-				input.seek(headerLength);
-				this.start += headerLength;
-			} else
-				input.seek(--this.start);
+		if (firstSplit) {
+			// Skip the header because we already have it, and adjust the start
+			// to match.
+			final int headerLength = waInput.getRemainingHeaderLength();
+			input.seek(headerLength);
+			this.start += headerLength;
+		} else
+			input.seek(--this.start);
 
-			// Creating the iterator causes reading from the stream, so make sure
-			// to start counting this early.
-			waInput.setLength(this.end - this.start);
+		// Creating the iterator causes reading from the stream, so make sure
+		// to start counting this early.
+		waInput.setLength(this.end - this.start);
 
-			iterator = new SAMFileReader(waInput, false).iterator();
+		iterator = createSamReader(waInput, stringency).iterator();
 
-			if (!firstSplit) {
-				// Skip the first line, it'll be handled with the previous split.
-				try {
-					if (iterator.hasNext())
-						iterator.next();
-				} catch (SAMFormatException e) {}
-			}
-		} finally {
-			if (origStringency != null)
-				SAMFileReader.setDefaultValidationStringency(origStringency);
+		if (!firstSplit) {
+			// Skip the first line, it'll be handled with the previous split.
+			try {
+				if (iterator.hasNext())
+					iterator.next();
+			} catch (SAMFormatException e) {}
 		}
 	}
+
+	private SamReader createSamReader(InputStream in, ValidationStringency stringency) {
+		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
+				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false);
+		if (stringency != null) {
+			readerFactory.validationStringency(stringency);
+		}
+		return readerFactory.open(SamInputResource.of(in));
+	}
+
 	@Override public void close() throws IOException { iterator.close(); }
 
 	@Override public float getProgress() throws IOException {

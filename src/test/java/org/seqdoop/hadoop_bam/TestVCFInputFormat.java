@@ -79,7 +79,7 @@ public class TestVCFInputFormat {
 
         VariantContext vc = writable.get();
 
-        assert (vc.getChr().equals("20"));
+        assert (vc.getContig().equals("20"));
         assert (vc.getStart() == 14370 && vc.getEnd() == 14370);
         assert (vc.getReference().getBaseString().equals("G"));
         assert (vc.getAlternateAllele(0).getBaseString().equals("A"));
@@ -92,7 +92,7 @@ public class TestVCFInputFormat {
 
         vc = writable.get();
 
-        assert (vc.getChr().equals("20"));
+        assert (vc.getContig().equals("20"));
         assert (vc.getStart() == 17330 && vc.getEnd() == 17330);
         assert (vc.getReference().getBaseString().equals("T"));
         assert (vc.getAlternateAllele(0).getBaseString().equals("A"));

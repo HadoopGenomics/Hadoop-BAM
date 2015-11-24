@@ -28,7 +28,6 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -49,9 +48,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
-import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
 
 import org.seqdoop.hadoop_bam.KeyIgnoringVCFOutputFormat;
@@ -218,23 +216,23 @@ public final class VCFSort extends CLIMRPlugin {
 
 			switch (vcfFormat) {
 				case VCF:
-					writer = VariantContextWriterFactory.create(
+					writer = new VariantContextWriterBuilder().clearOptions().setOutputStream(
 						new FilterOutputStream(outs) {
 							@Override public void close() throws IOException {
 								this.out.flush();
 							}
-						}, null, VariantContextWriterFactory.NO_OPTIONS);
+						}).build();
 					break;
 
 				case BCF:
-					writer = VariantContextWriterFactory.create(
+					writer = new VariantContextWriterBuilder().clearOptions().setOutputBCFStream(
 						new FilterOutputStream(
 							new BlockCompressedOutputStream(outs, null))
 						{
 							@Override public void close() throws IOException {
 								this.out.flush();
 							}
-						}, null, EnumSet.of(Options.FORCE_BCF));
+						}).build();
 					break;
 
 				default: assert false; writer = null; break;

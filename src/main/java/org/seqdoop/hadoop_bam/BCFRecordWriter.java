@@ -27,7 +27,6 @@ import hbparquet.hadoop.util.ContextUtil;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.EnumSet;
 
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 
@@ -38,7 +37,7 @@ import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
 
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
@@ -106,8 +105,9 @@ public abstract class BCFRecordWriter<K>
 		final BCFStoppableOutputStream stopOut =
 			new BCFStoppableOutputStream(!writeHeader, output);
 
-		writer = VariantContextWriterFactory.create(
-			stopOut, null, EnumSet.of(Options.FORCE_BCF));
+		writer = new VariantContextWriterBuilder().clearOptions()
+				.setOption(Options.FORCE_BCF)
+				.setOutputBCFStream(stopOut).build();
 
 		writer.writeHeader(header);
 		stopOut.stopped = false;

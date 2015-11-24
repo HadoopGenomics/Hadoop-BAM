@@ -29,7 +29,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 
 public final class SAMHeaderReader {
@@ -53,22 +54,14 @@ public final class SAMHeaderReader {
 	public static SAMFileHeader readSAMHeaderFrom(
 		final InputStream in, final Configuration conf)
 	{
-		final SAMFileHeader header;
-
 		final ValidationStringency
 			stringency = getValidationStringency(conf);
-		ValidationStringency origStringency = null;
-		try {
-			if (stringency != null) {
-				origStringency = ValidationStringency.DEFAULT_STRINGENCY;
-				SAMFileReader.setDefaultValidationStringency(stringency);
-			}
-			header = new SAMFileReader(in, false).getFileHeader();
-		} finally {
-			if (origStringency != null)
-				SAMFileReader.setDefaultValidationStringency(origStringency);
+		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
+				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false);
+		if (stringency != null) {
+			readerFactory.validationStringency(stringency);
 		}
-		return header;
+		return readerFactory.open(SamInputResource.of(in)).getFileHeader();
 	}
 
 	public static ValidationStringency getValidationStringency(

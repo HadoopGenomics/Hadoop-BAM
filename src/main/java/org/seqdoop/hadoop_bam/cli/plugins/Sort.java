@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import htsjdk.samtools.SAMFileHeader.SortOrder;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.ValidationStringency;
 
