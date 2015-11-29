@@ -26,8 +26,11 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
 
   @Override
   public List<InputSplit> getSplits(JobContext job) throws IOException {
-    Configuration conf = ContextUtil.getConfiguration(job);
-    List<InputSplit> splits = super.getSplits(job);
+    return getSplits(super.getSplits(job), ContextUtil.getConfiguration(job));
+  }
+
+  public List<InputSplit> getSplits(List<InputSplit> splits, Configuration conf)
+      throws IOException {
     // update splits to align with CRAM container boundaries
     List<InputSplit> newSplits = new ArrayList<InputSplit>();
     Map<Path, List<Long>> fileToOffsets = new HashMap<Path, List<Long>>();
@@ -82,5 +85,10 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
     RecordReader<LongWritable, SAMRecordWritable> rr = new CRAMRecordReader();
     rr.initialize(split, context);
     return rr;
+  }
+
+  @Override
+  public boolean isSplitable(JobContext job, Path path) {
+    return true;
   }
 }
