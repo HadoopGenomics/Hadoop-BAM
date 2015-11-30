@@ -29,6 +29,7 @@ import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.*;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapred.TaskAttemptID;
@@ -40,8 +41,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.commons.io.FileUtils;
-
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -51,10 +50,12 @@ public class TestVCFOutputFormat {
     private VariantContextWritable writable;
     private RecordWriter<Long, VariantContextWritable> writer;
     private TaskAttemptContext taskAttemptContext;
-    private String test_vcf_output = new File(FileUtils.getTempDirectory(), "test_vcf_output").getAbsolutePath();
+    private File test_vcf_output;
 
     @Before
     public void setup() throws IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        test_vcf_output = File.createTempFile("test_vcf_output", "");
+        test_vcf_output.delete();
         writable = new VariantContextWritable();
         Configuration conf = new Configuration();
         conf.set("hadoopbam.vcf.output-format", "VCF");
@@ -66,7 +67,7 @@ public class TestVCFOutputFormat {
 
     @After
     public void cleanup() {
-        FileUtils.deleteQuietly(new File(test_vcf_output));
+        FileUtil.fullyDelete(test_vcf_output);
     }
 
     private void skipHeader(LineNumberReader reader) throws IOException {
