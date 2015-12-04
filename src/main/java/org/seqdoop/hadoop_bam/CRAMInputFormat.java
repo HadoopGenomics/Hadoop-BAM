@@ -3,11 +3,6 @@ package org.seqdoop.hadoop_bam;
 import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.cram.build.CramContainerIterator;
 import htsjdk.samtools.seekablestream.SeekableStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -19,7 +14,16 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWritable> {
+
+  public static final String VALIDATION_STRIGENCY =
+          "hadoopbam.cram.validation-stringency";
 
   public static final String REFERENCE_SOURCE_PATH_PROPERTY =
       "hadoopbam.cram.reference-source-path";
