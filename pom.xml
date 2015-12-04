@@ -39,7 +39,7 @@
     <url>http://sourceforge.net/projects/hadoop-bam/</url>
 
     <properties>
-        <java.version>1.6</java.version>
+        <java.version>1.8</java.version>
         <htsjdk.version>2.0.0</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
