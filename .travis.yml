@@ -4,3 +4,12 @@ jdk:
   - oraclejdk7
   - openjdk7
   - openjdk6
+
+env:
+  global:
+    - SONATYPE_USERNAME=schumach
+    - secure: "WXYDXyMHy+pXDlSFypYtLJPQZIl8oyl8dqEKpYdoiOGVaI6VGEwvhQzcuHpIl2lLLsoB8uBrK+rGGlaBovr0MfkXZExfpyCd3lCpKENuEkh2iZboIvc037H2HJFz0oiPTGG4BZu6upGq7xACqIUiZpSlrnT0tzqczU//Di7EmYM="
+
+after_success:
+  - python scripts/deploy/addServerToM2Settings.py
+  - mvn clean deploy -DskipTests=true --settings ~/.m2/mySettings.xml
