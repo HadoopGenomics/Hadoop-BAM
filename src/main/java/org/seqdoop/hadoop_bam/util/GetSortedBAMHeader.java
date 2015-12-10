@@ -27,7 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 
 import org.seqdoop.hadoop_bam.SAMFormat;
@@ -45,10 +45,9 @@ public final class GetSortedBAMHeader {
 			System.exit(1);
 		}
 
-		SAMFileReader.setDefaultValidationStringency(
-			ValidationStringency.SILENT);
 		final SAMFileHeader h =
-			new SAMFileReader(new File(args[0])).getFileHeader();
+				SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT)
+						.open(new File(args[0])).getFileHeader();
 		h.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
 		new SAMOutputPreparer().prepareForRecords(

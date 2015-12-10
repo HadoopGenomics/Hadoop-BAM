@@ -91,7 +91,7 @@ public final class VariantContextCodec {
 				"Unrecognized unparsed genotype data, expected String or "+
 				"BCF2Codec.LazyData: "+ genotypesData.getClass());
 
-		final byte[] chrom = vc.getChr().getBytes("UTF-8");
+		final byte[] chrom = vc.getContig().getBytes("UTF-8");
 		out.writeInt(chrom.length);
 		out.write   (chrom);
 

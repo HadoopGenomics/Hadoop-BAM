@@ -31,7 +31,6 @@ import java.util.List;
 
 import htsjdk.samtools.SamPairUtil;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.ValidationStringency;
 
 import org.apache.hadoop.conf.Configuration;

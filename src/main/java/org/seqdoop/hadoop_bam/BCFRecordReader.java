@@ -164,9 +164,9 @@ public class BCFRecordReader
 
 		final VariantContext v = codec.decode(in);
 
-		Integer chromIdx = contigDict.get(v.getChr());
+		Integer chromIdx = contigDict.get(v.getContig());
 		if (chromIdx == null)
-			chromIdx = (int)MurmurHash3.murmurhash3(v.getChr(), 0);
+			chromIdx = (int)MurmurHash3.murmurhash3(v.getContig(), 0);
 
 		key.set((long)chromIdx << 32 | (long)(v.getStart() - 1));
 		vc.set(v);

@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -39,7 +40,6 @@ import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -110,8 +110,8 @@ public abstract class VCFRecordWriter<K>
 		final StoppableOutputStream stopOut =
 			new StoppableOutputStream(!writeHeader, output);
 
-		writer = VariantContextWriterFactory.create(
-			stopOut, null, VariantContextWriterFactory.NO_OPTIONS);
+		writer = new VariantContextWriterBuilder().clearOptions()
+				.setOutputStream(stopOut).build();
 
 		writer.writeHeader(header);
 		stopOut.stopped = false;

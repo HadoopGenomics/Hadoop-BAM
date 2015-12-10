@@ -30,7 +30,6 @@ import java.util.StringTokenizer;
 
 import htsjdk.samtools.BamFileIoUtils;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.SAMFileWriterImpl;
 import htsjdk.samtools.SAMFormatException;
@@ -82,6 +81,9 @@ public final class View extends CLIPlugin {
 			stringencyOpt, Utils.getStringencyOptHelp()));
 	}
 
+	// We suppress deprecation warnings for htsjdk.samtools.SAMFileReader since the
+	// alternative, SamReader, does not support the isBinary method.
+	@SuppressWarnings("deprecation")
 	@Override protected int run(CmdLineParser parser) {
 
 		final List<String> args = parser.getRemainingArgs();
@@ -97,7 +99,7 @@ public final class View extends CLIPlugin {
 
 		final boolean headerOnly = parser.getBoolean(headerOnlyOpt);
 
-		final SAMFileReader reader;
+		final htsjdk.samtools.SAMFileReader reader;
 
 		try {
 			final Path p = new Path(path);
@@ -111,8 +113,8 @@ public final class View extends CLIPlugin {
 
 			final SeekableStream sam = WrapSeekable.openPath(getConf(), p);
 
-			reader = idx == null ? new SAMFileReader(sam,      false)
-			                     : new SAMFileReader(sam, idx, false);
+			reader = idx == null ? new htsjdk.samtools.SAMFileReader(sam,      false)
+			                     : new htsjdk.samtools.SAMFileReader(sam, idx, false);
 		} catch (Exception e) {
 			System.err.printf("view :: Could not open '%s': %s\n",
 			                  path, e.getMessage());

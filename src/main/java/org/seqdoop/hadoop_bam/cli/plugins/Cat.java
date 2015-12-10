@@ -38,7 +38,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
@@ -148,8 +150,8 @@ public final class Cat extends CLIPlugin {
 
 		final SAMFileHeader header;
 		try {
-			final SAMFileReader r = new SAMFileReader(
-				input0.getFileSystem(conf).open(input0));
+			final SamReader r = SamReaderFactory.makeDefault().validationStringency(stringency).
+					open(SamInputResource.of(input0.getFileSystem(conf).open(input0)));
 
 			header = r.getFileHeader();
 			r.close();
@@ -197,9 +199,9 @@ public final class Cat extends CLIPlugin {
 				case SAM: {
 					final InputStream in = inPath.getFileSystem(conf).open(inPath);
 
-					// Use SAMFileReader to grab the header, but ignore it, thus
+					// Use SamReader to grab the header, but ignore it, thus
 					// ensuring that the header has been skipped.
-					new SAMFileReader(in).getFileHeader();
+					SamReaderFactory.makeDefault().open(SamInputResource.of(in)).getFileHeader();
 
 					IOUtils.copyBytes(in, out, conf, false);
 					in.close();

@@ -266,8 +266,8 @@ public final class Utils {
 		for (final String in : conf.getStrings(HEADERMERGER_INPUTS_PROPERTY)) {
 			final Path p = new Path(in);
 
-			final SAMFileReader r =
-				new SAMFileReader(p.getFileSystem(conf).open(p));
+			final SamReader r = SamReaderFactory.makeDefault().open(
+					SamInputResource.of(p.getFileSystem(conf).open(p)));
 			headers.add(r.getFileHeader());
 			r.close();
 		}
@@ -386,6 +386,7 @@ public final class Utils {
 	}
 
 	/** Sets the default validation stringency in addition to returning it. */
+	@SuppressWarnings("deprecation")
 	public static ValidationStringency toStringency(
 		Object o, String cmdName)
 	{
