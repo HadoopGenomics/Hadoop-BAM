@@ -22,6 +22,9 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.SAMFileSource;
+import htsjdk.samtools.SAMFileSpan;
+import htsjdk.samtools.SAMRecord;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,6 +32,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.LongBuffer;
@@ -41,15 +46,28 @@ import org.apache.hadoop.fs.Path;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 
 /**
- * An indexing tool for BAM files, making them palatable to {@link
+ * An indexing tool and API for BAM files, making them palatable to {@link
  * org.seqdoop.hadoop_bam.BAMInputFormat}. Writes splitting BAM indices as
  * understood by {@link org.seqdoop.hadoop_bam.SplittingBAMIndex}.
  *
- * Takes a configuration as input, and uses it to parse the "input" and
- * "granularity" values directly from the configuration.
+ * There are two ways of using this class:
+ * 1) Building a splitting BAM index from an existing BAM file
+ * 2) Building a splitting BAM index while building the BAM file
+ *
+ * For 1), use the static {@link #index(InputStream, OutputStream, long, int)} method,
+ * which takes the input BAM and output stream tot write the index to.
+ *
+ * For 2), use one of the constructors that takes an output stream, then pass {@link
+ * SAMRecord} objects via the {@link #processAlignment} method, and then call {@link
+ * #finish(long)} to complete writing the index.
  */
 public final class SplittingBAMIndexer {
-	private static final String OUTPUT_FILE_EXTENSION = ".splitting-bai";
+	public static final String OUTPUT_FILE_EXTENSION = ".splitting-bai";
+
+	// Default to a granularity level of 4096. This is generally sufficient
+	// for very large BAM files, relative to a maximum heap size in the
+	// gigabyte range.
+	public static final int DEFAULT_GRANULARITY = 4096;
 
 	public static void main(String[] args) {
 		if (args.length <= 1) {
@@ -75,16 +93,14 @@ public final class SplittingBAMIndexer {
 			return;
 		}
 
-		final SplittingBAMIndexer indexer = new SplittingBAMIndexer(granularity);
-
 		for (final String arg : Arrays.asList(args).subList(1, args.length)) {
 			final File f = new File(arg);
 			System.out.printf("Indexing %s...", f);
 			try {
-				indexer.index(
+				SplittingBAMIndexer.index(
 					new FileInputStream(f),
 					new BufferedOutputStream(new FileOutputStream(f + OUTPUT_FILE_EXTENSION)),
-					f.length());
+					f.length(), granularity);
 				System.out.println(" done.");
 			} catch (IOException e) {
 				System.out.println(" FAILED!");
@@ -109,22 +125,21 @@ public final class SplittingBAMIndexer {
 
 		final FileSystem fs = FileSystem.get(conf);
 
-		// Default to a granularity level of 4096. This is generally sufficient
-		// for very large BAM files, relative to a maximum heap size in the
-		// gigabyte range.
-		final SplittingBAMIndexer indexer =
-			new SplittingBAMIndexer(conf.getInt("granularity", 4096));
-
 		final Path input = new Path(inputString);
 
-		indexer.index(
+		SplittingBAMIndexer.index(
 			fs.open(input),
 			fs.create(input.suffix(OUTPUT_FILE_EXTENSION)),
-			fs.getFileStatus(input).getLen());
+			fs.getFileStatus(input).getLen(),
+			conf.getInt("granularity", DEFAULT_GRANULARITY));
 	}
 
-	private final ByteBuffer byteBuffer;
+	private final OutputStream out;
+	private final ByteBuffer byteBuffer = ByteBuffer.allocate(8);
 	private final int granularity;
+	private final LongBuffer lb;
+	private long count;
+	private Method getFirstOffset;
 
 	private static final int PRINT_EVERY = 500*1024*1024;
 
@@ -133,27 +148,104 @@ public final class SplittingBAMIndexer {
 	 * for a new SplittingBAMIndexer.
 	 *
 	 * @param g granularity level
+	 * @deprecated use one of the other constructors to create an index while building a
+	 * BAM file or {@link #index(InputStream, OutputStream, long, int)} for an existing BAM
+	 * file.
 	 */
+	@Deprecated
 	public SplittingBAMIndexer(int g) {
 		granularity = g;
-		byteBuffer = ByteBuffer.allocate(8); // Enough to fit a long
+		out = null;
+		lb = null;
 	}
 
 	/**
-	 * Perform indexing on the given file, at the granularity level previously
-	 * specified.
+	 * Prepare to index a BAM file.
+	 * @param out the stream to write the index to
 	 */
-	private void index(
-			final InputStream rawIn, final OutputStream out, final long inputSize)
+	public SplittingBAMIndexer(final OutputStream out) {
+		this(out, SplittingBAMIndexer.DEFAULT_GRANULARITY);
+	}
+
+	/**
+	 * Prepare to index a BAM file.
+	 * @param out the stream to write the index to
+	 * @param granularity write the offset of every n-th alignment to the index
+	 */
+	public SplittingBAMIndexer(final OutputStream out, final int granularity) {
+		this.out = out;
+		this.lb = byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
+		this.granularity = granularity;
+	}
+
+	/**
+	 * Process the given record for the index.
+	 * @param rec the record from the file being indexed
+	 * @throws IOException
+	 */
+	public void processAlignment(final SAMRecord rec) throws IOException {
+		// write an offset for the first record and for the g-th record thereafter (where
+		// g is the granularity), to be consistent with the index method
+		if (count == 0 || (count + 1) % granularity == 0) {
+			SAMFileSource fileSource = rec.getFileSource();
+			SAMFileSpan filePointer = fileSource.getFilePointer();
+			writeVirtualOffset(getPos(filePointer));
+		}
+		count++;
+	}
+
+	private long getPos(SAMFileSpan filePointer) {
+		// Use reflection since BAMFileSpan is package private in htsjdk 1.141. Note that
+		// Hadoop-BAM cannot use a later version of htsjdk since it requires Java 8.
+		if (getFirstOffset == null) {
+			try {
+				getFirstOffset = filePointer.getClass().getDeclaredMethod("getFirstOffset");
+				getFirstOffset.setAccessible(true);
+			} catch (NoSuchMethodException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+		try {
+			return (Long) getFirstOffset.invoke(filePointer);
+		} catch (IllegalAccessException e) {
+			throw new IllegalStateException(e);
+		} catch (InvocationTargetException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	private void writeVirtualOffset(long virtualOffset) throws IOException {
+		lb.put(0, virtualOffset);
+		out.write(byteBuffer.array());
+	}
+
+	/**
+	 * Complete the index by writing the input BAM file size to the index, and closing
+	 * the output stream.
+	 * @param inputSize the size of the input BAM file
+	 * @throws IOException
+	 */
+	public void finish(long inputSize) throws IOException {
+		writeVirtualOffset(inputSize << 16);
+		out.close();
+	}
+
+	/**
+	 * Perform indexing on the given BAM file, at the granularity level specified.
+	 */
+	public static void index(
+			final InputStream rawIn, final OutputStream out, final long inputSize,
+			final int granularity)
 		throws IOException
 	{
 		final BlockCompressedInputStream in =
 			new BlockCompressedInputStream(rawIn);
 
+		final ByteBuffer byteBuffer = ByteBuffer.allocate(8); // Enough to fit a long
 		final LongBuffer lb =
 			byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
 
-		skipToAlignmentList(in);
+		skipToAlignmentList(byteBuffer, in);
 
 		// Always write the first one to make sure it's not skipped
 		lb.put(0, in.getFilePointer());
@@ -162,7 +254,7 @@ public final class SplittingBAMIndexer {
 		long prevPrint = in.getFilePointer() >> 16;
 
 		for (int i = 0;;) {
-			final PtrSkipPair pair = readAlignment(in);
+			final PtrSkipPair pair = readAlignment(byteBuffer, in);
 			if (pair == null)
 				break;
 
@@ -185,9 +277,10 @@ public final class SplittingBAMIndexer {
 		in.close();
 	}
 
-	private void skipToAlignmentList(final InputStream in) throws IOException {
+	private static void skipToAlignmentList(final ByteBuffer byteBuffer, final InputStream in)
+			throws IOException {
 		// Check magic number
-		if (!readExactlyBytes(in, 4))
+		if (!readExactlyBytes(byteBuffer, in, 4))
 			ioError("Invalid BAM header: too short, no magic");
 
 		final int magic = byteBuffer.order(ByteOrder.BIG_ENDIAN).getInt(0);
@@ -195,7 +288,7 @@ public final class SplittingBAMIndexer {
 			ioError("Invalid BAM header: bad magic %#x != 0x42414d01", magic);
 
 		// Skip the SAM header
-		if (!readExactlyBytes(in, 4))
+		if (!readExactlyBytes(byteBuffer, in, 4))
 			ioError("Invalid BAM header: too short, no SAM header length");
 
 		byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -207,14 +300,14 @@ public final class SplittingBAMIndexer {
 		fullySkip(in, samLen);
 
 		// Get the number of reference sequences
-		if (!readExactlyBytes(in, 4))
+		if (!readExactlyBytes(byteBuffer, in, 4))
 			ioError("Invalid BAM header: too short, no reference sequence count");
 
 		final int referenceSeqs = byteBuffer.getInt(0);
 
 		// Skip over each reference sequence datum individually
 		for (int s = 0; s < referenceSeqs; ++s) {
-			if (!readExactlyBytes(in, 4))
+			if (!readExactlyBytes(byteBuffer, in, 4))
 				ioError("Invalid reference list: EOF before reference %d", s+1);
 
 			// Skip over the name + the int giving the sequence length
@@ -232,11 +325,11 @@ public final class SplittingBAMIndexer {
 		}
 	}
 
-	private PtrSkipPair readAlignment(final BlockCompressedInputStream in)
-		throws IOException
+	private static PtrSkipPair readAlignment(final ByteBuffer byteBuffer,
+			final BlockCompressedInputStream in) throws IOException
 	{
 		final long ptr = in.getFilePointer();
-		final int read = readBytes(in, 4);
+		final int read = readBytes(byteBuffer, in, 4);
 		if (read != 4) {
 			if (read == 0)
 				return null;
@@ -247,7 +340,7 @@ public final class SplittingBAMIndexer {
 		return new PtrSkipPair(ptr, byteBuffer.getInt(0));
 	}
 
-	private void fullySkip(final InputStream in, final int skip)
+	private static void fullySkip(final InputStream in, final int skip)
 		throws IOException
 	{
 		// Skip repeatedly until we're either done skipping or can't skip any
@@ -262,8 +355,8 @@ public final class SplittingBAMIndexer {
 		}
 	}
 
-	private int readBytes(final InputStream in, final int n)
-		throws IOException
+	private static int readBytes(final ByteBuffer byteBuffer, final InputStream in,
+			final int n) throws IOException
 	{
 		assert n <= byteBuffer.capacity();
 
@@ -276,13 +369,13 @@ public final class SplittingBAMIndexer {
 		}
 		return read;
 	}
-	private boolean readExactlyBytes(final InputStream in, final int n)
-		throws IOException
+	private static boolean readExactlyBytes(final ByteBuffer byteBuffer,
+			final InputStream in, final int n) throws IOException
 	{
-		return readBytes(in, n) == n;
+		return readBytes(byteBuffer, in, n) == n;
 	}
 
-	private void ioError(String s, Object... va) throws IOException {
+	private static void ioError(String s, Object... va) throws IOException {
 		throw new IOException(String.format(s, va));
 	}
 }

@@ -53,7 +53,9 @@ public class BAMInputFormat
 	// set this to true for debug output
 	public final static boolean DEBUG_BAM_SPLITTER = false;
 
-	private Path getIdxPath(Path path) { return path.suffix(".splitting-bai"); }
+	private Path getIdxPath(Path path) {
+		return path.suffix(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+	}
 
 	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>

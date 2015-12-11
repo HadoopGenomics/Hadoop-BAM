@@ -80,7 +80,24 @@ public final class SplittingBAMIndex {
 
 	private long   first() { return virtualOffsets.first(); }
 	private long    last() { return prevAlignment(bamSize() - 1); }
-	private long bamSize() { return virtualOffsets.last() >>> 16; }
+	long bamSize() { return virtualOffsets.last() >>> 16; }
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		SplittingBAMIndex that = (SplittingBAMIndex) o;
+
+		return virtualOffsets != null ? virtualOffsets.equals(that.virtualOffsets) : that
+				.virtualOffsets == null;
+
+	}
+
+	@Override
+	public int hashCode() {
+		return virtualOffsets != null ? virtualOffsets.hashCode() : 0;
+	}
 
 	/** Writes some statistics about each splitting BAM index file given as an
 	 * argument.
