@@ -194,6 +194,13 @@ public final class SplittingBAMIndexer {
 		count++;
 	}
 
+	void processAlignment(final long virtualOffset) throws IOException {
+		if (count == 0 || (count + 1) % granularity == 0) {
+			writeVirtualOffset(virtualOffset);
+		}
+		count++;
+	}
+
 	private long getPos(SAMFileSpan filePointer) {
 		// Use reflection since BAMFileSpan is package private in htsjdk 1.141. Note that
 		// Hadoop-BAM cannot use a later version of htsjdk since it requires Java 8.

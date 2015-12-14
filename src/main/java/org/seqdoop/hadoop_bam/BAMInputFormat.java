@@ -111,7 +111,7 @@ public class BAMInputFormat
 		return intervals;
 	}
 
-	private Path getIdxPath(Path path) {
+	static Path getIdxPath(Path path) {
 		return path.suffix(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
 	}
 

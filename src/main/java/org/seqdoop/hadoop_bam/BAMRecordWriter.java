@@ -54,6 +54,8 @@ public abstract class BAMRecordWriter<K>
 	private OutputStream   origOutput;
 	private BinaryCodec    binaryCodec;
 	private BAMRecordCodec recordCodec;
+	private BlockCompressedOutputStream compressedOut;
+	private SplittingBAMIndexer splittingBAMIndexer;
 
 	/** A SAMFileHeader is read from the input Path. */
 	public BAMRecordWriter(
@@ -64,6 +66,12 @@ public abstract class BAMRecordWriter<K>
 			output,
 			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
 			writeHeader, ctx);
+		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
+			Path splittingIndex = BAMInputFormat.getIdxPath(output);
+			OutputStream splittingIndexOutput =
+					output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
+			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
+		}
 	}
 	public BAMRecordWriter(
 			Path output, SAMFileHeader header, boolean writeHeader,
@@ -73,6 +81,12 @@ public abstract class BAMRecordWriter<K>
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
+		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
+			Path splittingIndex = BAMInputFormat.getIdxPath(output);
+			OutputStream splittingIndexOutput =
+					output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
+			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
+		}
 	}
 	public BAMRecordWriter(
 			OutputStream output, SAMFileHeader header, boolean writeHeader)
@@ -98,8 +112,7 @@ public abstract class BAMRecordWriter<K>
 	{
 		origOutput = output;
 
-		final OutputStream compressedOut =
-			new BlockCompressedOutputStream(origOutput, null);
+		compressedOut = new BlockCompressedOutputStream(origOutput, null);
 
 		binaryCodec = new BinaryCodec(compressedOut);
 		recordCodec = new BAMRecordCodec(header);
@@ -114,11 +127,19 @@ public abstract class BAMRecordWriter<K>
 		// file terminator to be output. But do flush the stream.
 		binaryCodec.getOutputStream().flush();
 
+		// Finish indexer with file length
+		if (splittingBAMIndexer != null) {
+			splittingBAMIndexer.finish(compressedOut.getFilePointer() >> 16);
+		}
+
 		// And close the original output.
 		origOutput.close();
 	}
 
-	protected void writeAlignment(final SAMRecord rec) {
+	protected void writeAlignment(final SAMRecord rec) throws IOException {
+		if (splittingBAMIndexer != null) {
+			splittingBAMIndexer.processAlignment(compressedOut.getFilePointer());
+		}
 		recordCodec.encode(rec);
 	}
 
