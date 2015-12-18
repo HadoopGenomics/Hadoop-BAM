@@ -6,3 +6,4 @@
 *.iml
 maven-metadata-local.xml
 *~
+target
