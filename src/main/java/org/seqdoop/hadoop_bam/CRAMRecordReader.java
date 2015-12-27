@@ -3,6 +3,7 @@ package org.seqdoop.hadoop_bam;
 import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.CRAMIterator;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import java.io.File;
@@ -14,6 +15,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
 public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritable> {
@@ -49,6 +51,10 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
     // also subtract one from end since CRAMIterator's boundaries are inclusive
     long[] boundaries = new long[] {start << 16, (end - 1) << 16};
     cramIterator = new CRAMIterator(seekableStream, refSource, boundaries);
+    ValidationStringency stringency = SAMHeaderReader.getValidationStringency(conf);
+    if (stringency != null) {
+      cramIterator.setValidationStringency(stringency);
+    }
   }
 
   @Override
