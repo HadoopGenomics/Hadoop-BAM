@@ -10,6 +10,12 @@ env:
     - SONATYPE_USERNAME=schumach
     - secure: "WXYDXyMHy+pXDlSFypYtLJPQZIl8oyl8dqEKpYdoiOGVaI6VGEwvhQzcuHpIl2lLLsoB8uBrK+rGGlaBovr0MfkXZExfpyCd3lCpKENuEkh2iZboIvc037H2HJFz0oiPTGG4BZu6upGq7xACqIUiZpSlrnT0tzqczU//Di7EmYM="
 
+before_install:
+  - cat /etc/hosts # optionally check the content *before*
+  - sudo hostname "$(hostname | cut -c1-63)"
+  - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname | cut -c1-63)/" /etc/hosts | sudo tee /etc/hosts
+  - cat /etc/hosts # optionally check the content *after*
+
 after_success:
   - python scripts/deploy/addServerToM2Settings.py
   - mvn clean deploy -DskipTests=true --settings ~/.m2/mySettings.xml
