@@ -34,6 +34,8 @@ import java.util.List;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SAMTextHeaderCodec;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.common.CramVersions;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 
 import org.seqdoop.hadoop_bam.SAMFormat;
@@ -51,14 +53,48 @@ public class SAMOutputPreparer {
 
 	/** Prepares the given output stream for writing of SAMRecords in the given
 	 * format. This includes writing the given SAM header and, in the case of
-	 * BAM, writing some further metadata as well as compressing everything
+	 * BAM or CRAM, writing some further metadata as well as compressing everything
 	 * written. Returns a new stream to replace the original: it will do the
-	 * appropriate compression for BAM files.
+	 * appropriate compression for BAM/CRAM files.
 	 */
 	public OutputStream prepareForRecords(
 			OutputStream out, final SAMFormat format,
 			final SAMFileHeader header)
-		throws IOException
+		throws IOException {
+
+        switch (format) {
+            case SAM:
+                out = prepareSAMOrBAMStream(out, format, header);
+                break;
+            case BAM:
+                out = prepareSAMOrBAMStream(out, format, header);
+                break;
+            case CRAM:
+                out = prepareCRAMStream(out, format, header);
+                break;
+            default:
+                throw new IllegalArgumentException
+                    ("Unsupported SAM file format, must be one of SAM, BAM or CRAM");
+        }
+
+        // Important for BAM: if the caller doesn't want to use the new stream
+        // for some reason, the BlockCompressedOutputStream's buffer would never
+        // be flushed.
+        out.flush();
+        return out;
+	}
+
+	private OutputStream prepareCRAMStream(
+			OutputStream out, final SAMFormat format,
+	        final SAMFileHeader header)  throws IOException
+	{
+		CramIO.writeHeader(CramVersions.DEFAULT_CRAM_VERSION, out, header, null);
+		return out;
+	}
+
+	private OutputStream prepareSAMOrBAMStream(
+			OutputStream out, final SAMFormat format,
+			final SAMFileHeader header) throws IOException
 	{
 		final StringWriter sw = new StringWriter();
 		new SAMTextHeaderCodec().encode(sw, header);
@@ -87,10 +123,6 @@ public class SAMOutputPreparer {
 			}
 		}
 
-		// Important for BAM: if the caller doesn't want to use the new stream
-		// for some reason, the BlockCompressedOutputStream's buffer would never
-		// be flushed.
-		out.flush();
 		return out;
 	}
 

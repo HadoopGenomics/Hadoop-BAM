@@ -51,7 +51,7 @@ public class TestSAMHeaderReader {
     @Test
     public void testCRAMHeaderReaderNoReference() throws Exception {
 
-        thrown.expect(CRAMException.class); // htsjdk throws on CRAM file with no reference provided
+        thrown.expect(IllegalStateException.class); // htsjdk throws on CRAM file with no reference provided
 
         final Configuration conf = new Configuration();
         final InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.cram");

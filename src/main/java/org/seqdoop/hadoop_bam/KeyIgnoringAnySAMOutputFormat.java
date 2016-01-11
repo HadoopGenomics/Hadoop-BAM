@@ -132,7 +132,11 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 
 			case SAM:
 				return new KeyIgnoringSAMRecordWriter<K>(
-					out, header, writeHeader, ctx);
+						out, header, writeHeader, ctx);
+
+			case CRAM:
+				return new KeyIgnoringCRAMRecordWriter<K>(
+						out, header, writeHeader, ctx);
 
 			default: assert false; return null;
 		}
