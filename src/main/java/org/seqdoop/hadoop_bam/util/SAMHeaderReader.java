@@ -24,7 +24,10 @@ package org.seqdoop.hadoop_bam.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Paths;
 
+import htsjdk.samtools.cram.ref.ReferenceSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
@@ -32,6 +35,7 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
+import org.seqdoop.hadoop_bam.CRAMInputFormat;
 
 public final class SAMHeaderReader {
 	/** A String property corresponding to a ValidationStringency
@@ -61,6 +65,11 @@ public final class SAMHeaderReader {
 		if (stringency != null) {
 			readerFactory.validationStringency(stringency);
 		}
+
+		final ReferenceSource refSource = getReferenceSource(conf);
+		if (null != refSource) {
+			readerFactory.referenceSource(refSource);
+		}
 		return readerFactory.open(SamInputResource.of(in)).getFileHeader();
 	}
 
@@ -69,5 +78,18 @@ public final class SAMHeaderReader {
 	{
 		final String p = conf.get(VALIDATION_STRINGENCY_PROPERTY);
 		return p == null ? null : ValidationStringency.valueOf(p);
+	}
+
+	public static ReferenceSource getReferenceSource(
+			final Configuration conf)
+	{
+		//TODO: There isn't anything particularly CRAM-specific about reference source or validation
+		// stringency other than that a reference source is required for CRAM files. We should move
+		// the reference source and validation stringency property names and utility methods out of
+		// CRAMInputFormat and SAMHeaderReader and combine them together into a single class for extracting
+		// configuration params, but it would break backward compatibility with existing code that
+		// is dependent on the CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY.
+		final String refSourcePath = conf.get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
+		return refSourcePath == null ? null : new ReferenceSource(Paths.get(URI.create(refSourcePath)));
 	}
 }
