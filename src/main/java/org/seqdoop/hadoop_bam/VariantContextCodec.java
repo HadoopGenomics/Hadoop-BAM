@@ -286,7 +286,7 @@ public final class VariantContextCodec {
 		} else if (v instanceof List) {
 			encodeAttrVal(out, ((List)v).toArray());
 
-		} else if (v.getClass().isArray()) {
+		} else if (v != null && v.getClass().isArray()) {
 			out.writeByte(AttrType.ARRAY.toByte());
 			final int length = Array.getLength(v);
 			out.writeInt(length);

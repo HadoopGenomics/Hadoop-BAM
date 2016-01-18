@@ -84,11 +84,11 @@ public class VCFRecordReader
 		reader = new AsciiLineReader(ins);
         it = new AsciiLineReaderIterator(reader);
 		
-		final Object h = codec.readHeader(it);
-		if (!(h instanceof FeatureCodecHeader) || !(((FeatureCodecHeader)h).getHeaderValue() instanceof VCFHeader))
+		final FeatureCodecHeader h = codec.readHeader(it);
+		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ file);
 
-        header = (VCFHeader)((FeatureCodecHeader)h).getHeaderValue();
+        header = (VCFHeader) h.getHeaderValue();
 
         contigDict.clear();
 		int i = 0;

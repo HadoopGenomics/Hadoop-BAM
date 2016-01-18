@@ -65,8 +65,8 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 
 	public static class QseqRecordWriter extends RecordWriter<Text,SequencedFragment>
 	{
-		protected static final byte[] newLine;
-		protected static final String delim = "\t";
+		static final byte[] newLine;
+		static final String delim = "\t";
 		static {
 			try {
 				newLine = "\n".getBytes("us-ascii");

@@ -96,4 +96,16 @@ class LazyBAMRecord extends BAMRecord {
 		getMateReferenceName();
 		super.eagerDecode();
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		// don't use decoded flags for equality check
+		return super.equals(o);
+	}
+
+	@Override
+	public int hashCode() {
+		// don't use decoded flags for hash code
+		return super.hashCode();
+	}
 }

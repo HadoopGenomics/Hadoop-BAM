@@ -26,6 +26,7 @@ import hbparquet.hadoop.util.ContextUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -55,6 +56,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  */
 public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 {
+	public static final Charset UTF8 = Charset.forName("UTF8");
 
     @Override public List<InputSplit> getSplits(JobContext job) throws IOException
 	{
@@ -344,8 +346,8 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 		    // the start position of the FASTA sequence line, replacing the tabs with colons.
 		    key.clear();
 		    
-		    key.append(current_split_indexseq.getBytes(), 0, current_split_indexseq.getBytes().length);
-		    key.append(Integer.toString(current_split_pos).getBytes(), 0, Integer.toString(current_split_pos).getBytes().length);
+		    key.append(current_split_indexseq.getBytes(UTF8), 0, current_split_indexseq.getBytes(UTF8).length);
+		    key.append(Integer.toString(current_split_pos).getBytes(UTF8), 0, Integer.toString(current_split_pos).getBytes(UTF8).length);
 		    // replace tabs with :
 		    byte[] bytes = key.getBytes();
 		    int temporaryEnd = key.getLength();
