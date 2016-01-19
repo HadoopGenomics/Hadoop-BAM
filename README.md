@@ -9,6 +9,7 @@ vein of SAMtools.
 Build status
 ------------
 [![Build Status](https://travis-ci.org/HadoopGenomics/Hadoop-BAM.svg?branch=master)](https://travis-ci.org/HadoopGenomics/Hadoop-BAM)
+[![Coverage Status](https://coveralls.io/repos/github/HadoopGenomics/Hadoop-BAM/badge.svg?branch=master)](https://coveralls.io/github/HadoopGenomics/Hadoop-BAM?branch=master)
 
 
 The file formats currently supported are:
