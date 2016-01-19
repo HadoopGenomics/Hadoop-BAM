@@ -43,8 +43,7 @@ in Hadoop see the examples/ directory.
 Dependencies
 ------------
 
-Hadoop. Tested with 1.1.2, 1.2.1 and 2.2.0. Older stable versions as far back
-as 0.20.2 should also work. Version 4.2.0 of Cloudera's distribution,
+Hadoop. Tested with 1.1.2, 1.2.1 and 2.2.0. Version 4.2.0 of Cloudera's distribution,
 CDH, has also been tested. Use other versions at your own risk. You
 can change the version of Hadoop linked against by modifying the
 corresponding paramter in the pom.xml build file.
