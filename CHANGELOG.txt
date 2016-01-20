@@ -1,3 +1,11 @@
+2016-01-20 --- 7.3.1:
+   - AnySAMInputFormat supports CRAM
+   - Update HTSJDK dependency to 1.141
+   - CRAMRecordReader gets validation stringency set
+   - SplittingBAMIndexer now can build splitting index when BAM file is
+     written
+   NOTE: This release is the last one prior to Java 8 as a requirement
+
 2015-11-19 --- 7.3.0:
    - Updating dependency of HTSJDK to 1.140
    - Adding first version of CRAMInputFormat

@@ -57,6 +57,8 @@ Availability:
    - Hadoop              http://hadoop.apache.org/
    - HTSJDK/Picard       https://github.com/samtools/htsjdk
 
+Note that starting from version 7.4.0 Hadoop-BAM requires Java 8.
+
 ------------
 Installation
 ------------
@@ -74,9 +76,6 @@ of hadoop you're using.  Run "hadoop version" and copy the string from the outpu
     Hadoop 2.0.0-cdh4.6.0
 
 In the output above, the version string is "2.0.0-cdh4.6.0".
-
-You should also set the value of the java.version property appropriately. The
-default is Java version 1.6.
 
 ### Build
 
@@ -139,7 +138,7 @@ it is by relying on the OSS Sonatype repository:
         <dependency>
             <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>7.3.0</version>
+            <version>7.3.1</version>
         </dependency>
         ...
     </dependencies>
