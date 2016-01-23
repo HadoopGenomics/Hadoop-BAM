@@ -39,7 +39,7 @@
     <url>http://sourceforge.net/projects/hadoop-bam/</url>
 
     <properties>
-        <java.version>1.6</java.version>
+        <java.version>1.8</java.version>
         <htsjdk.version>1.141</htsjdk.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
         <hadoop.version>2.2.0</hadoop.version>
@@ -218,6 +218,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.9.1</version>
                 <configuration>
+                    <additionalparam>-Xdoclint:none</additionalparam> <!-- ignore stricter Java 8 warnings -->
                     <excludePackageNames>hbparquet.hadoop.*</excludePackageNames>
                     <failOnError>false</failOnError>
                 </configuration>
