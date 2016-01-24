@@ -16,3 +16,4 @@ before_install:
 after_success:
   - python scripts/deploy/addServerToM2Settings.py
   - mvn clean deploy -DskipTests=true --settings ~/.m2/mySettings.xml
+  - mvn clean test jacoco:report coveralls:report
