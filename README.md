@@ -83,7 +83,11 @@ In the output above, the version string is "2.0.0-cdh4.6.0".
 Build Hadoop-BAM with the following command:
 
    mvn clean package -DskipTests
+   
+If you are building for Hadoop 1, specify the `hadoop1` property:
 
+   mvn clean package -DskipTests -Dhadoop1
+   
 It will create two files:
 
     target/hadoop-bam-X.Y.Z-SNAPSHOT.jar

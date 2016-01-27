@@ -66,7 +66,7 @@ public class TestVCFOutputFormat {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws IOException {
         FileUtil.fullyDelete(test_vcf_output);
     }
 
