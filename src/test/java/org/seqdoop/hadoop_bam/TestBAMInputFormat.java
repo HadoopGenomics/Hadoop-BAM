@@ -1,11 +1,16 @@
 package org.seqdoop.hadoop_bam;
 
 import hbparquet.hadoop.util.ContextUtil;
+import htsjdk.samtools.BAMIndex;
+import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordSetBuilder;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.util.Interval;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,9 +46,10 @@ public class TestBAMInputFormat {
         new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.queryname);
     for (int i = 0; i < 1000; i++) {
       int chr = 20;
-      int start = (i + 1) * 1000;
-      int end = start + 100;
-      samRecordSetBuilder.addPair(String.format("test-read-%03d", i), chr, start, end);
+      int start1 = (i + 1) * 1000;
+      int start2 = start1 + 100;
+      samRecordSetBuilder.addPair(String.format("test-read-%03d", i), chr, start1,
+          start2);
     }
 
     final File bamFile = File.createTempFile("test", ".bam");
@@ -55,21 +61,32 @@ public class TestBAMInputFormat {
       bamWriter.addAlignment(rec);
     }
     bamWriter.close();
+
+    // create BAM index
+    SamReader samReader = SamReaderFactory.makeDefault()
+        .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
+        .open(bamFile);
+    BAMIndexer.createIndex(samReader, new File(bamFile.getAbsolutePath() +
+        BAMIndex.BAMIndexSuffix));
+
     return bamFile;
   }
 
-  private void completeSetup(boolean keepPairedReadsTogether) {
+  private void completeSetup(boolean keepPairedReadsTogether, List<Interval> intervals) {
     Configuration conf = new Configuration();
     conf.set("mapred.input.dir", "file://" + input);
     conf.setBoolean(BAMInputFormat.KEEP_PAIRED_READS_TOGETHER_PROPERTY,
         keepPairedReadsTogether);
+    if (intervals != null) {
+      BAMInputFormat.setIntervals(conf, intervals);
+    }
     taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
     jobContext = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
   }
 
   @Test
   public void testDontKeepPairedReadsTogether() throws Exception {
-    completeSetup(false);
+    completeSetup(false, null);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
@@ -87,7 +104,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testKeepPairedReadsTogether() throws Exception {
-    completeSetup(true);
+    completeSetup(true, null);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
@@ -99,6 +116,39 @@ public class TestBAMInputFormat {
     SAMRecord lastRecordOfSplit0 = split0Records.get(split0Records.size() - 1);
     SAMRecord firstRecordOfSplit1 = split1Records.get(0);
     assertNotEquals(lastRecordOfSplit0.getReadName(), firstRecordOfSplit1.getReadName());
+  }
+
+  @Test
+  public void testIntervals() throws Exception {
+    List<Interval> intervals = new ArrayList<Interval>();
+    intervals.add(new Interval("chr21", 5000, 9999));
+    intervals.add(new Interval("chr21", 20000, 22999));
+
+    completeSetup(false, intervals);
+
+    jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
+    BAMInputFormat inputFormat = new BAMInputFormat();
+    List<InputSplit> splits = inputFormat.getSplits(jobContext);
+    assertEquals(1, splits.size());
+    List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
+    assertEquals(16, split0Records.size());
+  }
+
+  @Test
+  public void testIntervalCoveringWholeChromosome() throws Exception {
+    List<Interval> intervals = new ArrayList<Interval>();
+    intervals.add(new Interval("chr21", 1, 1000135));
+
+    completeSetup(false, intervals);
+
+    jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
+    BAMInputFormat inputFormat = new BAMInputFormat();
+    List<InputSplit> splits = inputFormat.getSplits(jobContext);
+    assertEquals(2, splits.size());
+    List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
+    List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
+    assertEquals(1629, split0Records.size());
+    assertEquals(371, split1Records.size());
   }
 
   private List<SAMRecord> getSAMRecordsFromSplit(BAMInputFormat inputFormat,
