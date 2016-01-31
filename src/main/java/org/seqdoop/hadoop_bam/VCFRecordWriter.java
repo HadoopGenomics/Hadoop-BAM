@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -53,7 +54,6 @@ public abstract class VCFRecordWriter<K>
 {
 	private VCFCodec codec = new VCFCodec();
 	private VariantContextWriter writer;
-	private VCFHeader header;
 
 	private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
 		new LazyVCFGenotypesContext.HeaderDataCache();
@@ -68,13 +68,13 @@ public abstract class VCFRecordWriter<K>
 		final AsciiLineReader r = new AsciiLineReader(
 			input.getFileSystem(ContextUtil.getConfiguration(ctx)).open(input));
 
-		final Object h = codec.readHeader(new AsciiLineReaderIterator(r));
-		if (!(h instanceof VCFHeader))
+		final FeatureCodecHeader h = codec.readHeader(new AsciiLineReaderIterator(r));
+		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ input);
 
 		r.close();
 
-		init(output, (VCFHeader)h, writeHeader, ctx);
+		init(output, (VCFHeader) h.getHeaderValue(), writeHeader, ctx);
 	}
 	public VCFRecordWriter(
 			Path output, VCFHeader header, boolean writeHeader,
@@ -116,7 +116,7 @@ public abstract class VCFRecordWriter<K>
 		writer.writeHeader(header);
 		stopOut.stopped = false;
 
-		setInputHeader(this.header = header);
+		setInputHeader(header);
 	}
 
 	@Override public void close(TaskAttemptContext ctx) throws IOException {

@@ -38,6 +38,7 @@ import htsjdk.samtools.SAMTextHeaderCodec;
 import htsjdk.samtools.util.BinaryCodec;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 
+import java.nio.charset.Charset;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -124,7 +125,7 @@ public abstract class BAMRecordWriter<K>
 	}
 
 	private void writeHeader(final SAMFileHeader header) {
-		binaryCodec.writeBytes("BAM\001".getBytes());
+		binaryCodec.writeBytes("BAM\001".getBytes(Charset.forName("UTF8")));
 
 		final Writer sw = new StringWriter();
 		new SAMTextHeaderCodec().encode(sw, header);

@@ -28,6 +28,7 @@ import java.io.DataOutputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 
+import java.nio.charset.Charset;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -55,8 +56,9 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING         = "hbam.fastq-output.base-quality-encoding";
 	public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "sanger";
+	public static final Charset UTF8 = Charset.forName("UTF8");
 
-	protected static final byte[] PLUS_LINE;
+	static final byte[] PLUS_LINE;
 	static {
 		try {
 			PLUS_LINE = "\n+\n".getBytes("us-ascii");
@@ -64,8 +66,6 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			throw new RuntimeException("us-ascii encoding not supported!");
 		}
 	}
-
-	protected BaseQualityEncoding baseQualityFormat = BaseQualityEncoding.Sanger;
 
 	public static class FastqRecordWriter extends RecordWriter<Text,SequencedFragment>
 	{
@@ -123,7 +123,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 			if (key != null)
 				out.write(key.getBytes(), 0, key.getLength());
 			else
-				out.write(makeId(seq).getBytes());
+				out.write(makeId(seq).getBytes(UTF8));
 			out.write('\n');
 
 			// write the sequence and separator

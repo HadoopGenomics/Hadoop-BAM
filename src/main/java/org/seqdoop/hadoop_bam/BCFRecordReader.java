@@ -30,6 +30,7 @@ import java.util.Map;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -117,7 +118,7 @@ public class BCFRecordReader
 
 			initContigDict();
 
-			in.skip(fileStart - in.getPosition());
+			IOUtils.skipFully(in, fileStart - in.getPosition());
 		}
 	}
 	@Override public void close() throws IOException { in.close(); }

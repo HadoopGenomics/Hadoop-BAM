@@ -31,6 +31,7 @@ import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 import htsjdk.samtools.BAMRecordCodec;
@@ -229,7 +230,7 @@ public class BAMSplitGuesser {
 		try { for (;;) {
 			for (;;) {
 				in.seek(p);
-				in.read(buf.array(), 0, 4);
+				IOUtils.readFully(in, buf.array(), 0, 4);
 				int n = buf.getInt(0);
 
 				if (n == BGZF_MAGIC)
@@ -251,13 +252,13 @@ public class BAMSplitGuesser {
 			final int p0 = p;
 			p += 10;
 			in.seek(p);
-			in.read(buf.array(), 0, 2);
+			IOUtils.readFully(in, buf.array(), 0, 2);
 			p += 2;
 			final int xlen   = getUShort(0);
 			final int subEnd = p + xlen;
 
 			while (p < subEnd) {
-				in.read(buf.array(), 0, 4);
+				IOUtils.readFully(in, buf.array(), 0, 4);
 
 				if (buf.getInt(0) != BGZF_MAGIC_SUB) {
 					p += 4 + getUShort(2);
@@ -270,14 +271,14 @@ public class BAMSplitGuesser {
 
 				// But find out the size before returning. First, grab bsize:
 				// we'll need it later.
-				in.read(buf.array(), 0, 2);
+				IOUtils.readFully(in, buf.array(), 0, 2);
 				int bsize = getUShort(0);
 
 				// Then skip the rest of the subfields.
 				p += BGZF_SUB_SIZE;
 				while (p < subEnd) {
 					in.seek(p);
-					in.read(buf.array(), 0, 4);
+					IOUtils.readFully(in, buf.array(), 0, 4);
 					p += 4 + getUShort(2);
 				}
 				if (p != subEnd) {
@@ -289,7 +290,7 @@ public class BAMSplitGuesser {
 				// Now skip past the compressed data and the CRC-32.
 				p += bsize - xlen - 19 + 4;
 				in.seek(p);
-				in.read(buf.array(), 0, 4);
+				IOUtils.readFully(in, buf.array(), 0, 4);
 				return new PosSize(p0, buf.getInt(0));
 			}
 			// No luck: look for the next gzip block header. Start right after
@@ -313,7 +314,7 @@ public class BAMSplitGuesser {
 		try {
 			while (up + SHORTEST_POSSIBLE_BAM_RECORD - 4 < cSize) {
 				bgzf.seek(cpVirt | up);
-				bgzf.read(buf.array(), 0, 8);
+				IOUtils.readFully(bgzf, buf.array(), 0, 8);
 
 				// If the first two checks fail we have what looks like a valid
 				// reference sequence ID. Assume we're at offset [4] or [24], i.e.
@@ -333,7 +334,7 @@ public class BAMSplitGuesser {
 				// split, as part of the first read we should skip.
 
 				bgzf.seek(cpVirt | up+20);
-				bgzf.read(buf.array(), 0, 8);
+				IOUtils.readFully(bgzf, buf.array(), 0, 8);
 
 				final int nid  = buf.getInt(0);
 				final int npos = buf.getInt(4);
@@ -353,7 +354,7 @@ public class BAMSplitGuesser {
 				up -= 4;
 
 				bgzf.seek(cpVirt | up+12);
-				bgzf.read(buf.array(), 0, 4);
+				IOUtils.readFully(bgzf, buf.array(), 0, 4);
 
 				final int nameLength = buf.getInt(0) & 0xff;
 				if (nameLength < 1) {
@@ -372,7 +373,7 @@ public class BAMSplitGuesser {
 				}
 
 				bgzf.seek(cpVirt | nullTerminator);
-				bgzf.read(buf.array(), 0, 1);
+				IOUtils.readFully(bgzf, buf.array(), 0, 1);
 
 				if (buf.get(0) != 0) {
 					up = nextUP;
@@ -390,13 +391,13 @@ public class BAMSplitGuesser {
 				int zeroMin = 4*8 + nameLength;
 
 				bgzf.seek(cpVirt | up+16);
-				bgzf.read(buf.array(), 0, 8);
+				IOUtils.readFully(bgzf, buf.array(), 0, 8);
 
 				zeroMin += (buf.getInt(0) & 0xffff) * 4;
 				zeroMin += buf.getInt(4) + (buf.getInt(4)+1)/2;
 
 				bgzf.seek(cpVirt | up);
-				bgzf.read(buf.array(), 0, 4);
+				IOUtils.readFully(bgzf, buf.array(), 0, 4);
 
 				if (buf.getInt(0) < zeroMin) {
 					up = nextUP;

@@ -31,6 +31,7 @@ import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 import htsjdk.samtools.FileTruncatedException;
@@ -292,7 +293,7 @@ public class BCFSplitGuesser {
 		try { for (;;) {
 			for (;;) {
 				in.seek(p);
-				in.read(buf.array(), 0, 4);
+				IOUtils.readFully(in, buf.array(), 0, 4);
 				int n = buf.getInt(0);
 
 				if (n == BGZF_MAGIC)
@@ -314,13 +315,13 @@ public class BCFSplitGuesser {
 			final int p0 = p;
 			p += 10;
 			in.seek(p);
-			in.read(buf.array(), 0, 2);
+			IOUtils.readFully(in, buf.array(), 0, 2);
 			p += 2;
 			final int xlen   = getUShort(0);
 			final int subEnd = p + xlen;
 
 			while (p < subEnd) {
-				in.read(buf.array(), 0, 4);
+				IOUtils.readFully(in, buf.array(), 0, 4);
 
 				if (buf.getInt(0) != BGZF_MAGIC_SUB) {
 					p += 4 + getUShort(2);
@@ -333,14 +334,14 @@ public class BCFSplitGuesser {
 
 				// But find out the size before returning. First, grab bsize:
 				// we'll need it later.
-				in.read(buf.array(), 0, 2);
+				IOUtils.readFully(in, buf.array(), 0, 2);
 				int bsize = getUShort(0);
 
 				// Then skip the rest of the subfields.
 				p += BGZF_SUB_SIZE;
 				while (p < subEnd) {
 					in.seek(p);
-					in.read(buf.array(), 0, 4);
+					IOUtils.readFully(in, buf.array(), 0, 4);
 					p += 4 + getUShort(2);
 				}
 				if (p != subEnd) {
@@ -352,7 +353,7 @@ public class BCFSplitGuesser {
 				// Now skip past the compressed data and the CRC-32.
 				p += bsize - xlen - 19 + 4;
 				in.seek(p);
-				in.read(buf.array(), 0, 4);
+				IOUtils.readFully(in, buf.array(), 0, 4);
 				return new PosSize(p0, buf.getInt(0));
 			}
 			// No luck: look for the next gzip block header. Start right after
@@ -378,7 +379,7 @@ public class BCFSplitGuesser {
 				// Check that [0] and [4] are big enough to make sense.
 
 				cinSeek(cpVirt | up);
-				cin.read(buf.array(), 0, 8);
+				IOUtils.readFully(cin, buf.array(), 0, 8);
 
 				final long sharedLen = getUInt(0);
 				final long  indivLen = getUInt(4);
@@ -389,7 +390,7 @@ public class BCFSplitGuesser {
 				// 0-based leftmost coordinate.
 
 				cinSeek(cpVirt | up+8);
-				cin.read(buf.array(), 0, 8);
+				IOUtils.readFully(cin, buf.array(), 0, 8);
 
 				final int chrom = buf.getInt(0);
 				final int pos   = buf.getInt(4);
@@ -399,18 +400,18 @@ public class BCFSplitGuesser {
 				// [24] and [26] are lengths and should thus be nonnegative.
 
 				cinSeek(cpVirt | up+24);
-				cin.read(buf.array(), 0, 4);
+				IOUtils.readFully(cin, buf.array(), 0, 4);
 				final int alleleInfo = buf.getInt(0);
 
 				final int alleleCount = alleleInfo >> 16;
 				final int infoCount   = alleleInfo & 0xffff;
-				if (alleleCount < 0 || infoCount < 0)
+				if (alleleCount < 0) // don't check infoCount since it is always nonnegative
 					continue;
 
 				// Make sure that [28] matches to the same value in the header.
 
 				cinSeek(cpVirt | up+28);
-				cin.read(buf.array(), 0, 1);
+				IOUtils.readFully(cin, buf.array(), 0, 1);
 
 				final short nSamples = getUByte(0);
 				if ((int)nSamples != genotypeSampleCount)
@@ -426,7 +427,7 @@ public class BCFSplitGuesser {
 				// genotype block).
 
 				cinSeek(cpVirt | up+32);
-				cin.read(buf.array(), 0, 6);
+				IOUtils.readFully(cin, buf.array(), 0, 6);
 
 				final byte idType = buf.get(0);
 				if ((idType & 0x0f) != 0x07)
@@ -450,7 +451,9 @@ public class BCFSplitGuesser {
 				// Good enough.
 				return up;
 			}
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			// fall through
+		}
 		return -1;
 	}
 	private long getUInt(final int idx) {

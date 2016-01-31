@@ -117,7 +117,15 @@ public class ReferenceFragment implements Writable
 	    return false;
     }
 
-    public void readFields(DataInput in) throws IOException
+	@Override
+	public int hashCode() {
+		int result = sequence.hashCode();
+		result = 31 * result + (position != null ? position.hashCode() : 0);
+		result = 31 * result + (indexSequence != null ? indexSequence.hashCode() : 0);
+		return result;
+	}
+
+	public void readFields(DataInput in) throws IOException
     {
 	// serialization order:
 	// 1) sequence

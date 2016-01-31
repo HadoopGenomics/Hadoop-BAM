@@ -201,6 +201,24 @@ public class SequencedFragment implements Writable
 			return false;
 	}
 
+	@Override
+	public int hashCode() {
+		int result = sequence.hashCode();
+		result = 31 * result + quality.hashCode();
+		result = 31 * result + (instrument != null ? instrument.hashCode() : 0);
+		result = 31 * result + (runNumber != null ? runNumber.hashCode() : 0);
+		result = 31 * result + (flowcellId != null ? flowcellId.hashCode() : 0);
+		result = 31 * result + (lane != null ? lane.hashCode() : 0);
+		result = 31 * result + (tile != null ? tile.hashCode() : 0);
+		result = 31 * result + (xpos != null ? xpos.hashCode() : 0);
+		result = 31 * result + (ypos != null ? ypos.hashCode() : 0);
+		result = 31 * result + (read != null ? read.hashCode() : 0);
+		result = 31 * result + (filterPassed != null ? filterPassed.hashCode() : 0);
+		result = 31 * result + (controlNumber != null ? controlNumber.hashCode() : 0);
+		result = 31 * result + (indexSequence != null ? indexSequence.hashCode() : 0);
+		return result;
+	}
+
 	/**
 	 * Convert quality scores in-place.
 	 *
