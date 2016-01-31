@@ -6,8 +6,9 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.seekablestream.SeekableStream;
-import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Paths;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -41,7 +42,7 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
 
     String refSourcePath = conf.get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
     ReferenceSource refSource = refSourcePath == null ? new ReferenceSource() :
-        new ReferenceSource(new File(refSourcePath)); // TODO: support HDFS
+        new ReferenceSource(Paths.get(URI.create(refSourcePath)));
 
     seekableStream = WrapSeekable.openPath(conf, file);
     start = fileSplit.getStart();
