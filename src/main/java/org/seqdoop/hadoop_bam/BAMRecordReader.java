@@ -21,7 +21,6 @@
 // File created: 2010-08-09 14:34:08
 
 package org.seqdoop.hadoop_bam;
-
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -35,6 +34,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import htsjdk.samtools.BAMRecordCodec;
 import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileHeader.SortOrder;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 
@@ -57,8 +58,11 @@ public class BAMRecordReader
 
 	private BlockCompressedInputStream bci;
 	private BAMRecordCodec codec;
-	private long fileStart, virtualEnd;
+	private long fileStart, virtualStart, virtualEnd;
 	private boolean isInitialized = false;
+	private boolean keepReadPairsTogether;
+	private boolean readPair;
+	private boolean lastOfPair;
 
 	/** Note: this is the only getKey function that handles unmapped reads
 	 * specially!
@@ -127,7 +131,8 @@ public class BAMRecordReader
 
 		final FSDataInputStream in = fs.open(file);
 
-		codec = new BAMRecordCodec(SAMHeaderReader.readSAMHeaderFrom(in, conf));
+		final SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
+		codec = new BAMRecordCodec(header);
 
 		in.seek(0);
 		bci =
@@ -135,7 +140,7 @@ public class BAMRecordReader
 				new WrapSeekable<FSDataInputStream>(
 					in, fs.getFileStatus(file).getLen(), file));
 
-		final long virtualStart = split.getStartVirtualOffset();
+		virtualStart = split.getStartVirtualOffset();
 
 		fileStart  = virtualStart >>> 16;
 		virtualEnd = split.getEndVirtualOffset();
@@ -148,6 +153,11 @@ public class BAMRecordReader
                 	System.err.println("XXX inizialized BAMRecordReader byte offset: " +
 				fileStart + " record offset: " + recordStart);
 		}
+
+		keepReadPairsTogether = SortOrder.queryname.equals(header.getSortOrder()) &&
+			conf.getBoolean(BAMInputFormat.KEEP_PAIRED_READS_TOGETHER_PROPERTY, false);
+		readPair = false;
+		lastOfPair = false;
 	}
 	@Override public void close() throws IOException { bci.close(); }
 
@@ -170,20 +180,37 @@ public class BAMRecordReader
 	@Override public SAMRecordWritable getCurrentValue() { return record; }
 
 	@Override public boolean nextKeyValue() {
-		if (bci.getFilePointer() >= virtualEnd)
-			return false;
+		long virtPos;
+		while ((virtPos = bci.getFilePointer()) < virtualEnd || (keepReadPairsTogether && readPair && !lastOfPair)) {
 
-		final SAMRecord r = codec.decode();
-		if (r == null)
-			return false;
+			final SAMRecord r = codec.decode();
+			if (r == null)
+				return false;
 
-		// Since we're reading from a BAMRecordCodec directly we have to set the
-		// validation stringency ourselves.
-		if (this.stringency != null)
-			r.setValidationStringency(this.stringency);
+			// Since we're reading from a BAMRecordCodec directly we have to set the
+			// validation stringency ourselves.
+			if (this.stringency != null)
+				r.setValidationStringency(this.stringency);
 
-		key.set(getKey(r));
-		record.set(r);
-		return true;
+			readPair = r.getReadPairedFlag();
+			if (readPair) {
+				boolean first = r.getFirstOfPairFlag(), second = r.getSecondOfPairFlag();
+				// According to the SAM spec (section 1.4) it is possible for pairs to have
+				// multiple segments (i.e. more than two), in which case both `first` and
+				// `second` will be true.
+				boolean firstOfPair = first && !second;
+				lastOfPair = !first && second;
+				// ignore any template that is not first in a pair right at the start of a split
+				// since it will have been returned in the previous split
+				if (virtPos == virtualStart && keepReadPairsTogether && !firstOfPair) {
+					continue;
+				}
+			}
+
+			key.set(getKey(r));
+			record.set(r);
+			return true;
+		}
+		return false;
 	}
 }

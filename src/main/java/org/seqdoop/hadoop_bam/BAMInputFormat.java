@@ -53,6 +53,16 @@ public class BAMInputFormat
 	// set this to true for debug output
 	public final static boolean DEBUG_BAM_SPLITTER = false;
 
+	/**
+	 * If set to <code>true</code>, ensure that for paired reads both reads in a pair are
+	 * always in the same split for queryname-sorted BAM files.
+	 * <p>
+	 * Note: only use this option if for all paired reads both reads in each pair are
+	 * present, otherwise it is possible that reads may be silently dropped.
+	 */
+	public static final String KEEP_PAIRED_READS_TOGETHER_PROPERTY =
+			"hadoopbam.bam.keep-paired-reads-together";
+
 	private Path getIdxPath(Path path) {
 		return path.suffix(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
 	}
