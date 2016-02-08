@@ -36,35 +36,72 @@ public class TestCRAMOutputFormat {
     private SAMFileHeader samFileHeader;
 
     private TaskAttemptContext taskAttemptContext;
-    private Configuration conf;
+    private static Configuration conf;
+
+    // CRAM output class that writes a header before records
+    static class CRAMTestWithHeaderOutputFormat
+            extends KeyIgnoringCRAMOutputFormat<NullWritable> {
+        public final static String READ_HEADER_FROM_FILE = "TestBAM.header";
+
+        @Override
+        public RecordWriter<NullWritable, SAMRecordWritable> getRecordWriter(
+                TaskAttemptContext ctx,
+                Path outputPath) throws IOException {
+            readSAMHeaderFrom(new Path(conf.get(READ_HEADER_FROM_FILE)), conf);
+            setWriteHeader(true);
+            return super.getRecordWriter(ctx, outputPath);
+        }
+    }
+
+    // CRAM Output class that doesn't write a header out before records
+    static class CRAMTestNoHeaderOutputFormat
+            extends KeyIgnoringCRAMOutputFormat<NullWritable> {
+        public final static String READ_HEADER_FROM_FILE = "TestBAM.header";
+
+        @Override
+        public RecordWriter<NullWritable, SAMRecordWritable> getRecordWriter(
+                TaskAttemptContext ctx,
+                Path outputPath) throws IOException {
+            // the writers require a header in order to create a codec, even if
+            // the header isn't being written out
+            readSAMHeaderFrom(new Path(conf.get(READ_HEADER_FROM_FILE)), conf);
+            setWriteHeader(false);
+            return super.getRecordWriter(ctx, outputPath);
+        }
+    }
 
     @Before
     public void setup() throws Exception {
         conf = new Configuration();
 
-        testCRAMFileName = ClassLoader.getSystemClassLoader().getResource("test.cram").getFile();
-        testReferenceFileName = ClassLoader.getSystemClassLoader().getResource("auxf.fa").getFile();
+        testCRAMFileName = ClassLoader.getSystemClassLoader()
+                .getResource("test.cram").getFile();
+        testReferenceFileName = ClassLoader.getSystemClassLoader()
+                .getResource("auxf.fa").getFile();
         testReferenceSource = new ReferenceSource(Paths.get(testReferenceFileName));
 
         conf.set("mapred.input.dir", "file://" + testCRAMFileName);
-        conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, "file://" + testReferenceFileName);
+        conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY,
+                "file://" + testReferenceFileName);
 
-        // fetch the SAMFile header from the original input to get the expected count
+        // fetch the SAMFile header from the original input to get the
+        // expected count
         expectedRecordCount = getCRAMRecordCount(testCRAMFileName);
-        samFileHeader = SAMHeaderReader.readSAMHeaderFrom(new Path(testCRAMFileName), conf);
+        samFileHeader = SAMHeaderReader.readSAMHeaderFrom(
+                new Path(testCRAMFileName), conf);
 
-        taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
+        taskAttemptContext = ContextUtil.newTaskAttemptContext(
+                conf, mock(TaskAttemptID.class));
     }
 
     @Test
-    public void testCRAMRecordWriter() throws Exception {
+    public void testCRAMRecordWriterNoHeader() throws Exception {
         final File outFile = File.createTempFile("testCRAMWriter", ".cram");
         outFile.deleteOnExit();
         final Path outPath = new Path(outFile.toURI());
 
-        final KeyIgnoringCRAMOutputFormat<NullWritable> cramOut =
-                new KeyIgnoringCRAMOutputFormat<NullWritable>();
-        cramOut.setWriteHeader(false);
+        final CRAMTestNoHeaderOutputFormat cramOut = new CRAMTestNoHeaderOutputFormat();
+        conf.set(CRAMTestNoHeaderOutputFormat.READ_HEADER_FROM_FILE, testCRAMFileName);
 
         RecordWriter<NullWritable, SAMRecordWritable> rw =
                 cramOut.getRecordWriter(taskAttemptContext, outPath);
@@ -85,7 +122,42 @@ public class TestCRAMOutputFormat {
         final int actualCount = verifyCRAMContainerStream(
                 new File(outFile.getAbsolutePath()),
                 samFileHeader,
-                testReferenceSource);
+                testReferenceSource,
+                true);
+
+        assertEquals(expectedRecordCount, actualCount);
+    }
+
+    @Test
+    public void testCRAMRecordWriterWithHeader() throws Exception {
+        final File outFile = File.createTempFile("testCRAMWriter", ".cram");
+        outFile.deleteOnExit();
+        final Path outPath = new Path(outFile.toURI());
+
+        final CRAMTestWithHeaderOutputFormat cramOut = new CRAMTestWithHeaderOutputFormat();
+        conf.set(CRAMTestNoHeaderOutputFormat.READ_HEADER_FROM_FILE, testCRAMFileName);
+
+        RecordWriter<NullWritable, SAMRecordWritable> rw =
+                cramOut.getRecordWriter(taskAttemptContext, outPath);
+
+        final SamReader samReader = SamReaderFactory.makeDefault()
+                .referenceSequence(new File(testReferenceFileName))
+                .open(new File(testCRAMFileName));
+
+        for (final SAMRecord r : samReader) {
+            final SAMRecordWritable samRW = new SAMRecordWritable();
+            samRW.set(r);
+            rw.write(null, samRW);
+        }
+        samReader.close();
+        rw.close(taskAttemptContext);
+
+        // now verify the container stream
+        final int actualCount = verifyCRAMContainerStream(
+                new File(outFile.getAbsolutePath()),
+                samFileHeader,
+                testReferenceSource,
+                false);
 
         assertEquals(expectedRecordCount, actualCount);
     }
@@ -96,7 +168,7 @@ public class TestCRAMOutputFormat {
         final File containerStreamFile =
                 new File(new File(outputPath.toUri()), "part-m-00000");
         final int actualCount = verifyCRAMContainerStream(
-                containerStreamFile, samFileHeader, testReferenceSource);
+                containerStreamFile, samFileHeader, testReferenceSource, true);
         assertEquals(expectedRecordCount, actualCount);
     }
 
@@ -111,7 +183,8 @@ public class TestCRAMOutputFormat {
         final ByteArrayInputStream cramStream = mergeCRAMContainerStream(
                 containerStreamFile,
                 samFileHeader,
-                testReferenceSource);
+                testReferenceSource,
+                true);
         final File outFile = File.createTempFile("testCRAMWriter", ".cram");
         outFile.deleteOnExit();
         Files.copy(cramStream, outFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -124,7 +197,8 @@ public class TestCRAMOutputFormat {
         final int actualCount = verifyCRAMContainerStream(
                 containerStreamFile,
                 samFileHeader,
-                testReferenceSource);
+                testReferenceSource,
+                true);
         assertEquals(expectedRecordCount, actualCount);
     }
 
@@ -136,7 +210,7 @@ public class TestCRAMOutputFormat {
         final Iterator<SAMRecord> it = cramReader.getIterator();
         int recCount = 0;
         while (it.hasNext()) {
-            final SAMRecord rec = it.next();
+            it.next();
             recCount++;
         }
         cramReader.close();
@@ -156,7 +230,8 @@ public class TestCRAMOutputFormat {
         job.setMapOutputKeyClass(LongWritable.class);
         job.setMapOutputValueClass(SAMRecordWritable.class);
 
-        job.setOutputFormatClass(KeyIgnoringCRAMOutputFormat.class);
+        conf.set(CRAMTestNoHeaderOutputFormat.READ_HEADER_FROM_FILE, inputFile);
+        job.setOutputFormatClass(CRAMTestNoHeaderOutputFormat.class);
         job.setOutputKeyClass(LongWritable.class);
         job.setOutputValueClass(SAMRecordWritable.class);
 
@@ -172,14 +247,16 @@ public class TestCRAMOutputFormat {
     private int verifyCRAMContainerStream(
             final File containerStreamFile,
             final SAMFileHeader header,
-            final ReferenceSource refSource) throws IOException
+            final ReferenceSource refSource,
+            final boolean writeHeader) throws IOException
     {
         // assemble a proper CRAM file from the container stream shard(s) in
         // order to verify the contents
         final ByteArrayInputStream mergedStream = mergeCRAMContainerStream (
-            containerStreamFile,
-            header,
-            refSource
+                containerStreamFile,
+                header,
+                refSource,
+                writeHeader
         );
 
         // now we can verify that we can read everything back in
@@ -191,7 +268,7 @@ public class TestCRAMOutputFormat {
         final Iterator<SAMRecord> it = resultCRAMReader.getIterator();
         int actualCount = 0;
         while (it.hasNext()) {
-            final SAMRecord rec = it.next();
+            it.next();
             actualCount++;
         }
         return actualCount;
@@ -207,17 +284,19 @@ public class TestCRAMOutputFormat {
     private ByteArrayInputStream mergeCRAMContainerStream(
             final File containerStreamFile,
             final SAMFileHeader header,
-            final ReferenceSource refSource) throws IOException
+            final ReferenceSource refSource,
+            final boolean writeHeader) throws IOException
     {
         // assemble a proper CRAM file from the container stream shard(s) in
         // order to verify the contents
         final ByteArrayOutputStream cramOutputStream = new ByteArrayOutputStream();
-        // write out the cram file header
-        new SAMOutputPreparer().prepareForRecords(
-                cramOutputStream,
-                SAMFormat.CRAM,
-                header);
-
+        if (writeHeader) {
+            // write out the cram file header
+            new SAMOutputPreparer().prepareForRecords(
+                    cramOutputStream,
+                    SAMFormat.CRAM,
+                    header);
+        }
         // now copy the contents of the container stream shard(s) written out by
         // the M/R job
         final ByteArrayOutputStream containerOutputStream = new ByteArrayOutputStream();
