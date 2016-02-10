@@ -22,6 +22,21 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.BAMFileSpan;
+import htsjdk.samtools.BAMIndex;
+import htsjdk.samtools.Chunk;
+import htsjdk.samtools.DiskBasedBAMFileIndex;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.util.CoordMath;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.Locatable;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 import hbparquet.hadoop.util.ContextUtil;
 
@@ -62,6 +77,41 @@ public class BAMInputFormat
 	 */
 	public static final String KEEP_PAIRED_READS_TOGETHER_PROPERTY =
 			"hadoopbam.bam.keep-paired-reads-together";
+
+	/**
+	 * Filter by region, like <code>-L</code> in SAMtools. Takes a comma-separated
+	 * list of intervals, e.g. <code>chr1:1-20000,chr2:12000-20000</code>. For
+	 * programmatic use {@link #setIntervals(Configuration, List)} should be preferred.
+	 */
+	public static final String INTERVALS_PROPERTY = "hadoopbam.bam.intervals";
+
+	public static <T extends Locatable> void setIntervals(Configuration conf,
+			List<T> intervals) {
+		StringBuilder sb = new StringBuilder();
+		for (Iterator<T> it = intervals.iterator(); it.hasNext(); ) {
+			Locatable l = it.next();
+			sb.append(String.format("%s:%d-%d", l.getContig(), l.getStart(), l.getEnd()));
+			if (it.hasNext()) {
+				sb.append(",");
+			}
+		}
+		conf.set(INTERVALS_PROPERTY, sb.toString());
+	}
+
+	static List<Locatable> getIntervals(Configuration conf) {
+		String intervalsProperty = conf.get(INTERVALS_PROPERTY);
+		if (intervalsProperty == null) {
+			return null;
+		}
+		List<Locatable> intervals = new ArrayList<Locatable>();
+		for (String s : intervalsProperty.split(",")) {
+			String[] parts = s.split(":|-");
+			Interval interval =
+					new Interval(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+			intervals.add(interval);
+		}
+		return intervals;
+	}
 
 	private Path getIdxPath(Path path) {
 		return path.suffix(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
@@ -111,7 +161,7 @@ public class BAMInputFormat
 				i = addProbabilisticSplits(splits, i, newSplits, cfg);
 			}
 		}
-		return newSplits;
+		return filterByInterval(newSplits, cfg);
 	}
 
 	// Handles all the splits that share the Path of the one at index i,
@@ -233,6 +283,80 @@ public class BAMInputFormat
 
 		sin.close();
 		return i;
+	}
+
+	private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
+			throws IOException {
+		List<Locatable> intervals = getIntervals(conf);
+		if (intervals == null) {
+			return splits;
+		}
+
+		// Get the chunks in the intervals we want (chunks give start and end file pointers
+		// into a BAM file) by looking in all the indexes for the BAM files
+		List<Chunk> chunks = new ArrayList<Chunk>();
+		Set<Path> bamFiles = new LinkedHashSet<Path>();
+		for (InputSplit split : splits) {
+			bamFiles.add(((FileVirtualSplit) split).getPath());
+		}
+		for (Path bamFile : bamFiles) {
+			Path indexFile = bamFile.suffix(BAMIndex.BAMIndexSuffix);
+			FileSystem fs = bamFile.getFileSystem(conf);
+			if (!fs.exists(indexFile)) {
+				System.err.println("WARNING: no BAM index file found, splits will not be " +
+						"filtered, which may be very inefficient: " + indexFile);
+				return splits;
+			}
+
+			FSDataInputStream in = fs.open(bamFile);
+			SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
+			SAMSequenceDictionary dict = header.getSequenceDictionary();
+
+			WrapSeekable seekableIdxFile = WrapSeekable.openPath(conf, indexFile);
+			DiskBasedBAMFileIndex idx = new DiskBasedBAMFileIndex(seekableIdxFile, dict);
+
+			for (Locatable interval : intervals) {
+				int referenceIndex = dict.getSequenceIndex(interval.getContig());
+				int intervalStart = interval.getStart();
+				int intervalEnd = interval.getEnd();
+				BAMFileSpan sfs = idx.getSpanOverlapping(referenceIndex, intervalStart, intervalEnd);
+				chunks.addAll(sfs.getChunks());
+			}
+		}
+
+		// Use the chunks to filter the splits
+		List<InputSplit> filteredSplits = new ArrayList<InputSplit>();
+		for (InputSplit split : splits) {
+			FileVirtualSplit virtualSplit = (FileVirtualSplit) split;
+			long splitStart = virtualSplit.getStartVirtualOffset();
+			long splitEnd = virtualSplit.getEndVirtualOffset();
+			// if any chunk overlaps with the split, keep the split, but adjust the start and
+			// end to the maximally overlapping portion for all chunks that overlap
+			long newStart = Long.MAX_VALUE;
+			long newEnd = Long.MIN_VALUE;
+			boolean overlaps = false;
+			for (Chunk chunk : chunks) {
+				long chunkStart = chunk.getChunkStart();
+				long chunkEnd = chunk.getChunkEnd();
+				if (overlaps(splitStart, splitEnd, chunkStart, chunkEnd)) {
+					long overlapStart = Math.max(splitStart, chunkStart);
+					long overlapEnd = Math.min(splitEnd, chunkEnd);
+					newStart = Math.min(newStart, overlapStart);
+					newEnd = Math.max(newEnd, overlapEnd);
+					overlaps = true;
+				}
+			}
+			if (overlaps) {
+				filteredSplits.add(new FileVirtualSplit(virtualSplit.getPath(), newStart, newEnd,
+						virtualSplit.getLocations()));
+			}
+		}
+		return filteredSplits;
+	}
+
+	private static boolean overlaps(long start, long end, long start2, long end2) {
+		return (start2 >= start && start2 <= end) || (end2 >=start && end2 <= end) ||
+				(start >= start2 && end <= end2);
 	}
 
 	@Override public boolean isSplitable(JobContext job, Path path) {

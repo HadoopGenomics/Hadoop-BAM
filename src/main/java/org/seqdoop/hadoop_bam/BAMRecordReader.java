@@ -21,7 +21,9 @@
 // File created: 2010-08-09 14:34:08
 
 package org.seqdoop.hadoop_bam;
+
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -38,6 +40,8 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileHeader.SortOrder;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.CoordMath;
+import htsjdk.samtools.util.Locatable;
 
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
@@ -63,6 +67,7 @@ public class BAMRecordReader
 	private boolean keepReadPairsTogether;
 	private boolean readPair;
 	private boolean lastOfPair;
+	private List<Locatable> intervals;
 
 	/** Note: this is the only getKey function that handles unmapped reads
 	 * specially!
@@ -158,6 +163,7 @@ public class BAMRecordReader
 			conf.getBoolean(BAMInputFormat.KEEP_PAIRED_READS_TOGETHER_PROPERTY, false);
 		readPair = false;
 		lastOfPair = false;
+		intervals = BAMInputFormat.getIntervals(conf);
 	}
 	@Override public void close() throws IOException { bci.close(); }
 
@@ -207,9 +213,35 @@ public class BAMRecordReader
 				}
 			}
 
+			if (!overlaps(r, intervals)) {
+				continue;
+			}
+
 			key.set(getKey(r));
 			record.set(r);
 			return true;
+		}
+		return false;
+	}
+
+	private static boolean overlaps(SAMRecord r, List<Locatable> intervals) {
+		if (intervals == null ||
+				(r.getReadUnmappedFlag() && r.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)) {
+			return true;
+		}
+		for (Locatable interval : intervals) {
+			if (r.getReadUnmappedFlag()) {
+				if (interval.getStart() <= r.getStart() && interval.getEnd() >= r.getStart()) {
+					// This follows the behavior of htsjdk's SamReader which states that
+					// "an unmapped read will be returned by this call if it has a coordinate for
+					// the purpose of sorting that is in the query region".
+					return true;
+				}
+			} else if (r.getContig().equals(interval.getContig()) &&
+					CoordMath.overlaps(r.getStart(), r.getEnd(),
+						interval.getStart(), interval.getEnd())) {
+				return true;
+			}
 		}
 		return false;
 	}
