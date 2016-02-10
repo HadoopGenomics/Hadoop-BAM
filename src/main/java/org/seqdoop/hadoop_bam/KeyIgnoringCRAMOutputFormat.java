@@ -25,7 +25,7 @@ import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
  */
 public class KeyIgnoringCRAMOutputFormat<K> extends CRAMOutputFormat<K> {
     protected SAMFileHeader header;
-    private boolean writeHeader = false;
+    private boolean writeHeader = true;
 
     public KeyIgnoringCRAMOutputFormat() {}
 
@@ -43,6 +43,9 @@ public class KeyIgnoringCRAMOutputFormat<K> extends CRAMOutputFormat<K> {
     {
         this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
     }
+    public void readSAMHeaderFrom(InputStream in, Configuration conf) {
+        this.header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
+    }
 
     /** <code>setSAMHeader</code> or <code>readSAMHeaderFrom</code> must have
      * been called first.
@@ -59,6 +62,10 @@ public class KeyIgnoringCRAMOutputFormat<K> extends CRAMOutputFormat<K> {
             TaskAttemptContext ctx, Path out)
             throws IOException
     {
+        if (this.header == null)
+            throw new IOException(
+                    "Can't create a RecordWriter without the SAM header");
+
         return new KeyIgnoringCRAMRecordWriter<K>(out, header, writeHeader, ctx);
     }
 }

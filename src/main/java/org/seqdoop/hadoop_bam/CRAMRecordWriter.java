@@ -35,7 +35,8 @@ public abstract class CRAMRecordWriter<K>
     private static final String HADOOP_BAM_PART_ID= "Hadoop-BAM-Part";
     private OutputStream   origOutput;
     private CRAMContainerStreamWriter cramContainerStream = null;
-    ReferenceSource refSource = null;
+    private ReferenceSource refSource = null;
+    private boolean writeHeader = true;
 
     /** A SAMFileHeader is read from the input Path. */
     public CRAMRecordWriter(
@@ -78,6 +79,7 @@ public abstract class CRAMRecordWriter<K>
             throws IOException
     {
         origOutput = output;
+        this.writeHeader = writeHeader;
 
         final URI referenceURI = URI.create(
                 ctx.getConfiguration().get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY)
@@ -105,6 +107,9 @@ public abstract class CRAMRecordWriter<K>
             final SAMFileHeader header = rec.getHeader();
             if (header == null) {
                 throw new RuntimeException("Cannot write record to CRAM: null header in SAM record");
+            }
+            if (writeHeader) {
+                this.writeHeader(header);
             }
             cramContainerStream = new CRAMContainerStreamWriter(
                     origOutput, null, refSource, header, HADOOP_BAM_PART_ID);
