@@ -91,9 +91,7 @@ public class ReferenceFragment implements Writable
     {
 	String delim = "\t";
 	StringBuilder builder = new StringBuilder(800);
-	builder.append(indexSequence).append(delim);
-	builder.append(position).append(delim);
-	builder.append(sequence);
+	builder.append(indexSequence).append(delim).append(position).append(delim).append(sequence);
 	return builder.toString();
     }
 

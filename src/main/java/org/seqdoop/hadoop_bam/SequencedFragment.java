@@ -146,18 +146,18 @@ public class SequencedFragment implements Writable
 	{
 		String delim = "\t";
 		StringBuilder builder = new StringBuilder(800);
-		builder.append(instrument).append(delim);
-		builder.append(runNumber).append(delim);
-		builder.append(flowcellId).append(delim);
-		builder.append(lane).append(delim);
-		builder.append(tile).append(delim);
-		builder.append(xpos).append(delim);
-		builder.append(ypos).append(delim);
-		builder.append(indexSequence).append(delim);
-		builder.append(read).append(delim);
-		builder.append(sequence).append(delim);
-		builder.append(quality).append(delim);
-		builder.append((filterPassed == null || filterPassed) ? 1 : 0);
+		builder.append(instrument).append(delim)
+			.append(runNumber).append(delim)
+			.append(flowcellId).append(delim)
+			.append(lane).append(delim)
+			.append(tile).append(delim)
+			.append(xpos).append(delim)
+			.append(ypos).append(delim)
+			.append(indexSequence).append(delim)
+			.append(read).append(delim)
+			.append(sequence).append(delim)
+			.append(quality).append(delim)
+			.append((filterPassed == null || filterPassed) ? 1 : 0);
 		return builder.toString();
 	}
 
