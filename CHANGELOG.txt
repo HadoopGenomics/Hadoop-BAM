@@ -1,3 +1,12 @@
+2016-02-14 --- 7.4.0:
+   - Move to Java 8 and HTSJDK 2.1.0
+   - Various improvements (test coverage reports, findbugs)
+     (thanks Tom White)
+   - CRAMRecordReader can read reference from HDFS
+   - Option for placing read pairs into the same split for BAM input
+     (thanks Tom White)
+   - CRAM write support (thanks Chris Norman)
+
 2016-01-20 --- 7.3.1:
    - AnySAMInputFormat supports CRAM
    - Update HTSJDK dependency to 1.141
