@@ -38,6 +38,11 @@ import htsjdk.samtools.ValidationStringency;
 import org.seqdoop.hadoop_bam.CRAMInputFormat;
 
 public final class SAMHeaderReader {
+
+	private SAMHeaderReader() throws InstantiationException {
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	/** A String property corresponding to a ValidationStringency
 	 * value. If set, the given stringency is used when any part of the
 	 * Hadoop-BAM library reads SAM or BAM.

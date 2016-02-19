@@ -29,6 +29,11 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("fallthrough")
 public final class MurmurHash3 {
+
+	private MurmurHash3() throws InstantiationException {
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	public static long murmurhash3(byte[] key, int seed) {
 
 		final ByteBuffer data =

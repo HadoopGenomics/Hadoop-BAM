@@ -24,8 +24,12 @@ package org.seqdoop.hadoop_bam.util;
 
 import org.apache.hadoop.conf.Configuration;
 
-public class ConfHelper
+public final class ConfHelper
 {
+	private ConfHelper() throws InstantiationException {
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	/**
 	 * Convert a string to a boolean.
 	 *

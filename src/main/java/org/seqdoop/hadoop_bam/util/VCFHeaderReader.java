@@ -42,6 +42,11 @@ import htsjdk.variant.vcf.VCFHeader;
  * VCF or BCF.
  */
 public final class VCFHeaderReader {
+
+	private VCFHeaderReader() throws InstantiationException {
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	public static VCFHeader readHeaderFrom(final SeekableStream in)
 		throws IOException
 	{

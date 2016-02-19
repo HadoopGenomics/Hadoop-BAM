@@ -44,6 +44,10 @@ public final class Frontend {
 		VERSION_MAJOR = 7,
 		VERSION_MINOR = 0;
 
+	private Frontend() throws InstantiationException {
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	public static void main(String[] args) {
 
 		final Thread thread = Thread.currentThread();

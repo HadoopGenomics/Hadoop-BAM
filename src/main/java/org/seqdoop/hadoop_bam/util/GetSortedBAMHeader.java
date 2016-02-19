@@ -33,6 +33,11 @@ import htsjdk.samtools.ValidationStringency;
 import org.seqdoop.hadoop_bam.SAMFormat;
 
 public final class GetSortedBAMHeader {
+
+	private GetSortedBAMHeader() throws InstantiationException {
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	public static void main(String[] args) throws IOException {
 		if (args.length < 2) {
 			System.err.println(
