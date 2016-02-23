@@ -20,81 +20,146 @@
 
 package org.seqdoop.hadoop_bam;
 
+import com.google.common.collect.Iterables;
 import hbparquet.hadoop.util.ContextUtil;
+import htsjdk.variant.vcf.VCFFileReader;
+import java.io.File;
+import java.util.ArrayList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import org.seqdoop.hadoop_bam.util.BGZFCodec;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+@RunWith(Parameterized.class)
 public class TestVCFInputFormat {
+    enum NUM_SPLITS {
+        ANY, EXACTLY_ONE, MORE_THAN_ONE
+    }
+    private String filename;
+    private NUM_SPLITS expectedSplits;
     private VariantContextWritable writable;
-    private RecordReader<LongWritable, VariantContextWritable> reader;
+    private List<RecordReader<LongWritable, VariantContextWritable>> readers;
     private TaskAttemptContext taskAttemptContext;
+
+    public TestVCFInputFormat(String filename, NUM_SPLITS expectedSplits) {
+        this.filename = filename;
+        this.expectedSplits = expectedSplits;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object> data() {
+        return Arrays.asList(new Object[][] {
+            {"test.vcf", NUM_SPLITS.ANY},
+            {"test.vcf.gz", NUM_SPLITS.EXACTLY_ONE},
+            {"test.vcf.bgzf.gz", NUM_SPLITS.ANY},
+            {"HiSeq.10000.vcf", NUM_SPLITS.MORE_THAN_ONE},
+            {"HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE},
+            {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE}
+        });
+    }
 
     @Before
     public void setup() throws IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, InterruptedException, NoSuchFieldException {
         Configuration conf = new Configuration();
-        String input_file = ClassLoader.getSystemClassLoader().getResource("test.vcf").getFile();
+        String input_file = ClassLoader.getSystemClassLoader().getResource(filename).getFile();
         conf.set("hadoopbam.vcf.trust-exts", "true");
         conf.set("mapred.input.dir", "file://" + input_file);
+        conf.set("io.compression.codecs", BGZFCodec.class.getCanonicalName());
+        conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
 
         taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
         JobContext ctx = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
 
         VCFInputFormat inputFormat = new VCFInputFormat(conf);
         List<InputSplit> splits = inputFormat.getSplits(ctx);
-        reader = inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
-        reader.initialize(splits.get(0), taskAttemptContext);
+        switch (expectedSplits) {
+            case EXACTLY_ONE:
+                assertEquals("Should be exactly one split", 1, splits.size());
+                break;
+            case MORE_THAN_ONE:
+                assertTrue("Should be more than one split", splits.size() > 1);
+                break;
+            case ANY:
+            default:
+                break;
+        }
+        readers = new ArrayList<>();
+        for (InputSplit split : splits) {
+            RecordReader<LongWritable, VariantContextWritable> reader = inputFormat.createRecordReader(split, taskAttemptContext);
+            reader.initialize(split, taskAttemptContext);
+            readers.add(reader);
+        }
     }
 
     @Test
     public void countEntries() throws Exception {
+        VCFFileReader vcfFileReader =
+            new VCFFileReader(new File("src/test/resources/" + filename), false);
+        int expectedCount = Iterables.size(vcfFileReader);
+
         int counter = 0;
-        while(reader.nextKeyValue()) {
-            writable = reader.getCurrentValue();
-            assert (writable != null && writable.get() != null);
-            VariantContext vc = writable.get();
-            String value = vc.toString();
-            assert(value != null);
-            counter++;
+        for (RecordReader<LongWritable, VariantContextWritable> reader : readers) {
+            while (reader.nextKeyValue()) {
+                writable = reader.getCurrentValue();
+                assertNotNull(writable);
+                VariantContext vc = writable.get();
+                assertNotNull(vc);
+                String value = vc.toString();
+                assertNotNull(value);
+                counter++;
+            }
         }
-        assert(counter == 5);
+        assertEquals(expectedCount, counter);
     }
 
     @Test
     public void testFirstSecond() throws Exception {
+        if (!filename.startsWith("test.")) {
+            return;
+        }
+        RecordReader<LongWritable, VariantContextWritable> reader = readers.get(0);
         if (!reader.nextKeyValue())
             throw new Exception("could not read first VariantContext");
 
         writable = reader.getCurrentValue();
-        assert (writable != null && writable.get() != null);
-
+        assertNotNull(writable);
         VariantContext vc = writable.get();
+        assertNotNull(vc);
 
-        assert (vc.getContig().equals("20"));
-        assert (vc.getStart() == 14370 && vc.getEnd() == 14370);
-        assert (vc.getReference().getBaseString().equals("G"));
-        assert (vc.getAlternateAllele(0).getBaseString().equals("A"));
+        assertEquals("20", vc.getContig());
+        assertEquals(14370, vc.getStart());
+        assertEquals(14370, vc.getEnd());
+        assertEquals("G", vc.getReference().getBaseString());
+        assertEquals("A", vc.getAlternateAllele(0).getBaseString());
 
-        if (!reader.nextKeyValue())
-            throw new Exception("could not read second VariantContext");
+        assertTrue("second VariantContext", reader.nextKeyValue());
 
         writable = reader.getCurrentValue();
-        assert (writable != null && writable.get() != null);
-
+        assertNotNull(writable);
         vc = writable.get();
+        assertNotNull(vc);
 
-        assert (vc.getContig().equals("20"));
-        assert (vc.getStart() == 17330 && vc.getEnd() == 17330);
-        assert (vc.getReference().getBaseString().equals("T"));
-        assert (vc.getAlternateAllele(0).getBaseString().equals("A"));
+        assertEquals("20", vc.getContig());
+        assertEquals(17330, vc.getStart());
+        assertEquals(17330, vc.getEnd());
+        assertEquals("T", vc.getReference().getBaseString());
+        assertEquals("A", vc.getAlternateAllele(0).getBaseString());
     }
 }

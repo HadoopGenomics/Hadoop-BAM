@@ -22,18 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
@@ -41,9 +30,24 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
-
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.compress.CodecPool;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.CompressionInputStream;
+import org.apache.hadoop.io.compress.Decompressor;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
-import hbparquet.hadoop.util.ContextUtil;
 
 /** The key is the bitwise OR of the chromosome index in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
@@ -59,12 +63,9 @@ public class VCFRecordReader
 	private final VariantContextWritable vc = new VariantContextWritable();
 
 	private VCFCodec codec = new VCFCodec();
-    private AsciiLineReaderIterator it;
-    private AsciiLineReader reader;
+	private LineRecordReader lineRecordReader = new LineRecordReader();
 
-    private VCFHeader header;
-
-	private long length;
+	private VCFHeader header;
 
 	private final Map<String,Integer> contigDict =
 		new HashMap<String,Integer>();
@@ -74,62 +75,59 @@ public class VCFRecordReader
 	{
 		final FileSplit split = (FileSplit)spl;
 
-		this.length = split.getLength();
-
 		final Path file = split.getPath();
 		final FileSystem fs = file.getFileSystem(ContextUtil.getConfiguration(ctx));
 
 		final FSDataInputStream ins = fs.open(file);
 
-		reader = new AsciiLineReader(ins);
-        it = new AsciiLineReaderIterator(reader);
-		
+		CompressionCodec compressionCodec =
+				new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
+		AsciiLineReader reader;
+		if (compressionCodec == null) {
+			reader = new AsciiLineReader(ins);
+		} else {
+			Decompressor decompressor = CodecPool.getDecompressor(compressionCodec);
+			CompressionInputStream in = compressionCodec.createInputStream(ins,
+					decompressor);
+			reader = new AsciiLineReader(in);
+		}
+
+		AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
+
 		final FeatureCodecHeader h = codec.readHeader(it);
 		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ file);
 
-        header = (VCFHeader) h.getHeaderValue();
+		header = (VCFHeader) h.getHeaderValue();
 
-        contigDict.clear();
+		contigDict.clear();
 		int i = 0;
 		for (final VCFContigHeaderLine contig : header.getContigLines())
 			contigDict.put(contig.getID(), i++);
 
-		// Note that we create a new reader here, so reader.getPosition() is 0 at
-		// start regardless of the value of start. Hence getProgress() and
-		// nextKeyValue() don't need to use start at all.
-		final long start = split.getStart();
-		if (start != 0) {
-			ins.seek(start-1);
-			reader = new AsciiLineReader(ins);
-            reader.readLine(); // NOTE: skip incomplete line!
-            it = new AsciiLineReaderIterator(reader);
-		} else { // it seems that newer versions of the reader peek ahead one more line from the input
-            long current_pos = it.getPosition();
-            ins.seek(0);
-            reader = new AsciiLineReader(ins);
-            it = new AsciiLineReaderIterator(reader);
-            while (it.hasNext() && it.getPosition() <= current_pos && it.peek().startsWith("#")) {
-                it.next();
-            }
-            if (!it.hasNext() || it.getPosition() > current_pos)
-                throw new IOException("Empty VCF file "+ file);
-        }
+		lineRecordReader.initialize(spl, ctx);
 	}
-	@Override public void close() { reader.close(); }
+	@Override public void close() throws IOException { lineRecordReader.close(); }
 
-	@Override public float getProgress() {
-		return length == 0 ? 1 : (float)reader.getPosition() / length;
+	@Override public float getProgress() throws IOException {
+		return lineRecordReader.getProgress();
 	}
 
 	@Override public LongWritable           getCurrentKey  () { return key; }
 	@Override public VariantContextWritable getCurrentValue() { return vc; }
 
 	@Override public boolean nextKeyValue() throws IOException {
-		if (!it.hasNext() || it.getPosition() >= length)
-			return false;
+		String line;
+		while (true) {
+			if (!lineRecordReader.nextKeyValue()) {
+				return false;
+			}
+			line = lineRecordReader.getCurrentValue().toString();
+			if (!line.startsWith("#")) {
+				break;
+			}
+		}
 
-		final String line = it.next();
 		final VariantContext v = codec.decode(line);
 
 		Integer chromIdx = contigDict.get(v.getContig());
