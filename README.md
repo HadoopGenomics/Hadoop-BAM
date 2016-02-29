@@ -16,6 +16,7 @@ The file formats currently supported are:
 
    - BAM (Binary Alignment/Map)
    - SAM (Sequence Alignment/Map)
+   - CRAM
    - FASTQ
    - FASTA (input only)
    - QSEQ
@@ -34,7 +35,9 @@ Note that the library part of Hadoop-BAM is primarily intended for developers
 with experience in using Hadoop. The command line tools of Hadoop-BAM should be
 understandable to all users, but they are limited in scope. SeqPig is a more
 versatile and higher-level interface to the file formats supported by
-Hadoop-BAM.
+Hadoop-BAM. In addition, [ADAM](http://bdgenomics.org/) and
+[GATK version 4](https://github.com/broadinstitute/gatk) both use Hadoop-BAM and offer 
+high-level command-line bioinformatics tools that run on Spark clusters. 
 
 For examples of how to use Hadoop-BAM as a library to read data files
 in Hadoop see the examples/ directory.
@@ -48,7 +51,7 @@ CDH, has also been tested. Use other versions at your own risk. You
 can change the version of Hadoop linked against by modifying the
 corresponding paramter in the pom.xml build file.
 
-HTSJDK (formerly Picard SAM-JDK) Version 1.133 is required. Later versions
+HTSJDK (formerly Picard SAM-JDK) Version 2.1.0 is required. Later versions
 may also work but have not been tested. A version of Picard is distributed
 via the unofficial maven repository (see below).
 
