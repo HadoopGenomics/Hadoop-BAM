@@ -75,6 +75,9 @@ public class TestVCFInputFormat {
             {"test.vcf", NUM_SPLITS.ANY, null},
             {"test.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
             {"test.vcf.bgzf.gz", NUM_SPLITS.ANY, null},
+            // BCF tests currently fail due to https://github.com/samtools/htsjdk/issues/507
+//            {"test.uncompressed.bcf", NUM_SPLITS.ANY, null},
+//            {"test.bgzf.bcf", NUM_SPLITS.ANY, null},
             {"HiSeq.10000.vcf", NUM_SPLITS.MORE_THAN_ONE, null},
             {"HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
             {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE, null},
