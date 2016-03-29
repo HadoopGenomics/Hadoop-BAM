@@ -22,7 +22,13 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.BAMFileSpan;
+import htsjdk.samtools.SAMFileSpan;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMUtils;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -101,6 +107,17 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
 	public long guessNextBAMRecordStart(long beg, long end)
 		throws IOException
 	{
+		// Use a reader to skip through the headers at the beginning of a BAM file, since
+		// the headers may exceed MAX_BYTES_READ in length
+		if (beg == 0) {
+			this.inFile.seek(beg);
+			SamReader open = SamReaderFactory.makeDefault().open(SamInputResource.of(inFile));
+			SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
+			if (span instanceof BAMFileSpan) {
+				return ((BAMFileSpan) span).getFirstOffset();
+			}
+		}
+
 		// Buffer what we need to go through.
 
 		byte[] arr = new byte[MAX_BYTES_READ];
