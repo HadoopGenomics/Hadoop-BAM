@@ -374,8 +374,7 @@ public final class Utils {
 		     : ValidationStringency.values())
 		{
 			if (last != null) {
-				sb.append(last);
-				sb.append(", ");
+				sb.append(last).append(", ");
 			}
 			last = v.name();
 		}
