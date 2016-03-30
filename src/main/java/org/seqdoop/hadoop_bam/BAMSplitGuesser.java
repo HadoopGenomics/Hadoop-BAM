@@ -25,8 +25,6 @@ package org.seqdoop.hadoop_bam;
 import htsjdk.samtools.SAMRecord;
 import java.io.InputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
@@ -49,11 +47,10 @@ import org.seqdoop.hadoop_bam.util.WrapSeekable;
 /** A class for heuristically finding BAM record positions inside an area of
  * a BAM file.
  */
-public class BAMSplitGuesser {
-	private       SeekableStream             inFile, in;
+public class BAMSplitGuesser extends BaseSplitGuesser {
+	private       SeekableStream             inFile;
 	private       BlockCompressedInputStream bgzf;
 	private final BAMRecordCodec             bamCodec;
-	private final ByteBuffer                 buf;
 	private final int                        referenceSequenceCount;
 
 	// We want to go through this many BGZF blocks fully, checking that they
@@ -66,10 +63,6 @@ public class BAMSplitGuesser {
 	// through.
 	private final static int MAX_BYTES_READ =
 		BLOCKS_NEEDED_FOR_GUESS * 0xffff + 0xfffe;
-
-	private final static int BGZF_MAGIC     = 0x04088b1f;
-	private final static int BGZF_MAGIC_SUB = 0x00024342;
-	private final static int BGZF_SUB_SIZE  = 4 + 2;
 
 	private final static int SHORTEST_POSSIBLE_BAM_RECORD = 4*9 + 1 + 1 + 1;
 
@@ -94,9 +87,6 @@ public class BAMSplitGuesser {
 		throws IOException
 	{
 		inFile = ss;
-
-		buf = ByteBuffer.allocate(8);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
 
 		referenceSequenceCount =
 			SAMHeaderReader.readSAMHeaderFrom(headerStream, conf)
@@ -221,93 +211,6 @@ public class BAMSplitGuesser {
 		}
 	}
 
-	private static class PosSize {
-		public int pos;
-		public int size;
-		public PosSize(int p, int s) { pos = p; size = s; }
-	}
-
-	// Gives the compressed size on the side. Returns null if it doesn't find
-	// anything.
-	private PosSize guessNextBGZFPos(int p, int end) {
-		try { for (;;) {
-			for (;;) {
-				in.seek(p);
-				IOUtils.readFully(in, buf.array(), 0, 4);
-				int n = buf.getInt(0);
-
-				if (n == BGZF_MAGIC)
-					break;
-
-				// Skip ahead a bit more than 1 byte if you can.
-				if (n >>> 8 == BGZF_MAGIC << 8 >>> 8)
-					++p;
-				else if (n >>> 16 == BGZF_MAGIC << 16 >>> 16)
-					p += 2;
-				else
-					p += 3;
-
-				if (p >= end)
-					return null;
-			}
-			// Found what looks like a gzip block header: now get XLEN and
-			// search for the BGZF subfield.
-			final int p0 = p;
-			p += 10;
-			in.seek(p);
-			IOUtils.readFully(in, buf.array(), 0, 2);
-			p += 2;
-			final int xlen   = getUShort(0);
-			final int subEnd = p + xlen;
-
-			while (p < subEnd) {
-				IOUtils.readFully(in, buf.array(), 0, 4);
-
-				if (buf.getInt(0) != BGZF_MAGIC_SUB) {
-					p += 4 + getUShort(2);
-					in.seek(p);
-					continue;
-				}
-
-				// Found it: this is close enough to a BGZF block, make it
-				// our guess.
-
-				// But find out the size before returning. First, grab bsize:
-				// we'll need it later.
-				IOUtils.readFully(in, buf.array(), 0, 2);
-				int bsize = getUShort(0);
-
-				// Then skip the rest of the subfields.
-				p += BGZF_SUB_SIZE;
-				while (p < subEnd) {
-					in.seek(p);
-					IOUtils.readFully(in, buf.array(), 0, 4);
-					p += 4 + getUShort(2);
-				}
-				if (p != subEnd) {
-					// Cancel our guess because the xlen field didn't match the
-					// data.
-					break;
-				}
-
-				// Now skip past the compressed data and the CRC-32.
-				p += bsize - xlen - 19 + 4;
-				in.seek(p);
-				IOUtils.readFully(in, buf.array(), 0, 4);
-				return new PosSize(p0, buf.getInt(0));
-			}
-			// No luck: look for the next gzip block header. Start right after
-			// where we last saw the identifiers, although we could probably
-			// safely skip further ahead. (If we find the correct one right
-			// now, the previous block contained 0x1f8b0804 bytes of data: that
-			// seems... unlikely.)
-			p = p0 + 4;
-
-		}} catch (IOException e) {
-			return null;
-		}
-	}
-
 	private int guessNextBAMPos(long cpVirt, int up, int cSize) {
 		// What we're actually searching for is what's at offset [4], not [0]. So
 		// skip ahead by 4, thus ensuring that whenever we find a valid [0] it's
@@ -410,9 +313,6 @@ public class BAMSplitGuesser {
 			}
 		} catch (IOException e) {}
 		return -1;
-	}
-	private int getUShort(final int idx) {
-		return (int)buf.getShort(idx) & 0xffff;
 	}
 
 	public static void main(String[] args) throws IOException {
