@@ -8,8 +8,10 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordSetBuilder;
+import htsjdk.samtools.SAMUtils;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.util.BlockCompressedFilePointerUtil;
 import htsjdk.samtools.util.Interval;
 import java.io.File;
 import java.io.IOException;
@@ -72,6 +74,35 @@ public class TestBAMInputFormat {
     return bamFile;
   }
 
+  private File writeBamFileWithLargeHeader() throws IOException {
+    SAMRecordSetBuilder samRecordSetBuilder =
+        new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.queryname);
+    for (int i = 0; i < 1000; i++) {
+      int chr = 20;
+      int start1 = (i + 1) * 1000;
+      int start2 = start1 + 100;
+      samRecordSetBuilder.addPair(String.format("test-read-%03d", i), chr, start1,
+          start2);
+    }
+
+    final File bamFile = File.createTempFile("test", ".bam");
+    bamFile.deleteOnExit();
+    SAMFileHeader samHeader = samRecordSetBuilder.getHeader();
+    StringBuffer sb = new StringBuffer();
+    for (int i = 0; i < 1000000; i++) {
+      sb.append("0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789");
+    }
+    samHeader.addComment(sb.toString());
+    final SAMFileWriter bamWriter = new SAMFileWriterFactory()
+        .makeSAMOrBAMWriter(samHeader, true, bamFile);
+    for (final SAMRecord rec : samRecordSetBuilder.getRecords()) {
+      bamWriter.addAlignment(rec);
+    }
+    bamWriter.close();
+
+    return bamFile;
+  }
+
   private void completeSetup(boolean keepPairedReadsTogether, List<Interval> intervals) {
     Configuration conf = new Configuration();
     conf.set("mapred.input.dir", "file://" + input);
@@ -82,6 +113,15 @@ public class TestBAMInputFormat {
     }
     taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
     jobContext = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
+  }
+
+  @Test
+  public void testNoReadsInFirstSplitBug() throws Exception {
+    input = writeBamFileWithLargeHeader().getAbsolutePath();
+    completeSetup(false, null);
+    BAMInputFormat inputFormat = new BAMInputFormat();
+    List<InputSplit> splits = inputFormat.getSplits(jobContext);
+    assertEquals(1, splits.size());
   }
 
   @Test
