@@ -22,6 +22,8 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.util.CoordMath;
+import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
@@ -31,6 +33,7 @@ import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -69,6 +72,8 @@ public class VCFRecordReader
 	private final Map<String,Integer> contigDict =
 		new HashMap<String,Integer>();
 
+	private List<Locatable> intervals;
+
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
@@ -105,6 +110,8 @@ public class VCFRecordReader
 			contigDict.put(contig.getID(), i++);
 
 		lineRecordReader.initialize(spl, ctx);
+
+		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
 	}
 	@Override public void close() throws IOException { lineRecordReader.close(); }
 
@@ -116,25 +123,46 @@ public class VCFRecordReader
 	@Override public VariantContextWritable getCurrentValue() { return vc; }
 
 	@Override public boolean nextKeyValue() throws IOException {
-		String line;
 		while (true) {
-			if (!lineRecordReader.nextKeyValue()) {
-				return false;
+			String line;
+			while (true) {
+				if (!lineRecordReader.nextKeyValue()) {
+					return false;
+				}
+				line = lineRecordReader.getCurrentValue().toString();
+				if (!line.startsWith("#")) {
+					break;
+				}
 			}
-			line = lineRecordReader.getCurrentValue().toString();
-			if (!line.startsWith("#")) {
-				break;
+
+			final VariantContext v = codec.decode(line);
+
+			if (!overlaps(v, intervals)) {
+				continue;
+			}
+
+			Integer chromIdx = contigDict.get(v.getContig());
+			if (chromIdx == null)
+				chromIdx = (int) MurmurHash3.murmurhash3(v.getContig(), 0);
+
+			key.set((long) chromIdx << 32 | (long) (v.getStart() - 1));
+			vc.set(v, header);
+
+			return true;
+		}
+	}
+
+	private static boolean overlaps(VariantContext v, List<Locatable> intervals) {
+		if (intervals == null) {
+			return true;
+		}
+		for (Locatable interval : intervals) {
+			if (v.getContig().equals(interval.getContig()) &&
+					CoordMath.overlaps(v.getStart(), v.getEnd(),
+							interval.getStart(), interval.getEnd())) {
+				return true;
 			}
 		}
-
-		final VariantContext v = codec.decode(line);
-
-		Integer chromIdx = contigDict.get(v.getContig());
-		if (chromIdx == null)
-			chromIdx = (int)MurmurHash3.murmurhash3(v.getContig(), 0);
-
-		key.set((long)chromIdx << 32 | (long)(v.getStart() - 1));
-		vc.set(v, header);
-		return true;
+		return false;
 	}
 }

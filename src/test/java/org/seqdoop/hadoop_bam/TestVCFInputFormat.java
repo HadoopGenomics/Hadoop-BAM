@@ -20,10 +20,13 @@
 
 package org.seqdoop.hadoop_bam;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
+import htsjdk.samtools.util.Interval;
 import htsjdk.variant.vcf.VCFFileReader;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
@@ -55,24 +58,28 @@ public class TestVCFInputFormat {
     }
     private String filename;
     private NUM_SPLITS expectedSplits;
+    private Interval interval;
     private VariantContextWritable writable;
     private List<RecordReader<LongWritable, VariantContextWritable>> readers;
     private TaskAttemptContext taskAttemptContext;
 
-    public TestVCFInputFormat(String filename, NUM_SPLITS expectedSplits) {
+    public TestVCFInputFormat(String filename, NUM_SPLITS expectedSplits, Interval interval) {
         this.filename = filename;
         this.expectedSplits = expectedSplits;
+        this.interval = interval;
     }
 
     @Parameterized.Parameters
     public static Collection<Object> data() {
         return Arrays.asList(new Object[][] {
-            {"test.vcf", NUM_SPLITS.ANY},
-            {"test.vcf.gz", NUM_SPLITS.EXACTLY_ONE},
-            {"test.vcf.bgzf.gz", NUM_SPLITS.ANY},
-            {"HiSeq.10000.vcf", NUM_SPLITS.MORE_THAN_ONE},
-            {"HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE},
-            {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE}
+            {"test.vcf", NUM_SPLITS.ANY, null},
+            {"test.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
+            {"test.vcf.bgzf.gz", NUM_SPLITS.ANY, null},
+            {"HiSeq.10000.vcf", NUM_SPLITS.MORE_THAN_ONE, null},
+            {"HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
+            {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE, null},
+            {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.EXACTLY_ONE,
+                new Interval("chr1", 2700000, 2800000)} // chosen to fall in one split
         });
     }
 
@@ -84,6 +91,10 @@ public class TestVCFInputFormat {
         conf.set("mapred.input.dir", "file://" + input_file);
         conf.set("io.compression.codecs", BGZFCodec.class.getCanonicalName());
         conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
+
+        if (interval != null) {
+            VCFInputFormat.setIntervals(conf, ImmutableList.of(interval));
+        }
 
         taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
         JobContext ctx = new JobContextImpl(conf, taskAttemptContext.getJobID());
@@ -113,7 +124,14 @@ public class TestVCFInputFormat {
     public void countEntries() throws Exception {
         VCFFileReader vcfFileReader =
             new VCFFileReader(new File("src/test/resources/" + filename), false);
-        int expectedCount = Iterables.size(vcfFileReader);
+        Iterator<VariantContext> variantIterator;
+        if (interval == null) {
+            variantIterator = vcfFileReader.iterator();
+        } else {
+            variantIterator = vcfFileReader.query(interval.getContig(),
+                interval.getStart(), interval.getEnd());
+        }
+        int expectedCount = Iterators.size(variantIterator);
 
         int counter = 0;
         for (RecordReader<LongWritable, VariantContextWritable> reader : readers) {
