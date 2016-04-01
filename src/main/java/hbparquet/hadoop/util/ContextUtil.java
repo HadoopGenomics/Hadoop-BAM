@@ -42,7 +42,11 @@ import org.apache.hadoop.mapreduce.TaskInputOutputContext;
  * Utility methods to allow applications to deal with inconsistencies between
  * MapReduce Context Objects API between hadoop-0.20 and later versions.
  */
-public class ContextUtil {
+public final class ContextUtil {
+
+  private ContextUtil() throws InstantiationException {
+    throw new InstantiationException("Not allowed to instantiate this class");
+  }
 
   private static final boolean useV21;
 

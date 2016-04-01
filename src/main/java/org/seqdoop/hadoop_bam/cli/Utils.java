@@ -53,6 +53,11 @@ import org.seqdoop.hadoop_bam.util.Timer;
 import hbparquet.hadoop.util.ContextUtil;
 
 public final class Utils {
+
+	private Utils() throws InstantiationException{
+		throw new InstantiationException("Not allowed to instantiate this class");
+	}
+
 	public static void printWrapped(PrintStream out, String str) {
 		printWrapped(out, str, 0);
 	}
