@@ -26,6 +26,10 @@ import java.io.IOException;
 
 import htsjdk.samtools.seekablestream.SeekableStream;
 
+/**
+ * @deprecated Use {@link htsjdk.samtools.seekablestream.ByteArraySeekableStream}
+ */
+@Deprecated
 public class SeekableArrayStream extends SeekableStream {
 	private final byte[] arr;
 	private       int    pos;

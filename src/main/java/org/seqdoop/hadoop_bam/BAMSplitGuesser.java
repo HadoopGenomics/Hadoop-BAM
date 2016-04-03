@@ -29,6 +29,7 @@ import htsjdk.samtools.SAMUtils;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -47,7 +48,6 @@ import htsjdk.samtools.util.RuntimeEOFException;
 import htsjdk.samtools.util.RuntimeIOException;
 
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
-import org.seqdoop.hadoop_bam.util.SeekableArrayStream;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
 /** A class for heuristically finding BAM record positions inside an area of
@@ -133,7 +133,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
 		}
 		arr = Arrays.copyOf(arr, totalRead);
 
-		this.in = new SeekableArrayStream(arr);
+		this.in = new ByteArraySeekableStream(arr);
 
 		this.bgzf = new BlockCompressedInputStream(this.in);
 		this.bgzf.setCheckCrcs(true);

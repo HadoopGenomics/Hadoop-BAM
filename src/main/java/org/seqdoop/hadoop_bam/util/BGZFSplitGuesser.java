@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam.util;
 
+import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -36,7 +37,7 @@ import org.apache.hadoop.fs.Seekable;
 public class BGZFSplitGuesser {
 	private InputStream inFile;
 	private Seekable seekableInFile;
-	private       SeekableArrayStream in;
+	private       ByteArraySeekableStream in;
 	private final ByteBuffer buf;
 
 	private final static int BGZF_MAGIC     = 0x04088b1f;
@@ -78,7 +79,7 @@ public class BGZFSplitGuesser {
 		}
 		arr = Arrays.copyOf(arr, read);
 
-		this.in = new SeekableArrayStream(arr);
+		this.in = new ByteArraySeekableStream(arr);
 
 		final BlockCompressedInputStream bgzf =
 			new BlockCompressedInputStream(this.in);
