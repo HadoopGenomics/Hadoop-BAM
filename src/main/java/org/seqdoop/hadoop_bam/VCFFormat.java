@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.util.BlockCompressedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 
@@ -46,6 +47,7 @@ public enum VCFFormat {
 	public static VCFFormat inferFromFilePath(final String name) {
 		if (name.endsWith(".bcf")) return BCF;
 		if (name.endsWith(".vcf")) return VCF;
+		if (name.endsWith(".gz")) return VCF;
 		return null;
 	}
 

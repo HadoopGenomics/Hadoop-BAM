@@ -23,6 +23,7 @@
 package org.seqdoop.hadoop_bam.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -30,9 +31,11 @@ import java.util.Arrays;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.Seekable;
 
 public class BGZFSplitGuesser {
-	private       FSDataInputStream inFile;
+	private InputStream inFile;
+	private Seekable seekableInFile;
 	private       SeekableArrayStream in;
 	private final ByteBuffer buf;
 
@@ -40,8 +43,17 @@ public class BGZFSplitGuesser {
 	private final static int BGZF_MAGIC_SUB = 0x00024342;
 	private final static int BGZF_SUB_SIZE  = 4 + 2;
 
+	public BGZFSplitGuesser(InputStream is) {
+		inFile = is;
+		seekableInFile = (Seekable) is;
+
+		buf = ByteBuffer.allocate(8);
+		buf.order(ByteOrder.LITTLE_ENDIAN);
+	}
+
 	public BGZFSplitGuesser(FSDataInputStream is) {
 		inFile = is;
+		seekableInFile = is;
 
 		buf = ByteBuffer.allocate(8);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
@@ -58,9 +70,13 @@ public class BGZFSplitGuesser {
 
 		byte[] arr = new byte[2*0xffff - 1];
 
-		this.inFile.seek(beg);
-		arr = Arrays.copyOf(arr, inFile.read(arr, 0, Math.min((int)(end - beg),
-		                                                      arr.length)));
+		this.seekableInFile.seek(beg);
+		int read = inFile.read(arr, 0, Math.min((int) (end - beg),
+				arr.length));
+		if (read == -1) {
+			return -1; // EOF
+		}
+		arr = Arrays.copyOf(arr, read);
 
 		this.in = new SeekableArrayStream(arr);
 

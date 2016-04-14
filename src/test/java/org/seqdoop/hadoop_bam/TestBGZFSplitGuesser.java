@@ -1,68 +1,74 @@
 package org.seqdoop.hadoop_bam;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
-import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.seqdoop.hadoop_bam.util.BGZFSplitGuesser;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class TestBGZFSplitGuesser {
-  @Test
-  public void test() throws Exception {
-    File bgzf = File.createTempFile("TestBGZFSplitGuesser", ".bgzf");
-    BlockCompressedOutputStream bgzfOut = new BlockCompressedOutputStream(bgzf);
-    String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    StringBuilder data = new StringBuilder();
-    Random r = new Random();
-    r.setSeed(100);
-    for (int i = 0; i < 1024 * 150; i++) {
-      char rc = chars.charAt(r.nextInt(chars.length()));
-      bgzfOut.write(rc);
-      data.append(rc);
-    }
-    bgzfOut.close();
 
+  private final File file;
+  private final long firstSplit;
+  private final long lastSplit;
+
+  public TestBGZFSplitGuesser(String filename, long firstSplit, long lastSplit) {
+    this.file = new File("src/test/resources/" + filename);
+    this.firstSplit = firstSplit;
+    this.lastSplit = lastSplit;
+  }
+
+  @Parameterized.Parameters
+  public static Collection<Object> data() {
+    return Arrays.asList(new Object[][] {
+        {"test.vcf.bgzf.gz", 821, 821}, {"HiSeq.10000.vcf.bgzf.gz", 16671, 509205}
+    });
+  }
+
+  @Test
+  public void test() throws IOException {
     Configuration conf = new Configuration();
-    Path path = new Path(bgzf.toURI());
+    Path path = new Path(file.toURI());
     FSDataInputStream fsDataInputStream = path.getFileSystem(conf).open(path);
     BGZFSplitGuesser bgzfSplitGuesser = new BGZFSplitGuesser(fsDataInputStream);
-    List<Long> boundaries = new ArrayList<>();
+    LinkedList<Long> boundaries = new LinkedList<>();
     long start = 1;
     while (true) {
-      long end = bgzf.length();
+      long end = file.length();
       long nextStart = bgzfSplitGuesser.guessNextBGZFBlockStart(start, end);
       if (nextStart == end) {
         break;
       }
       boundaries.add(nextStart);
+      canReadFromBlockStart(nextStart);
       start = nextStart + 1;
     }
-
-    assertEquals(3, boundaries.size());
-
-    for (int i = 0; i < boundaries.size() - 1; i++) {
-      long boundary = boundaries.get(i);
-      BlockCompressedInputStream blockCompressedInputStream = new
-          BlockCompressedInputStream(bgzf);
-      blockCompressedInputStream.setCheckCrcs(true);
-      blockCompressedInputStream.seek(boundary << 16);
-      byte[] b = new byte[5]; // check 5 bytes after boundary
-      blockCompressedInputStream.read(b);
-      assertTrue(data.toString().contains(new String(b)));
-    }
+    assertEquals(firstSplit, (long) boundaries.getFirst());
+    assertEquals(lastSplit, (long) boundaries.getLast());
 
     assertEquals("Last block start is terminator gzip block",
-        bgzf.length() - BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK.length,
+        file.length() - BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK.length,
         (long) boundaries.get(boundaries.size() - 1));
+  }
+
+  private void canReadFromBlockStart(long blockStart) throws IOException {
+    BlockCompressedInputStream blockCompressedInputStream = new
+        BlockCompressedInputStream(file);
+    blockCompressedInputStream.setCheckCrcs(true);
+    blockCompressedInputStream.seek(blockStart << 16);
+    byte[] b = new byte[100];
+    blockCompressedInputStream.read(b);
   }
 }

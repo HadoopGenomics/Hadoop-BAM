@@ -22,6 +22,8 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,8 +33,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.io.compress.SplittableCompressionCodec;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -42,6 +49,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import htsjdk.samtools.seekablestream.SeekableStream;
 
+import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
 import hbparquet.hadoop.util.ContextUtil;
@@ -147,6 +155,36 @@ public class VCFInputFormat
 
 		formatMap.put(path, fmt);
 		return fmt;
+	}
+
+	@Override
+	protected boolean isSplitable(JobContext context, Path filename) {
+		Configuration conf = context.getConfiguration();
+		final CompressionCodec codec =
+				new CompressionCodecFactory(context.getConfiguration()).getCodec(filename);
+		if (codec == null) {
+			return true;
+		}
+		if (codec instanceof BGZFCodec) {
+			boolean splittable;
+			try {
+				try (FSDataInputStream in = filename.getFileSystem(conf).open(filename)) {
+					splittable = BlockCompressedInputStream.isValidFile(new BufferedInputStream(in));
+				}
+			} catch (IOException e) {
+				// can't determine if BGZF or GZIP, conservatively assume latter
+				splittable = false;
+			}
+			if (!splittable) {
+				System.err.printf("Warning: %s is not splittable, consider using block " +
+						"compressed gzip (BGZF).\n", filename);
+			}
+			return splittable;
+		} else if (codec instanceof GzipCodec) {
+			System.err.println("Warning: using GzipCodec, which is not splittable, consider " +
+					"using block compressed gzip (BGZF) and BGZFCodec.");
+		}
+		return codec instanceof SplittableCompressionCodec;
 	}
 
 	/** Returns a {@link BCFRecordReader} or {@link VCFRecordReader} as
