@@ -49,8 +49,20 @@ public class TestBAMInputFormat {
       int chr = 20;
       int start1 = (i + 1) * 1000;
       int start2 = start1 + 100;
-      samRecordSetBuilder.addPair(String.format("test-read-%03d", i), chr, start1,
-          start2);
+      if (i == 5) { // add two unmapped fragments instead of a mapped pair
+        samRecordSetBuilder.addFrag(String.format("test-read-%03d-1", i), chr, start1,
+            false, true, null,
+            null,
+            -1, false);
+        samRecordSetBuilder.addFrag(String.format("test-read-%03d-2", i), chr, start2,
+            false, true, null,
+            null,
+            -1, false);
+
+      } else {
+        samRecordSetBuilder.addPair(String.format("test-read-%03d", i), chr, start1,
+            start2);
+      }
     }
 
     final File bamFile = File.createTempFile("test", ".bam");
@@ -160,7 +172,7 @@ public class TestBAMInputFormat {
   @Test
   public void testIntervals() throws Exception {
     List<Interval> intervals = new ArrayList<Interval>();
-    intervals.add(new Interval("chr21", 5000, 9999));
+    intervals.add(new Interval("chr21", 5000, 9999)); // includes two unmapped fragments
     intervals.add(new Interval("chr21", 20000, 22999));
 
     completeSetup(false, intervals);

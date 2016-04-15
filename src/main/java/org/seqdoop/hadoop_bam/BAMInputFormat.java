@@ -28,7 +28,6 @@ import htsjdk.samtools.Chunk;
 import htsjdk.samtools.DiskBasedBAMFileIndex;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.util.CoordMath;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
 import java.util.Iterator;
@@ -97,12 +96,12 @@ public class BAMInputFormat
 		conf.set(INTERVALS_PROPERTY, sb.toString());
 	}
 
-	static List<Locatable> getIntervals(Configuration conf) {
+	static List<Interval> getIntervals(Configuration conf) {
 		String intervalsProperty = conf.get(INTERVALS_PROPERTY);
 		if (intervalsProperty == null) {
 			return null;
 		}
-		List<Locatable> intervals = new ArrayList<Locatable>();
+		List<Interval> intervals = new ArrayList<Interval>();
 		for (String s : intervalsProperty.split(",")) {
 			String[] parts = s.split(":|-");
 			Interval interval =
@@ -286,7 +285,7 @@ public class BAMInputFormat
 
 	private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
 			throws IOException {
-		List<Locatable> intervals = getIntervals(conf);
+		List<Interval> intervals = getIntervals(conf);
 		if (intervals == null) {
 			return splits;
 		}

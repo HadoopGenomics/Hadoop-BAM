@@ -22,7 +22,11 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.Locatable;
+import htsjdk.samtools.util.OverlapDetector;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -40,8 +44,6 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileHeader.SortOrder;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.BlockCompressedInputStream;
-import htsjdk.samtools.util.CoordMath;
-import htsjdk.samtools.util.Locatable;
 
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
@@ -65,7 +67,8 @@ public class BAMRecordReader
 	private boolean keepReadPairsTogether;
 	private boolean readPair;
 	private boolean lastOfPair;
-	private List<Locatable> intervals;
+	private List<Interval> intervals;
+	private OverlapDetector<Interval> overlapDetector;
 
 	/** Note: this is the only getKey function that handles unmapped reads
 	 * specially!
@@ -162,6 +165,11 @@ public class BAMRecordReader
 		readPair = false;
 		lastOfPair = false;
 		intervals = BAMInputFormat.getIntervals(conf);
+		if (intervals != null) {
+			overlapDetector = new OverlapDetector<>(0, 0);
+			overlapDetector.addAll(intervals, intervals);
+		}
+
 	}
 	@Override public void close() throws IOException { bci.close(); }
 
@@ -211,7 +219,7 @@ public class BAMRecordReader
 				}
 			}
 
-			if (!overlaps(r, intervals)) {
+			if (!overlaps(r)) {
 				continue;
 			}
 
@@ -222,25 +230,23 @@ public class BAMRecordReader
 		return false;
 	}
 
-	private static boolean overlaps(SAMRecord r, List<Locatable> intervals) {
+	private boolean overlaps(SAMRecord r) {
 		if (intervals == null ||
 				(r.getReadUnmappedFlag() && r.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)) {
 			return true;
 		}
-		for (Locatable interval : intervals) {
-			if (r.getReadUnmappedFlag()) {
+		if (r.getReadUnmappedFlag()) { // special case for unmapped reads with coordinate set
+			for (Locatable interval : intervals) {
 				if (interval.getStart() <= r.getStart() && interval.getEnd() >= r.getStart()) {
 					// This follows the behavior of htsjdk's SamReader which states that
 					// "an unmapped read will be returned by this call if it has a coordinate for
 					// the purpose of sorting that is in the query region".
 					return true;
 				}
-			} else if (r.getContig().equals(interval.getContig()) &&
-					CoordMath.overlaps(r.getStart(), r.getEnd(),
-						interval.getStart(), interval.getEnd())) {
-				return true;
 			}
 		}
-		return false;
+		final Interval interval = new Interval(r.getContig(), r.getStart(), r.getEnd());
+		Collection<Interval> overlaps = overlapDetector.getOverlaps(interval);
+		return !overlaps.isEmpty();
 	}
 }
