@@ -22,8 +22,8 @@
 
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.samtools.util.CoordMath;
-import htsjdk.samtools.util.Locatable;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.OverlapDetector;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
@@ -32,6 +32,7 @@ import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,8 @@ public class VCFRecordReader
 	private final Map<String,Integer> contigDict =
 		new HashMap<String,Integer>();
 
-	private List<Locatable> intervals;
+	private List<Interval> intervals;
+	private OverlapDetector<Interval> overlapDetector;
 
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
@@ -112,6 +114,10 @@ public class VCFRecordReader
 		lineRecordReader.initialize(spl, ctx);
 
 		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
+		if (intervals != null) {
+			overlapDetector = new OverlapDetector<>(0, 0);
+			overlapDetector.addAll(intervals, intervals);
+		}
 	}
 	@Override public void close() throws IOException { lineRecordReader.close(); }
 
@@ -137,7 +143,7 @@ public class VCFRecordReader
 
 			final VariantContext v = codec.decode(line);
 
-			if (!overlaps(v, intervals)) {
+			if (!overlaps(v)) {
 				continue;
 			}
 
@@ -152,17 +158,12 @@ public class VCFRecordReader
 		}
 	}
 
-	private static boolean overlaps(VariantContext v, List<Locatable> intervals) {
+	private boolean overlaps(VariantContext v) {
 		if (intervals == null) {
 			return true;
 		}
-		for (Locatable interval : intervals) {
-			if (v.getContig().equals(interval.getContig()) &&
-					CoordMath.overlaps(v.getStart(), v.getEnd(),
-							interval.getStart(), interval.getEnd())) {
-				return true;
-			}
-		}
-		return false;
+		final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
+		Collection<Interval> overlaps = overlapDetector.getOverlaps(interval);
+		return !overlaps.isEmpty();
 	}
 }
