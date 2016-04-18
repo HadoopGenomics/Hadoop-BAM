@@ -3,8 +3,7 @@
 ==============
 
 Hadoop-BAM: a library for the manipulation of files in common bioinformatics
-formats using the Hadoop MapReduce framework, and command line tools in the
-vein of SAMtools.
+formats using the Hadoop MapReduce framework.
 
 Build status
 ------------
@@ -32,8 +31,7 @@ If you are interested in using Apache Pig (http://pig.apache.org/) with
 Hadoop-BAM, refer to SeqPig at: http://seqpig.sourceforge.net/
 
 Note that the library part of Hadoop-BAM is primarily intended for developers
-with experience in using Hadoop. The command line tools of Hadoop-BAM should be
-understandable to all users, but they are limited in scope. SeqPig is a more
+with experience in using Hadoop. SeqPig is a more
 versatile and higher-level interface to the file formats supported by
 Hadoop-BAM. In addition, [ADAM](http://bdgenomics.org/) and
 [GATK version 4](https://github.com/broadinstitute/gatk) both use Hadoop-BAM and offer 
@@ -121,12 +119,6 @@ For examples of how to link to Hadoop-BAM in your own Maven project
 see the examples/ folder. There are example for reading and writing
 BAM as well as VCF files.
 
-For more information see the Javadoc as well as the command line plugins'
-source code (in src/main/java/org/seqdoop/hadoop_bam/cli/plugins/*.java).
-In particular, for MapReduce usage, recommended examples are
-src/main/java/org/seqdoop/hadoop_bam/cli/plugins/FixMate.java and
-src/main/java/org/seqdoop/hadoop_bam/cli/plugins/VCFSort.java.
-
 When using Hadoop-BAM as a library in your program, remember to have
 hadoop-bam-X.Y.Z.jar as well as the Picard .jars (including the Commons
 JEXL .jar) in your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
@@ -154,14 +146,6 @@ it is by relying on the OSS Sonatype repository:
 ~~~~~~~
 
 ------------------
-Command-line usage
-------------------
-
-Hadoop-BAM can be used as a command-line tool, with functionality in the form
-of plugins that provide commands to which hadoop-bam-X.Y.Z.jar is a frontend.
-Hadoop-BAM provides some commands of its own, but any others found in the Java
-class path will be used as well.
-
 Running under Hadoop
 --------------------
 
@@ -179,14 +163,6 @@ running Hadoop-BAM to provide different versions of dependencies as follows:
 Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
 configuration's hadoop-env.sh.
 
-The command used should print a brief help message listing the Hadoop-BAM
-commands available. To run a command, give it as the first command-line
-argument. For example, the provided SAM/BAM sorting command, "sort":
-
-    hadoop jar hadoop-bam-X.Y.Z-jar-with-dependencies.jar sort
-
-This will give a help message specific to that command.
-
 File paths under Hadoop
 -----------------------
 
@@ -194,80 +170,3 @@ When running under Hadoop, keep in mind that file paths refer to the
 distributed file system, HDFS. To explicitly access a local file, instead of
 using the plain path such as "/foo/bar", you must use a file: URI, such as
 "file:/foo/bar". Note that paths in file: URIs must be absolute.
-
-Output of MapReduce-using commands
-----------------------------------
-
-An example of a MapReduce-using command is "sort". Like all such commands
-should, it takes a working directory argument in which to place its output in
-parts. Each part is the output of one reduce task. By default, these parts are
-not complete and usable files! They are /not/ BAM or SAM files, they are only
-parts of BAM or SAM files containing output records, but lacking headers and
-footers.
-
-For convenience, the provided MapReduce-using commands support a "-o" parameter
-to output single complete files instead of the individual parts.
-
-For concatenating the outputs of tools that wish to output complete SAM and BAM
-files from each reducer, the "cat" command is provided.
-
-Note that some commands, such as the provided "view" and "index" commands, do
-not use MapReduce: they are merely useful to operate directly on files stored
-in HDFS.
-
-Running without Hadoop
-----------------------
-
-Hadoop-BAM can be run directly, outside Hadoop, as long as it and the Picard
-and Hadoop .jar files as well as the Apache Commons CLI .jar provided by Hadoop
-("lib/commons-cli-1.2.jar" for version 1.1.2) are in the Java class path.
-Alternatively use the bundled jar (hadoop-bam-jar-with-dependencies-X.Y.Z.jar). In
-addition, depending on the Hadoop version, there may be more dependencies from
-the Hadoop lib/ directory. A command such as the following:
-
-    java org.seqdoop.hadoop_bam.cli.Frontend
-
-Is equivalent to the "hadoop jar hadoop-bam-X.Y.Z.jar" command used earlier. This has
-limited application, but it can be used e.g. for testing purposes.
-
-Note that the "-libjars" way of passing the paths to the Picard .jars will not
-work when running Hadoop-BAM like this.
-
-------------------
-Summarizer plugins
-------------------
-
-This part explains some behaviour of the summarizing plugins, available in the
-command line interface as "hadoop jar hadoop-bam-X.Y.Z.jar summarize" and "hadoop jar
-hadoop-bam-X.Y.Z.jar summarysort". Unless you are a Chipster user, this section is
-unlikely to be relevant to you, and even then, this is not likely to be
-something you are interested in.
-
-Summarization is typically best done with the "hadoop jar hadoop-bam-X.Y.Z.jar
-summarize --sort -o output-directory" command. Then there is no need to worry
-about concatenating nor sorting the output, as both are done automatically in
-this one command. But if you do not pass the "--sort" option, do remember that
-Chipster needs the outputs sorted before it can make use of them. For this, you
-need to run a separate "hadoop jar hadoop-bam-X.Y.Z.jar summarysort" command for each
-summary file output by "summarize".
-
-Output format
--------------
-
-The summarizer's output format is tabix-compatible. It is composed of rows of
-tab-separated data:
-
-    <reference sequence ID> <left coordinate> <right coordinate> <count>
-
-The coordinate columns are 1-based and both ends are inclusive.
-
-The 'count' field represents the number of alignments that have been summarized
-into that single range. Note that it may not exactly match any of the 'level'
-arguments passed to Summarize, due to Hadoop splitting the file at a boundary
-which is not an even multiple of the requested level.
-
-Note that the output files are BGZF-compressed, but do not include the empty
-terminating block which would make them valid BGZF files. This is to avoid
-having to remove it from the end of each output file in distributed usage (when
-not using the "-o" convenience parameter): it's much simpler to put an empty
-gzip block to the end of the output.
