@@ -22,6 +22,10 @@
 
 package org.seqdoop.hadoop_bam.util;
 
+/**
+ * @deprecated
+ */
+@Deprecated
 public class Timer {
 	private long t0, td;
 
