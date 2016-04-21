@@ -44,7 +44,7 @@ in Hadoop see the examples/ directory.
 Dependencies
 ------------
 
-Hadoop. Tested with 1.1.2, 1.2.1 and 2.2.0. Version 4.2.0 of Cloudera's distribution,
+Hadoop. Tested with 2.2.0 and later. Version 4.2.0 of Cloudera's distribution,
 CDH, has also been tested. Use other versions at your own risk. You
 can change the version of Hadoop linked against by modifying the
 corresponding paramter in the pom.xml build file.
@@ -83,10 +83,6 @@ In the output above, the version string is "2.0.0-cdh4.6.0".
 Build Hadoop-BAM with the following command:
 
    mvn clean package -DskipTests
-   
-If you are building for Hadoop 1, specify the `hadoop1` property:
-
-   mvn clean package -DskipTests -Dhadoop1
    
 It will create two files:
 

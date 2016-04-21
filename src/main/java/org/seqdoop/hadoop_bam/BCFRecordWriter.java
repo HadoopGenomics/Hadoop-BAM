@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -65,7 +63,7 @@ public abstract class BCFRecordWriter<K>
 		throws IOException
 	{
 		final WrapSeekable in =
-			WrapSeekable.openPath(ContextUtil.getConfiguration(ctx), input);
+			WrapSeekable.openPath(ctx.getConfiguration(), input);
 		final VCFHeader header = VCFHeaderReader.readHeaderFrom(in);
 		in.close();
 
@@ -77,7 +75,7 @@ public abstract class BCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	public BCFRecordWriter(
@@ -95,7 +93,7 @@ public abstract class BCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	private void init(

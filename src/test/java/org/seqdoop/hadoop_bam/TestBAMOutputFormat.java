@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import org.apache.hadoop.conf.Configuration;
@@ -14,6 +13,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
@@ -82,7 +82,7 @@ public class TestBAMOutputFormat {
         expectedRecordCount = getBAMRecordCount(testBAMFileName);
         samFileHeader = SAMHeaderReader.readSAMHeaderFrom(new Path(testBAMFileName), conf);
 
-        taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
     }
 
     @Test

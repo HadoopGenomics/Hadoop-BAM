@@ -52,8 +52,6 @@ import htsjdk.samtools.seekablestream.SeekableStream;
 import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for VCF files. Values
  * are the individual records; see {@link VCFRecordReader} for the meaning of
  * the key.
@@ -209,7 +207,7 @@ public class VCFInputFormat
 				"split '"+split+"' has unknown type: cannot extract path");
 
 		if (this.conf == null)
-			this.conf = ContextUtil.getConfiguration(ctx);
+			this.conf = ctx.getConfiguration();
 
 		final VCFFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -236,7 +234,7 @@ public class VCFInputFormat
 		throws IOException
 	{
 		if (this.conf == null)
-			this.conf = ContextUtil.getConfiguration(job);
+			this.conf = job.getConfiguration();
 
 		final List<InputSplit> origSplits = super.getSplits(job);
 

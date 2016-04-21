@@ -379,7 +379,6 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
 		}
 
 		args = parser.getRemainingArgs();
-		//final Configuration conf = ContextUtil.getConfiguration(parser);
                 final Configuration conf = parser.getConfiguration();
 
 		long beg = 0;

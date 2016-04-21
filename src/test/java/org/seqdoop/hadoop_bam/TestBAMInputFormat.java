@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.SAMFileHeader;
@@ -8,10 +7,8 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordSetBuilder;
-import htsjdk.samtools.SAMUtils;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
-import htsjdk.samtools.util.BlockCompressedFilePointerUtil;
 import htsjdk.samtools.util.Interval;
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +22,8 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.task.JobContextImpl;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -111,8 +110,8 @@ public class TestBAMInputFormat {
     if (intervals != null) {
       BAMInputFormat.setIntervals(conf, intervals);
     }
-    taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
-    jobContext = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
+    taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+    jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
   }
 
   @Test

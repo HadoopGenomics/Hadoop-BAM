@@ -47,8 +47,6 @@ import org.seqdoop.hadoop_bam.util.MurmurHash3;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
  */
@@ -126,7 +124,7 @@ public class BAMRecordReader
 			close();
 		isInitialized = true;
 
-		final Configuration conf = ContextUtil.getConfiguration(ctx);
+		final Configuration conf = ctx.getConfiguration();
 
 		final FileVirtualSplit split = (FileVirtualSplit)spl;
 		final Path             file  = split.getPath();

@@ -21,7 +21,6 @@
 package org.seqdoop.hadoop_bam;
 
 import com.google.common.collect.Iterables;
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.variant.vcf.VCFFileReader;
 import java.io.File;
 import java.util.ArrayList;
@@ -30,6 +29,8 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.task.JobContextImpl;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,8 +85,8 @@ public class TestVCFInputFormat {
         conf.set("io.compression.codecs", BGZFCodec.class.getCanonicalName());
         conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
 
-        taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
-        JobContext ctx = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+        JobContext ctx = new JobContextImpl(conf, taskAttemptContext.getJobID());
 
         VCFInputFormat inputFormat = new VCFInputFormat(conf);
         List<InputSplit> splits = inputFormat.getSplits(ctx);

@@ -36,8 +36,6 @@ import htsjdk.variant.vcf.VCFHeader;
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** Writes only the VCF records, not the key.
  *
  * <p>A {@link VCFHeader} must be provided via {@link #setHeader} or {@link
@@ -104,7 +102,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 			throw new IOException(
 				"Can't create a RecordWriter without the VCF header");
 
-		final boolean wh = ContextUtil.getConfiguration(ctx).getBoolean(
+		final boolean wh = ctx.getConfiguration().getBoolean(
 			WRITE_HEADER_PROPERTY, true);
 
 		switch (format) {

@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -20,6 +19,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.task.JobContextImpl;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -71,8 +72,8 @@ public class TestCRAMInputFormatOnHDFS {
     conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, hdfsRef.toString());
 
 
-    taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
-    jobContext = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
+    taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+    jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
 
   }
 

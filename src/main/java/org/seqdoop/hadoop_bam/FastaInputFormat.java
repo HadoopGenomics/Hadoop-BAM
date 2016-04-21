@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -99,7 +97,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 	    FileSplit fileSplit = (FileSplit)splits.get(0);
 	    Path path = fileSplit.getPath();
 
-	    FileSystem fs = path.getFileSystem(ContextUtil.getConfiguration(job));
+	    FileSystem fs = path.getFileSystem(job.getConfiguration());
 	    FSDataInputStream fis = fs.open(path);
 	    byte[] buffer = new byte[1024];
 
@@ -365,7 +363,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 	@Override
 	public boolean isSplitable(JobContext context, Path path)
 	{
-		CompressionCodec codec = new CompressionCodecFactory(ContextUtil.getConfiguration(context)).getCodec(path);
+		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
 		return codec == null;
 	}
 
@@ -374,6 +372,6 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 	                                        TaskAttemptContext context) throws IOException, InterruptedException
 	{
 		context.setStatus(genericSplit.toString());
-		return new FastaRecordReader(ContextUtil.getConfiguration(context), (FileSplit)genericSplit); // cast as per example in TextInputFormat
+		return new FastaRecordReader(context.getConfiguration(), (FileSplit)genericSplit); // cast as per example in TextInputFormat
 	}
 }

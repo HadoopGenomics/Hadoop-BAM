@@ -37,8 +37,6 @@ import org.apache.hadoop.util.ToolRunner;
 
 import htsjdk.variant.variantcontext.VariantContext;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import org.seqdoop.hadoop_bam.KeyIgnoringVCFOutputFormat;
 import org.seqdoop.hadoop_bam.VCFInputFormat;
 import org.seqdoop.hadoop_bam.VCFOutputFormat;
@@ -68,7 +66,7 @@ public class TestVCF extends Configured implements Tool {
         public RecordWriter<Text, VariantContextWritable> getRecordWriter(
                 TaskAttemptContext context)
                 throws IOException {
-            final Configuration conf = ContextUtil.getConfiguration(context);
+            final Configuration conf = context.getConfiguration();
             initBaseOF(conf);
 
             if (baseOF.getHeader() == null) {

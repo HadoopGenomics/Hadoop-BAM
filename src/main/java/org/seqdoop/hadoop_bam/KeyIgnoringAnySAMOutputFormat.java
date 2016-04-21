@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -122,7 +120,7 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 			throw new IOException(
 				"Can't create a RecordWriter without the SAM header");
 
-		final boolean writeHeader = ContextUtil.getConfiguration(ctx).getBoolean(
+		final boolean writeHeader = ctx.getConfiguration().getBoolean(
 			WRITE_HEADER_PROPERTY, writeHeader_);
 
 		switch (format) {

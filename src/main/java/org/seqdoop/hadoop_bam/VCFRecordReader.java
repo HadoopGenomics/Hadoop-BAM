@@ -22,7 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
@@ -76,7 +75,7 @@ public class VCFRecordReader
 		final FileSplit split = (FileSplit)spl;
 
 		final Path file = split.getPath();
-		final FileSystem fs = file.getFileSystem(ContextUtil.getConfiguration(ctx));
+		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
 		final FSDataInputStream ins = fs.open(file);
 

@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.DataOutputStream;
 import java.io.OutputStream;
 import java.io.IOException;
@@ -155,7 +153,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 	public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
 	  throws IOException
 	{
-		Configuration conf = ContextUtil.getConfiguration(task);
+		Configuration conf = task.getConfiguration();
 		boolean isCompressed = getCompressOutput(task);
 
 		CompressionCodec codec = null;

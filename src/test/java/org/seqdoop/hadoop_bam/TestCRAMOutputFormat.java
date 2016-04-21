@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.*;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.seekablestream.SeekableStream;
@@ -12,6 +11,7 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
@@ -90,8 +90,7 @@ public class TestCRAMOutputFormat {
         samFileHeader = SAMHeaderReader.readSAMHeaderFrom(
                 new Path(testCRAMFileName), conf);
 
-        taskAttemptContext = ContextUtil.newTaskAttemptContext(
-                conf, mock(TaskAttemptID.class));
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
     }
 
     @Test

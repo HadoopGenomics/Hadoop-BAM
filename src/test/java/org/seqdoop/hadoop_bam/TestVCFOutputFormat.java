@@ -36,13 +36,13 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
-import hbparquet.hadoop.util.ContextUtil;
 
 import static org.mockito.Mockito.mock;
 
@@ -61,7 +61,7 @@ public class TestVCFOutputFormat {
         conf.set("hadoopbam.vcf.output-format", "VCF");
         KeyIgnoringVCFOutputFormat<Long> outputFormat = new KeyIgnoringVCFOutputFormat<Long>(conf);
         outputFormat.setHeader(readHeader());
-        taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
         writer = outputFormat.getRecordWriter(taskAttemptContext, new Path("file://" + test_vcf_output));
     }
 
