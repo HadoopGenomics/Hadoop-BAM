@@ -11,7 +11,7 @@ Build status
 [![Coverage Status](https://coveralls.io/repos/github/HadoopGenomics/Hadoop-BAM/badge.svg?branch=master)](https://coveralls.io/github/HadoopGenomics/Hadoop-BAM?branch=master)
 
 
-The file formats currently supported are:
+The [file formats](http://samtools.github.io/hts-specs/) currently supported are:
 
    - BAM (Binary Alignment/Map)
    - SAM (Sequence Alignment/Map)
@@ -110,7 +110,56 @@ Library usage
 
 Hadoop-BAM provides the standard set of Hadoop file format classes for the file
 formats it supports: a FileInputFormat and one or more RecordReaders for input,
-and a FileOutputFormat and one or more RecordWriters for output.
+and a FileOutputFormat and one or more RecordWriters for output. These are summarized 
+in the table below.
+
+|File Format|InputFormat|OutputFormat|
+|-----------|-----------|------------|
+|BAM|`BAMInputFormat`|`KeyIgnoringBAMOutputFormat`|
+|SAM|`SAMInputFormat`|`KeyIgnoringAnySAMOutputFormat`|
+|CRAM|`CRAMInputFormat`|`KeyIgnoringCRAMOutputFormat`|
+|BAM, SAM, or CRAM|`AnySAMInputFormat`|`KeyIgnoringAnySAMOutputFormat`|
+|FASTQ|`FastqInputFormat`|`FastqOutputFormat`|
+|FASTA|`FastaInputFormat`|N/A|
+|QSEQ|`QseqInputFormat`|`QseqOutputFormat`|
+|VCF or BCF|`VCFInputFormat`|`KeyIgnoringVCFOutputFormat`|
+
+`AnySAMInputFormat` detects the format (BAM, SAM, or CRAM) by file extension, then by
+looking at the first few bytes of the file (if file extension detection is disabled or
+ is inconclusive). `VCFInputFormat` works in a similar way for VCF and BCF files.
+ 
+The output formats all discard the key and only use the value field when writing the 
+output file. Some of the output formats indicate this explictly through the 
+`KeyIgnoring` prefix in their name, but `FastqOutputFormat` and `QseqOutputFormat` 
+actually ignore the key too.
+
+The abstract base classes `BAMOutputFormat`, `CRAMOutputFormat`, `AnySAMOutputFormat`, 
+and `VCFOutputFormat` cannot be used directly, but can be subclassed in order to add 
+custom logic (to provide `ValueIgnoring` versions, for example). 
+
+When using `KeyIgnoringAnySAMOutputFormat`, the format of the files written (BAM, SAM, or CRAM) 
+must be specified by setting the property `hadoopbam.anysam.output-format`. Similarly,
+set the property `hadoopbam.vcf.output-format` in order to specify which file format
+`KeyIgnoringVCFOutputFormat` will use (VCF or BCF).
+
+The properties that can be set on input and output formats are summarized in the table 
+below:
+
+|Format|Property|Default|Description|
+|------|--------|-------|-----------|
+|`AnySAMInputFormat`|`hadoopbam.anysam.trust-exts`|`true`|Whether to detect the file format (BAM, SAM, or CRAM) by file extension. If `false`, use the file contents to detect the format.|
+|`KeyIgnoringAnySAMOutputFormat`|`hadoopbam.anysam.output-format`| |(Required.) The file format to use when writing BAM, SAM, or CRAM files. Should be one of `BAM`, `SAM`, or `CRAM`.|
+| |`hadoopbam.anysam.write-header`|`true`|Whether to write the SAM header in each output file part. If `true`, call `setSAMHeader()` or `readSAMHeaderFrom()` to set the desired header.|
+|`BAMInputFormat`|`hadoopbam.bam.keep-paired-reads-together`|`false`|If `true`, ensure that for paired reads both reads in a pair are always in the same split for queryname-sorted BAM files.|
+| |`hadoopbam.bam.intervals`| |Only include reads that match the specified intervals. Intervals are comma-separated and follow the same syntax as the `-L` option in SAMtools. E.g. `chr1:1-20000,chr2:12000-20000`.|
+|`CRAMInputFormat`|`hadoopbam.cram.reference-source-path`| |(Required.) The path to the reference. May be an `hdfs://` path.|
+|`FastqInputFormat`|`hbam.fastq-input.base-quality-encoding`|`sanger`|The encoding used for base qualities. One of `sanger` or `illumina`.|
+| |`hbam.fastq-input.filter-failed-qc`|`false`|If `true`, filter out reads that didn't pass quality checks.|
+|`QseqInputFormat`|`hbam.qseq-input.base-quality-encoding`|`illumina`|The encoding used for base qualities. One of `sanger` or `illumina`.|
+| |`hbam.qseq-input.filter-failed-qc`|`false`|If `true`, filter out reads that didn't pass quality checks.|
+|`VCFInputFormat`|`hadoopbam.vcf.trust-exts`|`true`|Whether to detect the file format (VCF or BCF) by file extension. If `false`, use the file contents to detect the format.|
+|`KeyIgnoringVCFOutputFormat`|`hadoopbam.vcf.output-format`| |(Required.) The file format to use when writing VCF or BCF files. Should be one of `VCF` or `BCF`.|
+| |`hadoopbam.vcf.write-header`|`true`|Whether to write the VCF header in each output file part. If `true`, call `setHeader()` or `readHeaderFrom()` to set the desired header.|
 
 Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 0.20 Hadoop releases instead of the older, deprecated API.
