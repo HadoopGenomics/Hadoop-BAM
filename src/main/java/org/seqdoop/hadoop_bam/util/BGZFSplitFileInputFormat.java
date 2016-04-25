@@ -20,7 +20,7 @@
 
 package org.seqdoop.hadoop_bam.util;
 
-import hbparquet.hadoop.util.ContextUtil;
+
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -68,7 +68,7 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 		final List<InputSplit> newSplits =
 			new ArrayList<InputSplit>(splits.size());
 
-		final Configuration cfg = ContextUtil.getConfiguration(job);
+		final Configuration cfg = job.getConfiguration();
 
 		for (int i = 0; i < splits.size();) {
 			try {

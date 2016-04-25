@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -175,7 +173,7 @@ public class AnySAMInputFormat
 				"split '"+split+"' has unknown type: cannot extract path");
 
 		if (this.conf == null)
-			this.conf = ContextUtil.getConfiguration(ctx);
+			this.conf = ctx.getConfiguration();
 
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -195,7 +193,7 @@ public class AnySAMInputFormat
 	 */
 	@Override public boolean isSplitable(JobContext job, Path path) {
 		if (this.conf == null)
-			this.conf = ContextUtil.getConfiguration(job);
+			this.conf = job.getConfiguration();
 
 		final SAMFormat fmt = getFormat(path);
 		if (fmt == null)
@@ -217,7 +215,7 @@ public class AnySAMInputFormat
 		throws IOException
 	{
 		if (this.conf == null)
-			this.conf = ContextUtil.getConfiguration(job);
+			this.conf = job.getConfiguration();
 
 		final List<InputSplit> origSplits = super.getSplits(job);
 
@@ -242,8 +240,8 @@ public class AnySAMInputFormat
 			else
 				newSplits.add(split);
 		}
-		newSplits.addAll(bamIF.getSplits(bamOrigSplits, ContextUtil.getConfiguration(job)));
-		newSplits.addAll(cramIF.getSplits(cramOrigSplits, ContextUtil.getConfiguration(job)));
+		newSplits.addAll(bamIF.getSplits(bamOrigSplits, job.getConfiguration()));
+		newSplits.addAll(cramIF.getSplits(cramOrigSplits, job.getConfiguration()));
 		return newSplits;
 	}
 }

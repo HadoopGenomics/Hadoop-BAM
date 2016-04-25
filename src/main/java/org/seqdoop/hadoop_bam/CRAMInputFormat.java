@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.cram.build.CramContainerIterator;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import java.io.IOException;
@@ -26,7 +25,7 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
 
   @Override
   public List<InputSplit> getSplits(JobContext job) throws IOException {
-    return getSplits(super.getSplits(job), ContextUtil.getConfiguration(job));
+    return getSplits(super.getSplits(job), job.getConfiguration());
   }
 
   public List<InputSplit> getSplits(List<InputSplit> splits, Configuration conf)

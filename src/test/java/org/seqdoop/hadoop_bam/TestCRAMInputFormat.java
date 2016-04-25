@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -24,6 +23,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.task.JobContextImpl;
+import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,8 +46,8 @@ public class TestCRAMInputFormat {
     conf.set("mapred.input.dir", "file://" + input);
     conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, reference);
 
-    taskAttemptContext = ContextUtil.newTaskAttemptContext(conf, mock(TaskAttemptID.class));
-    jobContext = ContextUtil.newJobContext(conf, taskAttemptContext.getJobID());
+    taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+    jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
   }
 
   @Test

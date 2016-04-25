@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
 import htsjdk.samtools.CRAMIterator;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.ValidationStringency;
@@ -36,7 +35,7 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
     }
     isInitialized = true;
 
-    final Configuration conf = ContextUtil.getConfiguration(context);
+    final Configuration conf = context.getConfiguration();
     final FileSplit fileSplit = (FileSplit) split;
     final Path file  = fileSplit.getPath();
 

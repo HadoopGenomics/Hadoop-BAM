@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
@@ -64,7 +62,7 @@ public abstract class BAMRecordWriter<K>
 	{
 		init(
 			output,
-			SAMHeaderReader.readSAMHeaderFrom(input, ContextUtil.getConfiguration(ctx)),
+			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
 			writeHeader, ctx);
 	}
 	public BAMRecordWriter(
@@ -73,7 +71,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	public BAMRecordWriter(
@@ -91,7 +89,7 @@ public abstract class BAMRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	private void init(

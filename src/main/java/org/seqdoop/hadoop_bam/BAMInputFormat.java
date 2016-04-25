@@ -38,7 +38,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
-import hbparquet.hadoop.util.ContextUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -132,7 +131,7 @@ public class BAMInputFormat
 	@Override public List<InputSplit> getSplits(JobContext job)
 		throws IOException
 	{
-		return getSplits(super.getSplits(job), ContextUtil.getConfiguration(job));
+		return getSplits(super.getSplits(job), job.getConfiguration());
 	}
 
 	public List<InputSplit> getSplits(

@@ -47,8 +47,6 @@ import htsjdk.variant.vcf.VCFHeader;
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** See {@link VCFRecordReader} for the meaning of the key. */
 public class BCFRecordReader
 	extends RecordReader<LongWritable,VariantContextWritable>
@@ -77,7 +75,7 @@ public class BCFRecordReader
 			final FileVirtualSplit split = (FileVirtualSplit)spl;
 
 			final Path file = split.getPath();
-			final FileSystem fs = file.getFileSystem(ContextUtil.getConfiguration(ctx));
+			final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
 			final FSDataInputStream inFile = fs.open(file);
 
@@ -114,7 +112,7 @@ public class BCFRecordReader
 			final Path file = split.getPath();
 
 			in = new PositionalBufferedStream(
-				file.getFileSystem(ContextUtil.getConfiguration(ctx)).open(file));
+				file.getFileSystem(ctx.getConfiguration()).open(file));
 
 			initContigDict();
 

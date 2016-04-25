@@ -1,8 +1,5 @@
 package org.seqdoop.hadoop_bam;
 
-
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Paths;
@@ -47,7 +44,7 @@ public abstract class CRAMRecordWriter<K>
     {
         init(
                 output,
-                SAMHeaderReader.readSAMHeaderFrom(input, ContextUtil.getConfiguration(ctx)),
+                SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
                 writeHeader, ctx);
     }
 
@@ -57,7 +54,7 @@ public abstract class CRAMRecordWriter<K>
             throws IOException
     {
         init(
-                output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+                output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader, ctx);
     }
 
@@ -69,7 +66,7 @@ public abstract class CRAMRecordWriter<K>
             throws IOException
     {
         init(
-                output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+                output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader, ctx);
     }
 

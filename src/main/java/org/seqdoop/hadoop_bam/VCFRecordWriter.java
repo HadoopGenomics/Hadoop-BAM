@@ -42,8 +42,6 @@ import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** A base {@link RecordWriter} for VCF.
  *
  * <p>Handles the output stream, writing the header if requested, and provides
@@ -66,7 +64,7 @@ public abstract class VCFRecordWriter<K>
 		throws IOException
 	{
 		final AsciiLineReader r = new AsciiLineReader(
-			input.getFileSystem(ContextUtil.getConfiguration(ctx)).open(input));
+			input.getFileSystem(ctx.getConfiguration()).open(input));
 
 		final FeatureCodecHeader h = codec.readHeader(new AsciiLineReaderIterator(r));
 		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
@@ -82,7 +80,7 @@ public abstract class VCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	public VCFRecordWriter(
@@ -100,7 +98,7 @@ public abstract class VCFRecordWriter<K>
 		throws IOException
 	{
 		init(
-			output.getFileSystem(ContextUtil.getConfiguration(ctx)).create(output),
+			output.getFileSystem(ctx.getConfiguration()).create(output),
 			header, writeHeader);
 	}
 	private void init(

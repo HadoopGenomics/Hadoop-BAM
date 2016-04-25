@@ -22,8 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.CharacterCodingException;
@@ -431,7 +429,7 @@ public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 	@Override
 	public boolean isSplitable(JobContext context, Path path)
 	{
-		CompressionCodec codec = new CompressionCodecFactory(ContextUtil.getConfiguration(context)).getCodec(path);
+		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
 		return codec == null;
 	}
 
@@ -440,6 +438,6 @@ public class QseqInputFormat extends FileInputFormat<Text,SequencedFragment>
 	                                        TaskAttemptContext context) throws IOException, InterruptedException
 	{
 		context.setStatus(genericSplit.toString());
-		return new QseqRecordReader(ContextUtil.getConfiguration(context), (FileSplit)genericSplit); // cast as per example in TextInputFormat
+		return new QseqRecordReader(context.getConfiguration(), (FileSplit)genericSplit); // cast as per example in TextInputFormat
 	}
 }

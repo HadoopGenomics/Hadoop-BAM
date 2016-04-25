@@ -44,8 +44,6 @@ import java.util.regex.*;
 import org.seqdoop.hadoop_bam.FormatConstants.BaseQualityEncoding;
 import org.seqdoop.hadoop_bam.util.ConfHelper;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 {
 	public static final String CONF_BASE_QUALITY_ENCODING = "hbam.fastq-input.base-quality-encoding";
@@ -395,7 +393,7 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 	@Override
 	public boolean isSplitable(JobContext context, Path path)
 	{
-		CompressionCodec codec = new CompressionCodecFactory(ContextUtil.getConfiguration(context)).getCodec(path);
+		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
 		return codec == null;
 	}
 
@@ -404,6 +402,6 @@ public class FastqInputFormat extends FileInputFormat<Text,SequencedFragment>
 	                                        TaskAttemptContext context) throws IOException, InterruptedException
 	{
 		context.setStatus(genericSplit.toString());
-		return new FastqRecordReader(ContextUtil.getConfiguration(context), (FileSplit)genericSplit); // cast as per example in TextInputFormat
+		return new FastqRecordReader(context.getConfiguration(), (FileSplit)genericSplit); // cast as per example in TextInputFormat
 	}
 }

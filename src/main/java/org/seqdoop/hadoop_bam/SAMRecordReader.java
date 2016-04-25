@@ -50,8 +50,6 @@ import htsjdk.samtools.ValidationStringency;
 
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-import hbparquet.hadoop.util.ContextUtil;
-
 /** See {@link BAMRecordReader} for the meaning of the key. */
 public class SAMRecordReader
 	extends RecordReader<LongWritable,SAMRecordWritable>
@@ -83,7 +81,7 @@ public class SAMRecordReader
 		this.start =         split.getStart();
 		this.end   = start + split.getLength();
 
-		final Configuration conf = ContextUtil.getConfiguration(ctx);
+		final Configuration conf = ctx.getConfiguration();
 
 		final ValidationStringency stringency =
 			SAMHeaderReader.getValidationStringency(conf);
