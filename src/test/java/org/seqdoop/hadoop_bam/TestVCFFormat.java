@@ -15,12 +15,15 @@ public class TestVCFFormat {
   public void testInferFromFilePath() throws IOException {
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf"));
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf.gz"));
+    assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf.bgzf.gz"));
     assertNull(VCFFormat.inferFromFilePath("test.sam"));
   }
 
   @Test
   public void testInferFromData() throws IOException {
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf")));
+    assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf.gz")));
+    assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf.bgzf.gz")));
     assertNull(VCFFormat.inferFromData(stream("test.sam")));
   }
 
