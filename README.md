@@ -143,7 +143,7 @@ below:
 
 |Format|Property|Default|Description|
 |------|--------|-------|-----------|
-|`AnySAMInputFormat`|`hadoopbam.anysam.trust-exts`|`true`|Whether to detect the file format (BAM, SAM, or CRAM) by file extension. If `false`, use the file contents to detect the format.|
+|`AnySAMInputFormat`|`hadoopbam.anysam.trust-exts`|`false`|Whether to detect the file format (BAM, SAM, or CRAM) by file extension. If `false`, use the file contents to detect the format.|
 |`KeyIgnoringAnySAMOutputFormat`|`hadoopbam.anysam.output-format`| |(Required.) The file format to use when writing BAM, SAM, or CRAM files. Should be one of `BAM`, `SAM`, or `CRAM`.|
 | |`hadoopbam.anysam.write-header`|`true`|Whether to write the SAM header in each output file part. If `true`, call `setSAMHeader()` or `readSAMHeaderFrom()` to set the desired header.|
 |`BAMInputFormat`|`hadoopbam.bam.keep-paired-reads-together`|`false`|If `true`, ensure that for paired reads both reads in a pair are always in the same split for queryname-sorted BAM files.|
@@ -153,7 +153,7 @@ below:
 | |`hbam.fastq-input.filter-failed-qc`|`false`|If `true`, filter out reads that didn't pass quality checks.|
 |`QseqInputFormat`|`hbam.qseq-input.base-quality-encoding`|`illumina`|The encoding used for base qualities. One of `sanger` or `illumina`.|
 | |`hbam.qseq-input.filter-failed-qc`|`false`|If `true`, filter out reads that didn't pass quality checks.|
-|`VCFInputFormat`|`hadoopbam.vcf.trust-exts`|`true`|Whether to detect the file format (VCF or BCF) by file extension. If `false`, use the file contents to detect the format.|
+|`VCFInputFormat`|`hadoopbam.vcf.trust-exts`|`false`|Whether to detect the file format (VCF or BCF) by file extension. If `false`, use the file contents to detect the format.|
 |`KeyIgnoringVCFOutputFormat`|`hadoopbam.vcf.output-format`| |(Required.) The file format to use when writing VCF or BCF files. Should be one of `VCF` or `BCF`.|
 | |`hadoopbam.vcf.write-header`|`true`|Whether to write the VCF header in each output file part. If `true`, call `setHeader()` or `readHeaderFrom()` to set the desired header.|
 

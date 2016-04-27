@@ -23,9 +23,11 @@
 package org.seqdoop.hadoop_bam;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 
+import java.util.zip.GZIPInputStream;
 import org.apache.hadoop.fs.Path;
 
 /** Describes a VCF format. */
@@ -51,14 +53,31 @@ public enum VCFFormat {
 		return null;
 	}
 
+	/** Infers the VCF format by looking at the first few bytes of the input.
+	 */
 	public static VCFFormat inferFromData(final InputStream in) throws IOException {
+		BufferedInputStream bis = new BufferedInputStream(in); // so mark/reset is supported
+		return inferFromUncompressedData(isGzip(bis) ? new GZIPInputStream(bis) : bis);
+	}
+
+	private static VCFFormat inferFromUncompressedData(final InputStream in) throws IOException {
 		final byte b = (byte)in.read();
 		in.close();
 		switch (b) {
-			case 0x1f: return BCF; // BGZF-compressed
-			case 'B':  return BCF; // Not compressed
+			case 'B':  return BCF;
 			case '#':  return VCF;
 		}
 		return null;
 	}
+
+	/**
+	 * @return <code>true</code> if the stream is compressed with gzip (or BGZF)
+	*/
+	private static boolean isGzip(final InputStream in) throws IOException {
+		in.mark(1);
+		final byte b = (byte)in.read();
+		in.reset();
+		return b == 0x1f;
+	}
+
 }
