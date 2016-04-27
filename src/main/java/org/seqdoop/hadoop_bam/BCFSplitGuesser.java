@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -40,8 +41,6 @@ import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.readers.PositionalBufferedStream;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFHeader;
-
-import org.seqdoop.hadoop_bam.util.SeekableArrayStream;
 
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
@@ -135,7 +134,7 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
 		}
 		arr = Arrays.copyOf(arr, totalRead);
 
-		this.in = new SeekableArrayStream(arr);
+		this.in = new ByteArraySeekableStream(arr);
 
 		final int firstBGZFEnd;
 

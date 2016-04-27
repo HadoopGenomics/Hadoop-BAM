@@ -22,6 +22,10 @@
 
 package org.seqdoop.hadoop_bam.util;
 
+/**
+ * @deprecated This class will be removed in the next major version release (8.0).
+ */
+@Deprecated
 public class Pair<A,B> {
 	public A fst;
 	public B snd;
