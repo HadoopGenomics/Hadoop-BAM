@@ -23,17 +23,27 @@
 package org.seqdoop.hadoop_bam;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.Locatable;
+import htsjdk.tribble.index.Block;
+import htsjdk.tribble.index.tabix.TabixIndex;
+import htsjdk.tribble.util.TabixUtils;
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -66,6 +76,41 @@ public class VCFInputFormat
 
 	public static final String TRUST_EXTS_PROPERTY =
 		"hadoopbam.vcf.trust-exts";
+
+	/**
+	 * Filter by region, like <code>-L</code> in SAMtools. Takes a comma-separated
+	 * list of intervals, e.g. <code>chr1:1-20000,chr2:12000-20000</code>. For
+	 * programmatic use {@link #setIntervals(Configuration, List)} should be preferred.
+	 */
+	public static final String INTERVALS_PROPERTY = "hadoopbam.vcf.intervals";
+
+	public static <T extends Locatable> void setIntervals(Configuration conf,
+			List<T> intervals) {
+		StringBuilder sb = new StringBuilder();
+		for (Iterator<T> it = intervals.iterator(); it.hasNext(); ) {
+			Locatable l = it.next();
+			sb.append(String.format("%s:%d-%d", l.getContig(), l.getStart(), l.getEnd()));
+			if (it.hasNext()) {
+				sb.append(",");
+			}
+		}
+		conf.set(INTERVALS_PROPERTY, sb.toString());
+	}
+
+	static List<Interval> getIntervals(Configuration conf) {
+		String intervalsProperty = conf.get(INTERVALS_PROPERTY);
+		if (intervalsProperty == null) {
+			return null;
+		}
+		List<Interval> intervals = new ArrayList<Interval>();
+		for (String s : intervalsProperty.split(",")) {
+			String[] parts = s.split(":|-");
+			Interval interval =
+					new Interval(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+			intervals.add(interval);
+		}
+		return intervals;
+	}
 
 	private final Map<Path,VCFFormat> formatMap;
 	private final boolean              givenMap;
@@ -255,7 +300,7 @@ public class VCFInputFormat
 				newSplits.add(split);
 		}
 		fixBCFSplits(bcfOrigSplits, newSplits);
-		return newSplits;
+		return filterByInterval(newSplits, conf);
 	}
 
 	// The given FileSplits should all be for BCF files. Adds InputSplits
@@ -344,5 +389,94 @@ public class VCFInputFormat
 
 		sin.close();
 		return i;
+	}
+
+	private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
+			throws IOException {
+		List<Interval> intervals = getIntervals(conf);
+		if (intervals == null) {
+			return splits;
+		}
+		List<Block> blocks = new ArrayList<>();
+		Set<Path> vcfFiles = new LinkedHashSet<Path>();
+		for (InputSplit split : splits) {
+			if (split instanceof FileSplit) {
+				vcfFiles.add(((FileSplit) split).getPath());
+			} else if (split instanceof FileVirtualSplit) {
+				vcfFiles.add(((FileVirtualSplit) split).getPath());
+			} else {
+				throw new IllegalArgumentException(
+						"split '"+split+"' has unknown type: cannot extract path");
+			}
+		}
+		for (Path vcfFile : vcfFiles) {
+			Path indexFile = vcfFile.suffix(TabixUtils.STANDARD_INDEX_EXTENSION);
+			FileSystem fs = vcfFile.getFileSystem(conf);
+			if (!fs.exists(indexFile)) {
+				System.err.println("WARNING: no tabix index file found, splits will not be " +
+						"filtered, which may be very inefficient: " + indexFile);
+				return splits;
+			}
+
+			try (InputStream in = new BlockCompressedInputStream(fs.open(indexFile))) {
+				TabixIndex index = new TabixIndex(in);
+				for (Locatable interval : intervals) {
+					String contig = interval.getContig();
+					int intervalStart = interval.getStart();
+					int intervalEnd = interval.getEnd();
+					blocks.addAll(index.getBlocks(contig, intervalStart, intervalEnd));
+				}
+			}
+		}
+
+		// Use the blocks to filter the splits
+		List<InputSplit> filteredSplits = new ArrayList<InputSplit>();
+		for (InputSplit split : splits) {
+			if (split instanceof FileSplit) {
+				FileSplit fileSplit = (FileSplit) split;
+				long splitStart = fileSplit.getStart() << 16;
+				long splitEnd = (fileSplit.getStart() + fileSplit.getLength()) << 16;
+				// if any block overlaps with the split, keep the split, but don't adjust its size
+				// as the BGZF block decompression is handled by BGZFCodec, not by the reader
+				// directly
+				for (Block block : blocks) {
+					long blockStart = block.getStartPosition();
+					long blockEnd = block.getEndPosition();
+					if (overlaps(splitStart, splitEnd, blockStart, blockEnd)) {
+						filteredSplits.add(split);
+						break;
+					}
+				}
+			} else {
+				FileVirtualSplit virtualSplit = (FileVirtualSplit) split;
+				long splitStart = virtualSplit.getStartVirtualOffset();
+				long splitEnd = virtualSplit.getEndVirtualOffset();
+				// if any block overlaps with the split, keep the split, but adjust the start and
+				// end to the maximally overlapping portion for all blocks that overlap
+				long newStart = Long.MAX_VALUE;
+				long newEnd = Long.MIN_VALUE;
+				boolean overlaps = false;
+				for (Block block : blocks) {
+					long blockStart = block.getStartPosition();
+					long blockEnd = block.getEndPosition();
+					if (overlaps(splitStart, splitEnd, blockStart, blockEnd)) {
+						long overlapStart = Math.max(splitStart, blockStart);
+						long overlapEnd = Math.min(splitEnd, blockEnd);
+						newStart = Math.min(newStart, overlapStart);
+						newEnd = Math.max(newEnd, overlapEnd);
+						overlaps = true;
+					}
+				}
+				if (overlaps) {
+					filteredSplits.add(new FileVirtualSplit(virtualSplit.getPath(), newStart, newEnd,
+							virtualSplit.getLocations()));
+				}
+			}
+		}
+		return filteredSplits;
+	}
+
+	private static boolean overlaps(long start, long end, long start2, long end2) {
+		return BAMInputFormat.overlaps(start, end, start2, end2);
 	}
 }

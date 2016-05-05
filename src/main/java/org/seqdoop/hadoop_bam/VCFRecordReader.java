@@ -22,6 +22,8 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.OverlapDetector;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
@@ -30,7 +32,9 @@ import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -69,6 +73,9 @@ public class VCFRecordReader
 	private final Map<String,Integer> contigDict =
 		new HashMap<String,Integer>();
 
+	private List<Interval> intervals;
+	private OverlapDetector<Interval> overlapDetector;
+
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
@@ -105,6 +112,12 @@ public class VCFRecordReader
 			contigDict.put(contig.getID(), i++);
 
 		lineRecordReader.initialize(spl, ctx);
+
+		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
+		if (intervals != null) {
+			overlapDetector = new OverlapDetector<>(0, 0);
+			overlapDetector.addAll(intervals, intervals);
+		}
 	}
 	@Override public void close() throws IOException { lineRecordReader.close(); }
 
@@ -116,25 +129,41 @@ public class VCFRecordReader
 	@Override public VariantContextWritable getCurrentValue() { return vc; }
 
 	@Override public boolean nextKeyValue() throws IOException {
-		String line;
 		while (true) {
-			if (!lineRecordReader.nextKeyValue()) {
-				return false;
+			String line;
+			while (true) {
+				if (!lineRecordReader.nextKeyValue()) {
+					return false;
+				}
+				line = lineRecordReader.getCurrentValue().toString();
+				if (!line.startsWith("#")) {
+					break;
+				}
 			}
-			line = lineRecordReader.getCurrentValue().toString();
-			if (!line.startsWith("#")) {
-				break;
+
+			final VariantContext v = codec.decode(line);
+
+			if (!overlaps(v)) {
+				continue;
 			}
+
+			Integer chromIdx = contigDict.get(v.getContig());
+			if (chromIdx == null)
+				chromIdx = (int) MurmurHash3.murmurhash3(v.getContig(), 0);
+
+			key.set((long) chromIdx << 32 | (long) (v.getStart() - 1));
+			vc.set(v, header);
+
+			return true;
 		}
+	}
 
-		final VariantContext v = codec.decode(line);
-
-		Integer chromIdx = contigDict.get(v.getContig());
-		if (chromIdx == null)
-			chromIdx = (int)MurmurHash3.murmurhash3(v.getContig(), 0);
-
-		key.set((long)chromIdx << 32 | (long)(v.getStart() - 1));
-		vc.set(v, header);
-		return true;
+	private boolean overlaps(VariantContext v) {
+		if (intervals == null) {
+			return true;
+		}
+		final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
+		Collection<Interval> overlaps = overlapDetector.getOverlaps(interval);
+		return !overlaps.isEmpty();
 	}
 }
