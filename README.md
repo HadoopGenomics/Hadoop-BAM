@@ -38,7 +38,7 @@ Hadoop-BAM. In addition, [ADAM](http://bdgenomics.org/) and
 high-level command-line bioinformatics tools that run on Spark clusters. 
 
 For examples of how to use Hadoop-BAM as a library to read data files
-in Hadoop see the examples/ directory.
+in Hadoop see the `examples/` directory.
 
 ------------
 Dependencies
@@ -47,11 +47,10 @@ Dependencies
 Hadoop. Tested with 2.2.0 and later. Version 4.2.0 of Cloudera's distribution,
 CDH, has also been tested. Use other versions at your own risk. You
 can change the version of Hadoop linked against by modifying the
-corresponding paramter in the pom.xml build file.
+corresponding parameter in the pom.xml build file.
 
-HTSJDK (formerly Picard SAM-JDK) Version 2.1.0 is required. Later versions
-may also work but have not been tested. A version of Picard is distributed
-via the unofficial maven repository (see below).
+HTSJDK (formerly Picard SAM-JDK) Version 2.3.0 is required. Later versions
+may also work but have not been tested.
 
 Availability:
 
@@ -82,7 +81,7 @@ In the output above, the version string is "2.0.0-cdh4.6.0".
 
 Build Hadoop-BAM with the following command:
 
-   mvn clean package -DskipTests
+    mvn clean package -DskipTests
    
 It will create two files:
 
@@ -94,9 +93,10 @@ dependencies and can be run directly via
 
     hadoop jar target/hadoop-bam-X.Y.Z-SNAPSHOT-jar-with-dependencies.jar
 
-Javadoc documentation is generated automatically and can then be found in the target/apidocs subdirectory.
+Javadoc documentation is generated automatically and can then be found in the
+`target/apidocs` subdirectory.
 
-Finally, unit test can be run via:
+Finally, unit tests can be run via:
 
     mvn test
 
@@ -161,11 +161,11 @@ Note that Hadoop-BAM is based around the newer Hadoop API introduced in the
 0.20 Hadoop releases instead of the older, deprecated API.
 
 For examples of how to link to Hadoop-BAM in your own Maven project
-see the examples/ folder. There are example for reading and writing
+see the `examples/` folder. There are examples for reading and writing
 BAM as well as VCF files.
 
 When using Hadoop-BAM as a library in your program, remember to have
-hadoop-bam-X.Y.Z.jar as well as the Picard .jars (including the Commons
+hadoop-bam-X.Y.Z.jar as well as the HTSJDK .jars (including the Commons
 JEXL .jar) in your CLASSPATH and HADOOP_CLASSPATH; alternatively, use the
 *-jar-with-dependencies.jar which contains already all dependencies.
 
@@ -182,7 +182,7 @@ it is by relying on the OSS Sonatype repository:
         <dependency>
             <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>7.4.0</version>
+            <version>7.5.0</version>
         </dependency>
         ...
     </dependencies>
@@ -203,7 +203,7 @@ Alternatively, you can use the "-libjars" command line argument when
 running Hadoop-BAM to provide different versions of dependencies as follows:
 
     hadoop jar hadoop-bam-X.Y.Z.jar \
-      -libjars htsjdk-1.118.jar,commons-jexl-2.1.1.jar
+      -libjars htsjdk-2.3.0.jar,commons-jexl-2.1.1.jar
 
 Finally, all jar files can also be added to HADOOP_CLASSPATH in the Hadoop
 configuration's hadoop-env.sh.
