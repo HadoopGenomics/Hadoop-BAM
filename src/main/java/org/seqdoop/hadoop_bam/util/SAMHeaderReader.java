@@ -61,7 +61,8 @@ public final class SAMHeaderReader {
 		final ValidationStringency
 			stringency = getValidationStringency(conf);
 		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
-				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false);
+				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+				.setUseAsyncIo(false);
 		if (stringency != null) {
 			readerFactory.validationStringency(stringency);
 		}

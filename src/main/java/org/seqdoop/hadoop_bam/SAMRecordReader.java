@@ -148,7 +148,8 @@ public class SAMRecordReader
 
 	private SamReader createSamReader(InputStream in, ValidationStringency stringency) {
 		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
-				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false);
+				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+				.setUseAsyncIo(false);
 		if (stringency != null) {
 			readerFactory.validationStringency(stringency);
 		}
