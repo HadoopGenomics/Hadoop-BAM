@@ -108,10 +108,13 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
 		throws IOException
 	{
 		// Use a reader to skip through the headers at the beginning of a BAM file, since
-		// the headers may exceed MAX_BYTES_READ in length
+		// the headers may exceed MAX_BYTES_READ in length. Don't close the reader
+		// otherwise it will close the underlying stream, which we continue to read from
+		// on subsequent calls to this method.
 		if (beg == 0) {
 			this.inFile.seek(beg);
-			SamReader open = SamReaderFactory.makeDefault().open(SamInputResource.of(inFile));
+			SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
+					.open(SamInputResource.of(inFile));
 			SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
 			if (span instanceof BAMFileSpan) {
 				return ((BAMFileSpan) span).getFirstOffset();

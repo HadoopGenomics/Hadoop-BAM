@@ -40,8 +40,8 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
     final Path file  = fileSplit.getPath();
 
     String refSourcePath = conf.get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
-    ReferenceSource refSource = refSourcePath == null ? new ReferenceSource() :
-        new ReferenceSource(Paths.get(URI.create(refSourcePath)));
+    ReferenceSource refSource = new ReferenceSource(refSourcePath == null ? null :
+        Paths.get(URI.create(refSourcePath)));
 
     seekableStream = WrapSeekable.openPath(conf, file);
     start = fileSplit.getStart();

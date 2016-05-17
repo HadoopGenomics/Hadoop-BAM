@@ -47,6 +47,7 @@ public final class GetSortedBAMHeader {
 
 		final SAMFileHeader h =
 				SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT)
+						.setUseAsyncIo(false)
 						.open(new File(args[0])).getFileHeader();
 		h.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 

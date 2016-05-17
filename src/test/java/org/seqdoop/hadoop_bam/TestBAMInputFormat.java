@@ -24,7 +24,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -37,14 +36,9 @@ public class TestBAMInputFormat {
   private TaskAttemptContext taskAttemptContext;
   private JobContext jobContext;
 
-  @Before
-  public void setup() throws Exception {
-    input = writeNameSortedBamFile().getAbsolutePath();
-  }
-
-  private File writeNameSortedBamFile() throws IOException {
-    SAMRecordSetBuilder samRecordSetBuilder =
-        new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.queryname);
+  private File writeBamFile(SAMFileHeader.SortOrder sortOrder) throws IOException {
+    // file will be both queryname and coordinate sorted, so use one or the other
+    SAMRecordSetBuilder samRecordSetBuilder = new SAMRecordSetBuilder(true, sortOrder);
     for (int i = 0; i < 1000; i++) {
       int chr = 20;
       int start1 = (i + 1) * 1000;
@@ -76,11 +70,13 @@ public class TestBAMInputFormat {
     bamWriter.close();
 
     // create BAM index
-    SamReader samReader = SamReaderFactory.makeDefault()
-        .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
-        .open(bamFile);
-    BAMIndexer.createIndex(samReader, new File(bamFile.getAbsolutePath() +
-        BAMIndex.BAMIndexSuffix));
+    if (sortOrder.equals(SAMFileHeader.SortOrder.coordinate)) {
+      SamReader samReader = SamReaderFactory.makeDefault()
+          .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
+          .open(bamFile);
+      BAMIndexer.createIndex(samReader, new File(bamFile.getAbsolutePath() +
+          BAMIndex.BAMIndexSuffix));
+    }
 
     return bamFile;
   }
@@ -137,6 +133,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testDontKeepPairedReadsTogether() throws Exception {
+    input = writeBamFile(SAMFileHeader.SortOrder.queryname).getAbsolutePath();
     completeSetup(false, null);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
@@ -155,6 +152,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testKeepPairedReadsTogether() throws Exception {
+    input = writeBamFile(SAMFileHeader.SortOrder.queryname).getAbsolutePath();
     completeSetup(true, null);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
@@ -171,6 +169,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testIntervals() throws Exception {
+    input = writeBamFile(SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     List<Interval> intervals = new ArrayList<Interval>();
     intervals.add(new Interval("chr21", 5000, 9999)); // includes two unmapped fragments
     intervals.add(new Interval("chr21", 20000, 22999));
@@ -187,6 +186,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testIntervalCoveringWholeChromosome() throws Exception {
+    input = writeBamFile(SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     List<Interval> intervals = new ArrayList<Interval>();
     intervals.add(new Interval("chr21", 1, 1000135));
 
