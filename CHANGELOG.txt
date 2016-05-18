@@ -1,3 +1,11 @@
+2016-05-18 --- 7.5.0
+   - Upgrade to htsjdk 2.3.0
+   - Remove old CLI (thanks Andre Schumacher)
+   - Test coverage improvement
+   - Support gzip compressed and block compressed (BGZF) VCF files
+   - Support filtering by interval in VCFInputFormat using a tabix index
+   - Use htsjdk OverlapDetector to optimize intervals/read overlap calculation
+
 2016-02-14 --- 7.4.0:
    - Move to Java 8 and HTSJDK 2.1.0
    - Various improvements (test coverage reports, findbugs)
