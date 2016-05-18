@@ -32,7 +32,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.seqdoop</groupId>
     <artifactId>hadoop-bam</artifactId>
-    <version>7.5.0</version>
+    <version>7.5.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Hadoop-BAM</name>
     <description>A Java library for the manipulation of files in common bioinformatics formats using the Hadoop MapReduce framework.</description>
@@ -66,7 +66,7 @@
         <connection>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</connection>
         <developerConnection>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</developerConnection>
         <url>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</url>
-        <tag>7.5.0</tag>
+        <tag>master</tag>
     </scm>
     <developers>
         <developer>
