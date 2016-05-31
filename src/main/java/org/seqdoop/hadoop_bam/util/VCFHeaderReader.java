@@ -37,6 +37,8 @@ import htsjdk.tribble.readers.PositionalBufferedStream;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
+import java.util.zip.GZIPInputStream;
+import org.seqdoop.hadoop_bam.VCFFormat;
 
 /** Can read a VCF header without being told beforehand whether the input is
  * VCF or BCF.
@@ -49,7 +51,9 @@ public final class VCFHeaderReader {
         Object header = null;
 		final long initialPos = in.position();
 		try {
-			headerCodec = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(in)));
+			BufferedInputStream bis = new BufferedInputStream(in);
+			InputStream is = VCFFormat.isGzip(bis) ? new GZIPInputStream(bis) : bis;
+			headerCodec = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(is)));
 		} catch (TribbleException e) {
             System.err.println("warning: while trying to read VCF header from file received exception: "+e.toString());
 
