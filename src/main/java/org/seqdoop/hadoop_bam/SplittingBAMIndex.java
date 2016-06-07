@@ -28,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
@@ -69,6 +71,10 @@ public final class SplittingBAMIndex {
 				"should contain at least 1 offset and the file size");
 	}
 
+	public List<Long> getVirtualOffsets() {
+		return new ArrayList<>(virtualOffsets);
+	}
+
 	public Long prevAlignment(final long filePos) {
 		return virtualOffsets.floor(filePos << 16);
 	}
@@ -97,6 +103,11 @@ public final class SplittingBAMIndex {
 	@Override
 	public int hashCode() {
 		return virtualOffsets != null ? virtualOffsets.hashCode() : 0;
+	}
+
+	@Override
+	public String toString() {
+		return virtualOffsets.toString();
 	}
 
 	/** Writes some statistics about each splitting BAM index file given as an

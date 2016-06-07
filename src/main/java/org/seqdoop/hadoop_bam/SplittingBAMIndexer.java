@@ -221,7 +221,12 @@ public final class SplittingBAMIndexer {
 		}
 	}
 
-	private void writeVirtualOffset(long virtualOffset) throws IOException {
+	/**
+	 * Write the given virtual offset to the index. This method is for internal use only.
+	 * @param virtualOffset virtual file pointer
+	 * @throws IOException
+	 */
+	public void writeVirtualOffset(long virtualOffset) throws IOException {
 		lb.put(0, virtualOffset);
 		out.write(byteBuffer.array());
 	}
