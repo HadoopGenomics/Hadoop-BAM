@@ -73,7 +73,7 @@ public enum VCFFormat {
 	/**
 	 * @return <code>true</code> if the stream is compressed with gzip (or BGZF)
 	*/
-	private static boolean isGzip(final InputStream in) throws IOException {
+	public static boolean isGzip(final InputStream in) throws IOException {
 		in.mark(1);
 		final byte b = (byte)in.read();
 		in.reset();
