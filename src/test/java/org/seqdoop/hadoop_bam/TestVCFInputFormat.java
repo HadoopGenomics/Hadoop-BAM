@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import org.seqdoop.hadoop_bam.util.BGZFCodec;
+import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -82,6 +83,9 @@ public class TestVCFInputFormat {
             {"HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
             {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE, null},
             {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.EXACTLY_ONE,
+                new Interval("chr1", 2700000, 2800000)}, // chosen to fall in one split
+            {"HiSeq.10000.vcf.bgz", NUM_SPLITS.MORE_THAN_ONE, null},
+            {"HiSeq.10000.vcf.bgz", NUM_SPLITS.EXACTLY_ONE,
                 new Interval("chr1", 2700000, 2800000)} // chosen to fall in one split
         });
     }
@@ -92,7 +96,8 @@ public class TestVCFInputFormat {
         String input_file = ClassLoader.getSystemClassLoader().getResource(filename).getFile();
         conf.set("hadoopbam.vcf.trust-exts", "true");
         conf.set("mapred.input.dir", "file://" + input_file);
-        conf.set("io.compression.codecs", BGZFCodec.class.getCanonicalName());
+        conf.setStrings("io.compression.codecs", BGZFEnhancedGzipCodec.class.getCanonicalName(),
+            BGZFCodec.class.getCanonicalName());
         conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
 
         if (interval != null) {

@@ -33,7 +33,7 @@ public class TestBGZFSplitGuesser {
   @Parameterized.Parameters
   public static Collection<Object> data() {
     return Arrays.asList(new Object[][] {
-        {"test.vcf.bgzf.gz", 821, 821}, {"HiSeq.10000.vcf.bgzf.gz", 16671, 509205}
+        {"test.vcf.bgzf.gz", 821, 821}, {"HiSeq.10000.vcf.bgzf.gz", 16688, 509222}
     });
   }
 

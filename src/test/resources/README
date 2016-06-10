@@ -1,0 +1,9 @@
+Commands to generate file indexes and compressed versions.
+
+bgzip -c src/test/resources/HiSeq.10000.vcf > src/test/resources/HiSeq.10000.vcf.bgz
+bcftools index -t src/test/resources/HiSeq.10000.vcf.bgz
+
+cp src/test/resources/HiSeq.10000.vcf.bgz src/test/resources/HiSeq.10000.vcf.bgzf.gz
+cp src/test/resources/HiSeq.10000.vcf.bgz.tbi src/test/resources/HiSeq.10000.vcf.bgzf.gz.tbi
+
+gzip -k src/test/resources/HiSeq.10000.vcf

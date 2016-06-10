@@ -59,6 +59,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import htsjdk.samtools.seekablestream.SeekableStream;
 
+import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec;
 import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
@@ -208,7 +209,7 @@ public class VCFInputFormat
 		if (codec == null) {
 			return true;
 		}
-		if (codec instanceof BGZFCodec) {
+		if (codec instanceof BGZFCodec || codec instanceof BGZFEnhancedGzipCodec) {
 			boolean splittable;
 			try {
 				try (FSDataInputStream in = filename.getFileSystem(conf).open(filename)) {
@@ -225,7 +226,7 @@ public class VCFInputFormat
 			return splittable;
 		} else if (codec instanceof GzipCodec) {
 			System.err.println("Warning: using GzipCodec, which is not splittable, consider " +
-					"using block compressed gzip (BGZF) and BGZFCodec.");
+					"using block compressed gzip (BGZF) and BGZFCodec/BGZFEnhancedGzipCodec.");
 		}
 		return codec instanceof SplittableCompressionCodec;
 	}
