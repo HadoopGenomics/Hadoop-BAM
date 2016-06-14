@@ -28,6 +28,8 @@ import org.apache.hadoop.io.compress.SplittableCompressionCodec;
  */
 public class BGZFCodec extends GzipCodec implements SplittableCompressionCodec {
 
+  public static final String DEFAULT_EXTENSION = ".bgz";
+
   @Override
   public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
     return new BGZFCompressionOutputStream(out);
@@ -64,6 +66,6 @@ public class BGZFCodec extends GzipCodec implements SplittableCompressionCodec {
 
   @Override
   public String getDefaultExtension() {
-    return ".bgz";
+    return DEFAULT_EXTENSION;
   }
 }

@@ -54,6 +54,7 @@ import org.junit.runners.Parameterized;
 import org.seqdoop.hadoop_bam.TestVCFInputFormat.NUM_SPLITS;
 import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec;
+import org.seqdoop.hadoop_bam.util.VCFFileMerger;
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
 
 import static org.junit.Assert.assertEquals;
@@ -76,6 +77,25 @@ public class TestVCFRoundTrip {
             TaskAttemptContext ctx) throws IOException {
             Path vcfPath = new Path(conf.get(READ_HEADER_FROM_FILE));
             readHeaderFrom(vcfPath, vcfPath.getFileSystem(conf));
+            return super.getRecordWriter(ctx);
+        }
+    }
+
+    // VCF output format that doesn't write a header before records
+    static class VCFTestNoHeaderOutputFormat
+        extends KeyIgnoringVCFOutputFormat<NullWritable> {
+        public final static String READ_HEADER_FROM_FILE = "TestVCF.header";
+
+        public VCFTestNoHeaderOutputFormat() {
+            super(VCFFormat.VCF);
+        }
+
+        @Override
+        public RecordWriter<NullWritable, VariantContextWritable> getRecordWriter(
+            TaskAttemptContext ctx) throws IOException {
+            Path vcfPath = new Path(conf.get(READ_HEADER_FROM_FILE));
+            readHeaderFrom(vcfPath, vcfPath.getFileSystem(conf));
+            ctx.getConfiguration().setBoolean(WRITE_HEADER_PROPERTY, false);
             return super.getRecordWriter(ctx);
         }
     }
@@ -121,7 +141,7 @@ public class TestVCFRoundTrip {
         Path vcfPath = new Path("file://" + testVCFFileName);
 
         // run a MR job to write out a VCF file
-        Path outputPath = doMapReduce(vcfPath);
+        Path outputPath = doMapReduce(vcfPath, true);
 
         // verify the output is the same as the input
         List<VariantContext> expectedVariants = new ArrayList<>();
@@ -169,7 +189,41 @@ public class TestVCFRoundTrip {
         }
     }
 
-    private Path doMapReduce(final Path inputPath) throws Exception {
+    @Test
+    public void testRoundTripWithMerge() throws Exception {
+        Path vcfPath = new Path("file://" + testVCFFileName);
+
+        // run a MR job to write out a VCF file
+        Path outputPath = doMapReduce(vcfPath, false);
+
+        // merge the output
+        VCFHeader vcfHeader = VCFHeaderReader.readHeaderFrom(new SeekableFileStream(new
+            File(testVCFFileName)));
+        final File outFile = File.createTempFile("testVCFWriter",
+            testVCFFileName.substring(testVCFFileName.lastIndexOf(".")));
+        outFile.deleteOnExit();
+        VCFFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
+            vcfHeader);
+        List<VariantContext> actualVariants = new ArrayList<>();
+        VCFFileReader vcfFileReaderActual = parseVcf(outFile);
+        Iterators.addAll(actualVariants, vcfFileReaderActual.iterator());
+
+        // verify the output is the same as the input
+        List<VariantContext> expectedVariants = new ArrayList<>();
+        VCFFileReader vcfFileReader = parseVcf(new File(testVCFFileName));
+        Iterators.addAll(expectedVariants, vcfFileReader.iterator());
+
+        // use a VariantContextComparator to check variants are equal
+        VariantContextComparator vcfRecordComparator = vcfHeader.getVCFRecordComparator();
+        assertEquals(expectedVariants.size(), actualVariants.size());
+        for (int i = 0; i < expectedVariants.size(); i++) {
+            assertEquals(0, vcfRecordComparator.compare(expectedVariants.get(i),
+                actualVariants.get(i)));
+        }
+    }
+
+    private Path doMapReduce(final Path inputPath, final boolean writeHeader)
+        throws Exception {
         final FileSystem fileSystem = FileSystem.get(conf);
         final Path outputPath = fileSystem.makeQualified(new Path("target/out"));
         fileSystem.delete(outputPath, true);
@@ -181,7 +235,8 @@ public class TestVCFRoundTrip {
         job.setMapOutputKeyClass(LongWritable.class);
         job.setMapOutputValueClass(VariantContextWritable.class);
 
-        job.setOutputFormatClass(VCFTestWithHeaderOutputFormat.class);
+        job.setOutputFormatClass(writeHeader ? VCFTestWithHeaderOutputFormat.class :
+            VCFTestNoHeaderOutputFormat.class);
         job.setOutputKeyClass(LongWritable.class);
         job.setOutputValueClass(VariantContextWritable.class);
 
