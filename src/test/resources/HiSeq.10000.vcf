@@ -1,4 +1,5 @@
 ##fileformat=VCFv4.0
+##contig=<ID=chr1,length=195471971>
 ##FILTER=<ID=ABFilter,Description="AB  0.75 && DP  40">
 ##FILTER=<ID=DPFilter,Description="DP  120 || SB  -0.10">
 ##FILTER=<ID=FDRtranche0.00to0.10,Description="FDR tranche level at qual 0.06">

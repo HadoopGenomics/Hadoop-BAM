@@ -24,15 +24,19 @@ package org.seqdoop.hadoop_bam;
 
 import java.io.IOException;
 
+import java.io.OutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.variant.vcf.VCFHeader;
 
+import org.apache.hadoop.util.ReflectionUtils;
+import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
@@ -90,7 +94,23 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 			TaskAttemptContext ctx)
 		throws IOException
 	{
-		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
+		Configuration conf = ctx.getConfiguration();
+		boolean isCompressed = getCompressOutput(ctx);
+		CompressionCodec codec = null;
+		String extension = "";
+		if (isCompressed) {
+			Class<? extends CompressionCodec> codecClass =
+					getOutputCompressorClass(ctx, BGZFCodec.class);
+			codec = ReflectionUtils.newInstance(codecClass, conf);
+			extension = codec.getDefaultExtension();
+		}
+		Path file = getDefaultWorkFile(ctx, extension);
+		if (!isCompressed) {
+			return getRecordWriter(ctx, file);
+		} else {
+			FileSystem fs = file.getFileSystem(conf);
+			return getRecordWriter(ctx, codec.createOutputStream(fs.create(file)));
+		}
 	}
 
 	// Allows wrappers to provide their own work file.
@@ -108,6 +128,24 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 		switch (format) {
 			case BCF: return new KeyIgnoringBCFRecordWriter<K>(out,header,wh,ctx);
 			case VCF: return new KeyIgnoringVCFRecordWriter<K>(out,header,wh,ctx);
+			default: assert false; return null;
+		}
+	}
+
+	private RecordWriter<K,VariantContextWritable> getRecordWriter(
+			TaskAttemptContext ctx, OutputStream outputStream)
+			throws IOException
+	{
+		if (this.header == null)
+			throw new IOException(
+					"Can't create a RecordWriter without the VCF header");
+
+		final boolean wh = ctx.getConfiguration().getBoolean(
+				WRITE_HEADER_PROPERTY, true);
+
+		switch (format) {
+			case BCF: return new KeyIgnoringBCFRecordWriter<K>(outputStream,header,wh);
+			case VCF: return new KeyIgnoringVCFRecordWriter<K>(outputStream,header,wh);
 			default: assert false; return null;
 		}
 	}

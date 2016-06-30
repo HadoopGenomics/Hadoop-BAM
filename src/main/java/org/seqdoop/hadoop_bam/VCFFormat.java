@@ -50,6 +50,7 @@ public enum VCFFormat {
 		if (name.endsWith(".bcf")) return BCF;
 		if (name.endsWith(".vcf")) return VCF;
 		if (name.endsWith(".gz")) return VCF;
+		if (name.endsWith(".bgz")) return VCF;
 		return null;
 	}
 

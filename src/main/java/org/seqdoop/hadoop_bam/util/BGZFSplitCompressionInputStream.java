@@ -10,9 +10,6 @@ import org.apache.hadoop.io.compress.SplitCompressionInputStream;
  * An implementation of {@code SplitCompressionInputStream} for BGZF, based on
  * {@code BZip2CompressionInputStream} and {@code CBZip2InputStream} from Hadoop.
  * (BZip2 is the only splittable compression codec in Hadoop.)
- * This implementation requires that the underlying BGZF input stream can advertise
- * when it reaches a BGZF block boundary, which is why a modified version of htsjdk's
- * {@code BlockCompressedInputStream} is used.
  */
 class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
   private static final int END_OF_BLOCK = -2;

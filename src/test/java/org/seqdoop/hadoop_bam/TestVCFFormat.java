@@ -16,6 +16,7 @@ public class TestVCFFormat {
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf"));
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf.gz"));
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf.bgzf.gz"));
+    assertEquals(VCFFormat.VCF, VCFFormat.inferFromFilePath("test.vcf.bgz"));
     assertEquals(VCFFormat.BCF, VCFFormat.inferFromFilePath("test.uncompressed.bcf"));
     assertEquals(VCFFormat.BCF, VCFFormat.inferFromFilePath("test.bgzf.bcf"));
     assertNull(VCFFormat.inferFromFilePath("test.sam"));
@@ -26,6 +27,7 @@ public class TestVCFFormat {
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf")));
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf.gz")));
     assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf.bgzf.gz")));
+    assertEquals(VCFFormat.VCF, VCFFormat.inferFromData(stream("test.vcf.bgz")));
     assertEquals(VCFFormat.BCF, VCFFormat.inferFromData(stream("test.uncompressed.bcf")));
     assertEquals(VCFFormat.BCF, VCFFormat.inferFromData(stream("test.bgzf.bcf")));
     assertNull(VCFFormat.inferFromData(stream("test.sam")));
