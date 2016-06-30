@@ -1,3 +1,8 @@
+2016-06-30 --- 7.6.0
+   - Upgrade to htsjdk 2.5.0
+   - Support writing of block compressed (BGZF) VCF files, plus codec
+     for files with .bgz suffix
+
 2016-05-18 --- 7.5.0
    - Upgrade to htsjdk 2.3.0
    - Remove old CLI (thanks Andre Schumacher)
