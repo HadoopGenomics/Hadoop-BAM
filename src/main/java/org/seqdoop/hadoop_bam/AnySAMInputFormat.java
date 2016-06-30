@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathNotFoundException;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -122,7 +124,7 @@ public class AnySAMInputFormat
 	 * <code>Map&lt;Path,SAMFormat&gt;</code> and the path is not contained
 	 * within that map, throws an {@link IllegalArgumentException}.</p>
 	 */
-	public SAMFormat getFormat(final Path path) {
+	public SAMFormat getFormat(final Path path) throws PathNotFoundException {
 		SAMFormat fmt = formatMap.get(path);
 		if (fmt != null || formatMap.containsKey(path))
 			return fmt;
@@ -143,7 +145,11 @@ public class AnySAMInputFormat
 		}
 
 		try {
-			fmt = SAMFormat.inferFromData(path.getFileSystem(conf).open(path));
+			FileSystem fileSystem = path.getFileSystem(conf);
+			if (!fileSystem.exists(path)) {
+				throw new PathNotFoundException(path.toString());
+			}
+			fmt = SAMFormat.inferFromData(fileSystem.open(path));
 		} catch (IOException e) {}
 
 		formatMap.put(path, fmt);
@@ -195,15 +201,19 @@ public class AnySAMInputFormat
 		if (this.conf == null)
 			this.conf = job.getConfiguration();
 
-		final SAMFormat fmt = getFormat(path);
-		if (fmt == null)
-			return super.isSplitable(job, path);
+		try {
+			final SAMFormat fmt = getFormat(path);
+			if (fmt == null)
+        return super.isSplitable(job, path);
 
-		switch (fmt) {
-			case SAM: return samIF.isSplitable(job, path);
-			case BAM: return bamIF.isSplitable(job, path);
-			case CRAM: return cramIF.isSplitable(job, path);
-			default: assert false; return false;
+			switch (fmt) {
+        case SAM: return samIF.isSplitable(job, path);
+        case BAM: return bamIF.isSplitable(job, path);
+        case CRAM: return cramIF.isSplitable(job, path);
+        default: assert false; return false;
+      }
+		} catch (PathNotFoundException e) {
+			return super.isSplitable(job, path);
 		}
 	}
 
