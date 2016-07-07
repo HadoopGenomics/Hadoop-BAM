@@ -74,8 +74,8 @@ public class TestBAMInputFormat {
       SamReader samReader = SamReaderFactory.makeDefault()
           .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
           .open(bamFile);
-      BAMIndexer.createIndex(samReader, new File(bamFile.getAbsolutePath() +
-          BAMIndex.BAMIndexSuffix));
+      BAMIndexer.createIndex(samReader, new File(bamFile.getAbsolutePath()
+          .replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix)));
     }
 
     return bamFile;
