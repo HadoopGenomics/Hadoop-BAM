@@ -10,15 +10,20 @@ import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
+import java.util.stream.Collectors;
 import org.seqdoop.hadoop_bam.KeyIgnoringAnySAMOutputFormat;
 import org.seqdoop.hadoop_bam.SAMFormat;
 import org.seqdoop.hadoop_bam.SplittingBAMIndex;
@@ -45,79 +50,86 @@ public class SAMFileMerger {
   public static void mergeParts(final String partDirectory, final String outputFile,
       final SAMFormat samOutputFormat, final SAMFileHeader header) throws IOException {
 
-    final String outputParentDir = partDirectory;
     // First, check for the _SUCCESS file.
     final String successFile = partDirectory + "/_SUCCESS";
-    final org.apache.hadoop.fs.Path successPath = new org.apache.hadoop.fs.Path(successFile);
-    final Configuration conf = new Configuration();
-
-    //it's important that we get the appropriate file system by requesting it from the path
-    final FileSystem fs = successPath.getFileSystem(conf);
-    if (!fs.exists(successPath)) {
+    final Path successPath = asPath(successFile);
+    if (!Files.exists(successPath)) {
       throw new NoSuchFileException(successFile, null, "Unable to find _SUCCESS file");
     }
-    final org.apache.hadoop.fs.Path partPath = new org.apache.hadoop.fs.Path(partDirectory);
-    final org.apache.hadoop.fs.Path outputPath = new org.apache.hadoop.fs.Path(outputFile);
-    final org.apache.hadoop.fs.Path tmpPath = new org.apache.hadoop.fs.Path(outputParentDir + "tmp" + UUID.randomUUID());
+    final Path partPath = asPath(partDirectory);
+    final Path outputPath = asPath(outputFile);
+    if (partPath.equals(outputPath)) {
+      throw new IllegalArgumentException("Cannot merge parts into output with same " +
+          "path: " + partPath);
+    }
 
-    fs.rename(partPath, tmpPath);
-    fs.delete(outputPath, true);
+    Files.deleteIfExists(outputPath);
 
     long headerLength;
     try (final CountingOutputStream out =
-             new CountingOutputStream(fs.create(outputPath))) {
+             new CountingOutputStream(Files.newOutputStream(outputPath))) {
       if (header != null) {
         new SAMOutputPreparer().prepareForRecords(out, samOutputFormat, header); // write the header
-
       }
       headerLength = out.getCount();
-      mergeInto(out, tmpPath, conf);
+      mergeInto(out, partPath);
       writeTerminatorBlock(out, samOutputFormat);
     }
-    long fileLength = fs.getFileStatus(outputPath).getLen();
+    long fileLength = Files.size(outputPath);
 
-    final org.apache.hadoop.fs.Path outputSplittingBaiPath = outputPath.suffix
-        (SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
-    try (final OutputStream out = fs.create(outputSplittingBaiPath)) {
-      mergeSplittingBaiFiles(out, tmpPath, conf, headerLength, fileLength);
+    final Path outputSplittingBaiPath = outputPath.resolveSibling(
+        outputPath.getFileName() + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+    try (final OutputStream out = Files.newOutputStream(outputSplittingBaiPath)) {
+      mergeSplittingBaiFiles(out, partPath, headerLength, fileLength);
     } catch (IOException e) {
-      fs.delete(outputSplittingBaiPath, false);
+      deleteRecursive(outputSplittingBaiPath);
     }
 
-    fs.delete(tmpPath, true);
-
+    deleteRecursive(partPath);
   }
 
-  static void mergeInto(OutputStream out, org.apache.hadoop.fs.Path directory, Configuration conf) throws IOException {
-    final FileSystem fs = directory.getFileSystem(conf);
-    final FileStatus[] parts = getFragments(directory, fs);
+  private static Path asPath(String path) {
+    URI uri = URI.create(path);
+    return uri.getScheme() == null ? Paths.get(path) : Paths.get(uri);
+  }
 
-    if( parts.length == 0){
-      throw new IllegalArgumentException("Could not write bam file because no part files were found.");
-    }
-
-    for (final FileStatus part : parts) {
-      try (final InputStream in = fs.open(part.getPath())) {
-        org.apache.hadoop.io.IOUtils.copyBytes(in, out, conf, false);
+  private static void deleteRecursive(Path directory) throws IOException {
+    Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        Files.delete(file);
+        return FileVisitResult.CONTINUE;
       }
+      @Override
+      public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+        Files.delete(dir);
+        return FileVisitResult.CONTINUE;
+      }
+    });
+  }
+
+  private static void mergeInto(OutputStream out, Path directory) throws IOException {
+    final List<Path> parts = getFragments(directory);
+    if (parts.isEmpty()) {
+      throw new IllegalArgumentException("Could not write bam file because no part " +
+          "files were found in " + directory);
     }
-    for (final FileStatus part : parts) {
-      fs.delete(part.getPath(), false);
+    for (final Path part : parts) {
+      Files.copy(part, out);
+    }
+    for (final Path part : parts) {
+      Files.delete(part);
     }
   }
 
   @VisibleForTesting
-  static FileStatus[] getFragments( final org.apache.hadoop.fs.Path directory, final FileSystem fs ) throws IOException {
-    final FileStatus[] parts = fs.globStatus(new org.apache.hadoop.fs.Path(directory,
-        "part-[mr]-[0-9][0-9][0-9][0-9][0-9]*"),
-        path -> !path.getName().endsWith(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION));
-
-    // FileSystem.globStatus() has a known bug that causes it to not sort the array returned by
-    // name (despite claiming to): https://issues.apache.org/jira/browse/HADOOP-10798
-    // Because of this bug, we do an explicit sort here to avoid assembling the bam fragments
-    // in the wrong order.
-    Arrays.sort(parts);
-
+  static List<Path> getFragments(final Path directory) throws IOException {
+    PathMatcher matcher = directory.getFileSystem().getPathMatcher("glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*");
+    List<Path> parts = Files.walk(directory)
+        .filter(matcher::matches)
+        .filter(path -> !path.toString().endsWith(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION))
+        .collect(Collectors.toList());
+    Collections.sort(parts);
     return parts;
   }
 
@@ -125,26 +137,23 @@ public class SAMFileMerger {
   private static void writeTerminatorBlock(final OutputStream out, final SAMFormat samOutputFormat) throws IOException {
     if (SAMFormat.CRAM == samOutputFormat) {
       CramIO.issueEOF(CramVersions.DEFAULT_CRAM_VERSION, out); // terminate with CRAM EOF container
-    }
-    else {
+    } else {
       out.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK); // add the BGZF terminator
     }
   }
 
-  static void mergeSplittingBaiFiles(OutputStream out, org.apache.hadoop.fs.Path
-      directory, Configuration conf, long headerLength, long fileLength) throws
-      IOException {
-    final FileSystem fs = directory.getFileSystem(conf);
-    final FileStatus[] parts = getSplittingBaiFiles(directory, fs);
+  static void mergeSplittingBaiFiles(OutputStream out, Path directory, long headerLength,
+      long fileLength) throws IOException {
+    final List<Path> parts = getSplittingBaiFiles(directory);
 
-    if( parts.length == 0){
+    if (parts.isEmpty()) {
       return; // nothing to merge
     }
 
     List<Long> mergedVirtualOffsets = new ArrayList<>();
     long partFileOffset = headerLength;
-    for (final FileStatus part : parts) {
-      try (final InputStream in = fs.open(part.getPath())) {
+    for (final Path part : parts) {
+      try (final InputStream in = Files.newInputStream(part)) {
         SplittingBAMIndex index = new SplittingBAMIndex(in);
         LinkedList<Long> virtualOffsets = new LinkedList<>(index.getVirtualOffsets());
         for (int i = 0; i < virtualOffsets.size() - 1; i++) {
@@ -168,8 +177,8 @@ public class SAMFileMerger {
           partFileOffset + ", expected: " + (fileLength - terminatingBlockLength));
     }
 
-    for (final FileStatus part : parts) {
-      fs.delete(part.getPath(), false);
+    for (final Path part : parts) {
+      Files.delete(part);
     }
   }
 
@@ -179,16 +188,11 @@ public class SAMFileMerger {
     return (blockAddress + offset) << 16 | (long) blockOffset;
   }
 
-  static FileStatus[] getSplittingBaiFiles( final org.apache.hadoop.fs.Path directory, final FileSystem fs ) throws IOException {
-    final FileStatus[] parts = fs.globStatus(new org.apache.hadoop.fs.Path(directory,
-            "part-[mr]-[0-9][0-9][0-9][0-9][0-9]*" + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION));
-
-    // FileSystem.globStatus() has a known bug that causes it to not sort the array returned by
-    // name (despite claiming to): https://issues.apache.org/jira/browse/HADOOP-10798
-    // Because of this bug, we do an explicit sort here to avoid assembling the bam fragments
-    // in the wrong order.
-    Arrays.sort(parts);
-
+  static List<Path> getSplittingBaiFiles(final Path directory) throws IOException {
+    PathMatcher matcher = directory.getFileSystem()
+        .getPathMatcher("glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*" + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+    List<Path> parts = Files.walk(directory).filter(matcher::matches).collect(Collectors.toList());
+    Collections.sort(parts);
     return parts;
   }
 }
