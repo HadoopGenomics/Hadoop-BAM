@@ -28,8 +28,10 @@ import htsjdk.samtools.Chunk;
 import htsjdk.samtools.DiskBasedBAMFileIndex;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SamFiles;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -298,13 +300,14 @@ public class BAMInputFormat
 			bamFiles.add(((FileVirtualSplit) split).getPath());
 		}
 		for (Path bamFile : bamFiles) {
-			Path indexFile = bamFile.suffix(BAMIndex.BAMIndexSuffix);
 			FileSystem fs = bamFile.getFileSystem(conf);
-			if (!fs.exists(indexFile)) {
+			java.nio.file.Path index = SamFiles.findIndex(Paths.get(fs.makeQualified(bamFile).toUri()));
+			if (index == null) {
 				System.err.println("WARNING: no BAM index file found, splits will not be " +
-						"filtered, which may be very inefficient: " + indexFile);
+						"filtered, which may be very inefficient: " + bamFile);
 				return splits;
 			}
+			Path indexFile = new Path(index.toUri());
 
 			FSDataInputStream in = fs.open(bamFile);
 			SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
