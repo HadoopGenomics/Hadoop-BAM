@@ -26,7 +26,7 @@ import static org.seqdoop.hadoop_bam.util.NIOFileUtil.mergeInto;
 
 /**
  * Merges headerless VCF files produced by {@link KeyIgnoringVCFOutputFormat}
- * into a single file.
+ * into a single file. BCF files are not supported.
  */
 public class VCFFileMerger {
   /**
@@ -52,12 +52,13 @@ public class VCFFileMerger {
           "path: " + partPath);
     }
 
-    List<Path> parts = getFilesMatching(partPath,
-        "glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*",
+    List<Path> parts = getFilesMatching(partPath, NIOFileUtil.PARTS_GLOB,
         TabixUtils.STANDARD_INDEX_EXTENSION);
     if (parts.isEmpty()) {
       throw new IllegalArgumentException("Could not write bam file because no part " +
           "files were found in " + partPath);
+    } else if (isBCF(parts)) {
+      throw new IllegalArgumentException("BCF files are not supported.");
     }
 
     Files.deleteIfExists(outputPath);
@@ -107,6 +108,12 @@ public class VCFFileMerger {
       ((GZIPOutputStream) headerOut).finish();
     }
     return blockCompressed;
+  }
+
+  private static boolean isBCF(List<Path> parts) throws IOException {
+    try (InputStream in = new BufferedInputStream(Files.newInputStream(parts.get(0)))) {
+      return VCFFormat.BCF.equals(VCFFormat.inferFromData(in));
+    }
   }
 
   private static boolean isBlockCompressed(List<Path> parts) throws IOException {

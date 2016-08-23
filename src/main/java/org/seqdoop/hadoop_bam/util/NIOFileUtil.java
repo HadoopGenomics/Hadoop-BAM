@@ -18,6 +18,8 @@ class NIOFileUtil {
   private NIOFileUtil() {
   }
 
+  public static final String PARTS_GLOB = "glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*";
+
   /**
    * Convert the given path string to a {@link Path} object.
    * @param path the path to convert

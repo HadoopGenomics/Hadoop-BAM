@@ -59,8 +59,7 @@ public class SAMFileMerger {
           "path: " + partPath);
     }
 
-    List<Path> parts = getFilesMatching(partPath,
-        "glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*",
+    List<Path> parts = getFilesMatching(partPath, NIOFileUtil.PARTS_GLOB,
         SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
     if (parts.isEmpty()) {
       throw new IllegalArgumentException("Could not write bam file because no part " +
@@ -83,10 +82,12 @@ public class SAMFileMerger {
 
     final Path outputSplittingBaiPath = outputPath.resolveSibling(
         outputPath.getFileName() + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+    Files.deleteIfExists(outputSplittingBaiPath);
     try (final OutputStream out = Files.newOutputStream(outputSplittingBaiPath)) {
       mergeSplittingBaiFiles(out, partPath, headerLength, fileLength);
     } catch (IOException e) {
       deleteRecursive(outputSplittingBaiPath);
+      throw e;
     }
 
     deleteRecursive(partPath);
@@ -104,8 +105,7 @@ public class SAMFileMerger {
   static void mergeSplittingBaiFiles(OutputStream out, Path directory, long headerLength,
       long fileLength) throws IOException {
     final List<Path> parts = getFilesMatching(directory,
-        "glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*" +
-            SplittingBAMIndexer.OUTPUT_FILE_EXTENSION, null);
+        NIOFileUtil.PARTS_GLOB + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION, null);
     if (parts.isEmpty()) {
       return; // nothing to merge
     }
