@@ -68,7 +68,6 @@ public class AnySAMInputFormat
 	private final boolean              givenMap;
 
 	private Configuration conf;
-	private boolean trustExts;
 
 	/** Creates a new input format, which will use the
 	 * <code>Configuration</code> from the first public method called. Thus this
@@ -84,19 +83,18 @@ public class AnySAMInputFormat
 	 * <code>Job.setInputFormatClass</code>.
 	 */
 	public AnySAMInputFormat() {
-		this.formatMap = new HashMap<Path,SAMFormat>();
-		this.givenMap  = false;
-		this.conf      = null;
+		this(null, new HashMap<>(), false);
 	}
 
 	/** Creates a new input format, reading {@link #TRUST_EXTS_PROPERTY} from
 	 * the given <code>Configuration</code>.
 	 */
 	public AnySAMInputFormat(Configuration conf) {
-		this.formatMap = new HashMap<Path,SAMFormat>();
-		this.conf      = conf;
-		this.trustExts = conf.getBoolean(TRUST_EXTS_PROPERTY, true);
-		this.givenMap  = false;
+		this(conf, new HashMap<>(), false);
+	}
+
+	private static boolean trustExtensions(Configuration conf) {
+		return conf.getBoolean(TRUST_EXTS_PROPERTY, true);
 	}
 
 	/** Creates a new input format, trusting the given <code>Map</code> to
@@ -107,12 +105,13 @@ public class AnySAMInputFormat
 	 * this input format is in use!</p>
 	 * */
 	public AnySAMInputFormat(Map<Path,SAMFormat> formatMap) {
-		this.formatMap = formatMap;
-		this.givenMap  = true;
+		this(null, formatMap, true);
+	}
 
-		// Arbitrary values.
-		this.conf = null;
-		this.trustExts = false;
+	private AnySAMInputFormat(Configuration conf, Map<Path, SAMFormat> formatMap, boolean givenMap){
+		this.formatMap = formatMap;
+		this.givenMap = givenMap;
+		this.conf = conf;
 	}
 
 	/** Returns the {@link SAMFormat} corresponding to the given path. Returns
@@ -136,7 +135,7 @@ public class AnySAMInputFormat
 		if (this.conf == null)
 			throw new IllegalStateException("Don't have a Configuration yet");
 
-		if (trustExts) {
+		if (trustExtensions(conf)) {
 			final SAMFormat f = SAMFormat.inferFromFilePath(path);
 			if (f != null) {
 				formatMap.put(path, f);
