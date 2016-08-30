@@ -143,7 +143,7 @@ below:
 
 |Format|Property|Default|Description|
 |------|--------|-------|-----------|
-|`AnySAMInputFormat`|`hadoopbam.anysam.trust-exts`|`false`|Whether to detect the file format (BAM, SAM, or CRAM) by file extension. If `false`, use the file contents to detect the format.|
+|`AnySAMInputFormat`|`hadoopbam.anysam.trust-exts`|`true`|Whether to detect the file format (BAM, SAM, or CRAM) by file extension. If `false`, use the file contents to detect the format.|
 |`KeyIgnoringAnySAMOutputFormat`|`hadoopbam.anysam.output-format`| |(Required.) The file format to use when writing BAM, SAM, or CRAM files. Should be one of `BAM`, `SAM`, or `CRAM`.|
 | |`hadoopbam.anysam.write-header`|`true`|Whether to write the SAM header in each output file part. If `true`, call `setSAMHeader()` or `readSAMHeaderFrom()` to set the desired header.|
 |`BAMInputFormat`|`hadoopbam.bam.keep-paired-reads-together`|`false`|If `true`, ensure that for paired reads both reads in a pair are always in the same split for queryname-sorted BAM files.|
