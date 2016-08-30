@@ -1,7 +1,12 @@
 package org.seqdoop.hadoop_bam;
 
 import htsjdk.samtools.*;
+import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -16,13 +21,12 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
+import org.seqdoop.hadoop_bam.util.SAMFileMerger;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
-import org.seqdoop.hadoop_bam.util.SAMOutputPreparer;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
+import org.seqdoop.hadoop_bam.util.SAMOutputPreparer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -79,7 +83,7 @@ public class TestBAMOutputFormat {
         conf.set("mapred.input.dir", "file://" + testBAMFileName);
 
         // fetch the SAMFile header from the original input to get the expected count
-        expectedRecordCount = getBAMRecordCount(testBAMFileName);
+        expectedRecordCount = getBAMRecordCount(new File(testBAMFileName));
         samFileHeader = SAMHeaderReader.readSAMHeaderFrom(new Path(testBAMFileName), conf);
 
         taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
@@ -110,11 +114,7 @@ public class TestBAMOutputFormat {
         rw.close(taskAttemptContext);
 
         // now verify the output
-        final int actualCount = verifyBAMBlocks(
-                new File(outFile.getAbsolutePath()),
-                samFileHeader,
-                true);
-
+        final int actualCount = getBAMRecordCount(outFile, samFileHeader);
         assertEquals(expectedRecordCount, actualCount);
     }
 
@@ -143,22 +143,72 @@ public class TestBAMOutputFormat {
         rw.close(taskAttemptContext);
 
         // now verify the output
-        final int actualCount = verifyBAMBlocks(
-                new File(outFile.getAbsolutePath()),
-                samFileHeader,
-                false);
-
+        final int actualCount = getBAMRecordCount(outFile);
         assertEquals(expectedRecordCount, actualCount);
     }
 
     @Test
     public void testBAMOutput() throws Exception {
         final Path outputPath = doMapReduce(testBAMFileName);
-        final File blockStreamFile =
-                new File(new File(outputPath.toUri()), "part-m-00000");
-        final int actualCount = verifyBAMBlocks(
-                blockStreamFile, samFileHeader, true);
+        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        outFile.deleteOnExit();
+        SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
+            SAMFormat.BAM, samFileHeader);
+        final int actualCount = getBAMRecordCount(outFile);
         assertEquals(expectedRecordCount, actualCount);
+    }
+
+    @Test
+    public void testBAMWithSplittingBai() throws Exception {
+        int numPairs = 20000;
+        // create a large BAM with lots of index points
+        String bam = BAMTestUtil.writeBamFile(20000,
+            SAMFileHeader.SortOrder.coordinate).toURI().toString();
+        conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 800000); // force multiple parts
+        conf.setBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, true);
+        final Path outputPath = doMapReduce(bam);
+
+        List<SAMRecord> recordsAtSplits = new ArrayList<>();
+        File[] splittingIndexes = new File(outputPath.toUri()).listFiles(pathname -> {
+            return pathname.getName().endsWith(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+        });
+        Arrays.sort(splittingIndexes); // ensure files are sorted by name
+        for (File file : splittingIndexes) {
+            File bamFile = new File(file.getParentFile(),
+                file.getName().replace(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION, ""));
+            SplittingBAMIndex index = new SplittingBAMIndex(file);
+            recordsAtSplits.addAll(getRecordsAtSplits(bamFile, index));
+        }
+
+        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        //outFile.deleteOnExit();
+        SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
+            SAMFormat.BAM,
+            new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.coordinate).getHeader());
+
+        final int actualCount = getBAMRecordCount(outFile);
+        assertEquals(numPairs * 2, actualCount);
+
+        File splittingBai = new File(outFile.getParentFile(), outFile.getName() +
+            SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+        SplittingBAMIndex splittingBAMIndex = new SplittingBAMIndex(splittingBai);
+
+        assertEquals(recordsAtSplits, getRecordsAtSplits(outFile, splittingBAMIndex));
+    }
+
+    private List<SAMRecord> getRecordsAtSplits(File bam, SplittingBAMIndex index) throws IOException {
+        List<SAMRecord> records = new ArrayList<>();
+        BAMRecordCodec codec = new BAMRecordCodec(samFileHeader);
+        BlockCompressedInputStream bci = new BlockCompressedInputStream(bam);
+        codec.setInputStream(bci);
+        for (Long offset : index.getVirtualOffsets()) {
+            bci.seek(offset);
+            SAMRecord record = codec.decode();
+            if (record != null) {
+                records.add(record);
+            }
+        }
+        return records;
     }
 
     @Test
@@ -166,40 +216,22 @@ public class TestBAMOutputFormat {
         // run a m/r job to write out a bam file
         Path outputPath = doMapReduce(testBAMFileName);
 
-        // assemble the output, and write to a temp file
-        File blockStreamFile =
-                new File(new File(outputPath.toUri()), "part-m-00000");
-        final ByteArrayInputStream bamStream = mergeBAMBlockStream(
-                blockStreamFile,
-                samFileHeader,
-                true);
+        // merge the parts, and write to a temp file
         final File outFile = File.createTempFile("testBAMWriter", ".bam");
         outFile.deleteOnExit();
-        Files.copy(bamStream, outFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
+            SAMFormat.BAM, samFileHeader);
 
         // now use the assembled output as m/r input
         outputPath = doMapReduce(outFile.getAbsolutePath());
 
-        // verify the final output
-        blockStreamFile = new File(new File(outputPath.toUri()), "part-m-00000");
-        final int actualCount = verifyBAMBlocks(
-                blockStreamFile,
-                samFileHeader,
-                true);
-        assertEquals(expectedRecordCount, actualCount);
-    }
+        // merge the parts again
+        SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
+            SAMFormat.BAM, samFileHeader);
 
-    private int getBAMRecordCount(final String bamFileName) throws IOException {
-        final SamReader bamReader = SamReaderFactory.makeDefault()
-                                        .open(SamInputResource.of(bamFileName));
-        final Iterator<SAMRecord> it = bamReader.iterator();
-        int recCount = 0;
-        while (it.hasNext()) {
-            it.next();
-            recCount++;
-        }
-        bamReader.close();
-        return recCount;
+        // verify the final output
+        final int actualCount = getBAMRecordCount(outFile);
+        assertEquals(expectedRecordCount, actualCount);
     }
 
     private Path doMapReduce(final String inputFile) throws Exception {
@@ -229,22 +261,33 @@ public class TestBAMOutputFormat {
         return outputPath;
     }
 
-    private int verifyBAMBlocks(
-            final File blockStreamFile,
-            final SAMFileHeader header,
-            final boolean writeHeader) throws IOException
+    private int getBAMRecordCount(final File bamFile) throws IOException {
+        final SamReader bamReader = SamReaderFactory.makeDefault()
+                                        .open(SamInputResource.of(bamFile));
+        final Iterator<SAMRecord> it = bamReader.iterator();
+        int recCount = 0;
+        while (it.hasNext()) {
+            it.next();
+            recCount++;
+        }
+        bamReader.close();
+        return recCount;
+    }
+
+    private int getBAMRecordCount(
+        final File blockStreamFile,
+        final SAMFileHeader header) throws IOException
     {
         // assemble a proper BAM file from the block stream shard(s) in
         // order to verify the contents
         final ByteArrayInputStream mergedStream = mergeBAMBlockStream (
-                blockStreamFile,
-                header,
-                writeHeader
+            blockStreamFile,
+            header
         );
 
         // now we can verify that we can read everything back in
         final SamReader resultBAMReader = SamReaderFactory.makeDefault()
-                                        .open(SamInputResource.of(mergedStream));
+            .open(SamInputResource.of(mergedStream));
         final Iterator<SAMRecord> it = resultBAMReader.iterator();
         int actualCount = 0;
         while (it.hasNext()) {
@@ -255,21 +298,18 @@ public class TestBAMOutputFormat {
     }
 
     private ByteArrayInputStream mergeBAMBlockStream(
-            final File blockStreamFile,
-            final SAMFileHeader header,
-            final boolean writeHeader) throws IOException
+        final File blockStreamFile,
+        final SAMFileHeader header) throws IOException
     {
         // assemble a proper BAM file from the block stream shard(s) in
         // order to verify the contents
         final ByteArrayOutputStream bamOutputStream = new ByteArrayOutputStream();
 
         // write out the bam file header
-        if (writeHeader) {
-            new SAMOutputPreparer().prepareForRecords(
-                    bamOutputStream,
-                    SAMFormat.BAM,
-                    header);
-        }
+        new SAMOutputPreparer().prepareForRecords(
+            bamOutputStream,
+            SAMFormat.BAM,
+            header);
 
         // copy the contents of the block shard(s) written out by the M/R job
         final ByteArrayOutputStream blockOutputStream = new ByteArrayOutputStream();
@@ -282,5 +322,4 @@ public class TestBAMOutputFormat {
 
         return new ByteArrayInputStream(bamOutputStream.toByteArray());
     }
-
 }

@@ -28,7 +28,7 @@ public class TestVCFHeaderReader {
     assertNotNull(VCFHeaderReader.readHeaderFrom(seekableStream("test.vcf.bgzf.gz")));
   }
 
-  private SeekableStream seekableStream(final String resource) throws IOException {
+  static SeekableStream seekableStream(final String resource) throws IOException {
     return new ByteArraySeekableStream(Resources.toByteArray(ClassLoader.getSystemClassLoader().getResource(resource)));
   }
 }

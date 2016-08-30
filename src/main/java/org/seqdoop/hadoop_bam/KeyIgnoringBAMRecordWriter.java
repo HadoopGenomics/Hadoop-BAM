@@ -55,7 +55,7 @@ public class KeyIgnoringBAMRecordWriter<K> extends BAMRecordWriter<K> {
 		super(output, header, writeHeader);
 	}
 
-	@Override public void write(K ignored, SAMRecordWritable rec) {
+	@Override public void write(K ignored, SAMRecordWritable rec) throws IOException {
 		writeAlignment(rec.get());
 	}
 }
