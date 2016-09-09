@@ -1,3 +1,11 @@
+2016-09-09 --- 7.7.0
+   - Add option (hadoopbam.bam.write-splitting-bai) to write splitting index
+     (.splitting-bai file) from output format.
+   - Add SAMFileMerger for merging sharded BAM or CRAM files.
+   - Add VCFFileMerger for merging sharded VCF files.
+   - Recognize .bai as well as .bam.bai extensions for BAM index files.
+   - Honor AnySAMInputFormat.TRUST_EXTS_PROPERTY (thanks Louis Bergelson)
+
 2016-06-30 --- 7.6.0
    - Upgrade to htsjdk 2.5.0
    - Support writing of block compressed (BGZF) VCF files, plus codec
