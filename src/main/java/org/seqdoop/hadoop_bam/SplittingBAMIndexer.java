@@ -55,7 +55,7 @@ import htsjdk.samtools.util.BlockCompressedInputStream;
  * 2) Building a splitting BAM index while building the BAM file
  *
  * For 1), use the static {@link #index(InputStream, OutputStream, long, int)} method,
- * which takes the input BAM and output stream tot write the index to.
+ * which takes the input BAM and output stream to write the index to.
  *
  * For 2), use one of the constructors that takes an output stream, then pass {@link
  * SAMRecord} objects via the {@link #processAlignment} method, and then call {@link
