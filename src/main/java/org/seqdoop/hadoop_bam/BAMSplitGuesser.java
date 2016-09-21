@@ -213,6 +213,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
                                   catch (SAMFormatException     e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
 				  catch (IllegalArgumentException e) { continue; }
+				  catch (IndexOutOfBoundsException e) { continue; }
 				  catch (RuntimeIOException     e) { continue; }
 				  // EOF can happen legitimately if the [beg,end) range is too
 				  // small to accommodate BLOCKS_NEEDED_FOR_GUESS and we get cut
