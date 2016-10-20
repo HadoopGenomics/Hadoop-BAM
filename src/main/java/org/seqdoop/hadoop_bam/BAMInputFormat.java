@@ -37,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
@@ -301,7 +302,8 @@ public class BAMInputFormat
 		}
 		for (Path bamFile : bamFiles) {
 			FileSystem fs = bamFile.getFileSystem(conf);
-			java.nio.file.Path index = SamFiles.findIndex(Paths.get(fs.makeQualified(bamFile).toUri()));
+			java.nio.file.Path index = SamFiles.findIndex(
+					NIOFileUtil.asPath(fs.makeQualified(bamFile).toUri()));
 			if (index == null) {
 				System.err.println("WARNING: no BAM index file found, splits will not be " +
 						"filtered, which may be very inefficient: " + bamFile);

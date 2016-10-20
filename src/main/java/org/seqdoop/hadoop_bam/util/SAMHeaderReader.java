@@ -91,6 +91,6 @@ public final class SAMHeaderReader {
 		// configuration params, but it would break backward compatibility with existing code that
 		// is dependent on the CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY.
 		final String refSourcePath = conf.get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
-		return refSourcePath == null ? null : new ReferenceSource(Paths.get(URI.create(refSourcePath)));
+		return refSourcePath == null ? null : new ReferenceSource(NIOFileUtil.asPath(refSourcePath));
 	}
 }

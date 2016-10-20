@@ -3,6 +3,8 @@ package org.seqdoop.hadoop_bam.util;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,14 +13,36 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class NIOFileUtil {
+public class NIOFileUtil {
   private NIOFileUtil() {
   }
 
-  public static final String PARTS_GLOB = "glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*";
+  static final String PARTS_GLOB = "glob:**/part-[mr]-[0-9][0-9][0-9][0-9][0-9]*";
+
+  /**
+   * Convert the given path {@link URI} to a {@link Path} object.
+   * @param uri the path to convert
+   * @return a {@link Path} object
+   */
+  public static Path asPath(URI uri) {
+    try {
+      return Paths.get(uri);
+    } catch (FileSystemNotFoundException e) {
+      ClassLoader cl = Thread.currentThread().getContextClassLoader();
+      if (cl == null) {
+        throw e;
+      }
+      try {
+        return FileSystems.newFileSystem(uri, new HashMap<>(), cl).provider().getPath(uri);
+      } catch (IOException ex) {
+        throw new RuntimeException("Cannot create filesystem for " + uri, ex);
+      }
+    }
+  }
 
   /**
    * Convert the given path string to a {@link Path} object.
@@ -27,7 +51,7 @@ class NIOFileUtil {
    */
   public static Path asPath(String path) {
     URI uri = URI.create(path);
-    return uri.getScheme() == null ? Paths.get(path) : Paths.get(uri);
+    return uri.getScheme() == null ? Paths.get(path) : asPath(uri);
   }
 
   /**
@@ -35,7 +59,7 @@ class NIOFileUtil {
    * @param directory the directory to delete
    * @throws IOException
    */
-  public static void deleteRecursive(Path directory) throws IOException {
+  static void deleteRecursive(Path directory) throws IOException {
     Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -61,7 +85,7 @@ class NIOFileUtil {
    * @return a list of files, sorted by name
    * @throws IOException
    */
-  public static List<Path> getFilesMatching(Path directory,
+  static List<Path> getFilesMatching(Path directory,
       String syntaxAndPattern, String excludesExt) throws IOException {
     PathMatcher matcher = directory.getFileSystem().getPathMatcher(syntaxAndPattern);
     List<Path> parts = Files.walk(directory)
@@ -78,7 +102,7 @@ class NIOFileUtil {
    * @param out the stream to write each file into, in order
    * @throws IOException
    */
-  public static void mergeInto(List<Path> parts, OutputStream out)
+  static void mergeInto(List<Path> parts, OutputStream out)
       throws IOException {
     for (final Path part : parts) {
       Files.copy(part, out);

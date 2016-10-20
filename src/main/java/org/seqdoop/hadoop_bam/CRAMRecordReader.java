@@ -15,6 +15,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
@@ -41,7 +42,7 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
 
     String refSourcePath = conf.get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
     ReferenceSource refSource = new ReferenceSource(refSourcePath == null ? null :
-        Paths.get(URI.create(refSourcePath)));
+        NIOFileUtil.asPath(refSourcePath));
 
     seekableStream = WrapSeekable.openPath(conf, file);
     start = fileSplit.getStart();
@@ -50,11 +51,8 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
     // CRAMIterator right shifts boundaries by 16 so we do the reverse here
     // also subtract one from end since CRAMIterator's boundaries are inclusive
     long[] boundaries = new long[] {start << 16, (end - 1) << 16};
-    cramIterator = new CRAMIterator(seekableStream, refSource, boundaries);
     ValidationStringency stringency = SAMHeaderReader.getValidationStringency(conf);
-    if (stringency != null) {
-      cramIterator.setValidationStringency(stringency);
-    }
+    cramIterator = new CRAMIterator(seekableStream, refSource, boundaries, stringency);
   }
 
   @Override
