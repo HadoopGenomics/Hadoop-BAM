@@ -15,6 +15,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
 /** A base {@link RecordWriter} for CRAM records.
@@ -78,10 +79,10 @@ public abstract class CRAMRecordWriter<K>
         origOutput = output;
         this.writeHeader = writeHeader;
 
-        final URI referenceURI = URI.create(
-                ctx.getConfiguration().get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY)
-        );
-        refSource = new ReferenceSource(Paths.get(referenceURI));
+        final String referenceURI =
+                ctx.getConfiguration().get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
+        refSource = new ReferenceSource(referenceURI == null ? null :
+            NIOFileUtil.asPath(referenceURI));
 
         // A SAMFileHeader must be supplied at CRAMContainerStreamWriter creation time; if
         // we don't have one then delay creation until we do
