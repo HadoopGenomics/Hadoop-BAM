@@ -1,3 +1,6 @@
+2016-11-03 --- 7.7.1
+   - Handle FileSystemNotFoundException when loading a java.nio.file filesystem provider
+
 2016-09-09 --- 7.7.0
    - Add option (hadoopbam.bam.write-splitting-bai) to write splitting index
      (.splitting-bai file) from output format.
