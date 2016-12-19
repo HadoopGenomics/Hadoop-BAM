@@ -25,13 +25,12 @@ package org.seqdoop.hadoop_bam;
 import htsjdk.samtools.BAMFileSpan;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.Chunk;
-import htsjdk.samtools.DiskBasedBAMFileIndex;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.SamFiles;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
-import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -302,21 +301,22 @@ public class BAMInputFormat
 		}
 		for (Path bamFile : bamFiles) {
 			FileSystem fs = bamFile.getFileSystem(conf);
-			java.nio.file.Path index = SamFiles.findIndex(
-					NIOFileUtil.asPath(fs.makeQualified(bamFile).toUri()));
-			if (index == null) {
+
+			SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
+					.setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
+					.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+					.setUseAsyncIo(false);
+			SamReader samReader = readerFactory.open(NIOFileUtil.asPath(fs.makeQualified(bamFile).toUri()));
+			if (!samReader.hasIndex()) {
 				System.err.println("WARNING: no BAM index file found, splits will not be " +
 						"filtered, which may be very inefficient: " + bamFile);
 				return splits;
 			}
-			Path indexFile = new Path(index.toUri());
 
 			FSDataInputStream in = fs.open(bamFile);
 			SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
 			SAMSequenceDictionary dict = header.getSequenceDictionary();
-
-			WrapSeekable seekableIdxFile = WrapSeekable.openPath(conf, indexFile);
-			DiskBasedBAMFileIndex idx = new DiskBasedBAMFileIndex(seekableIdxFile, dict);
+			BAMIndex idx = samReader.indexing().getIndex();
 
 			for (Locatable interval : intervals) {
 				int referenceIndex = dict.getSequenceIndex(interval.getContig());
@@ -326,6 +326,8 @@ public class BAMInputFormat
 				chunks.addAll(sfs.getChunks());
 			}
 		}
+
+		chunks = Chunk.optimizeChunkList(chunks, 0); // use conservative value for min offset
 
 		// Use the chunks to filter the splits
 		List<InputSplit> filteredSplits = new ArrayList<InputSplit>();
