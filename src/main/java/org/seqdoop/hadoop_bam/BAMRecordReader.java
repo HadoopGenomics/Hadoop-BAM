@@ -22,30 +22,36 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.BAMFileReader;
+import htsjdk.samtools.BAMFileSpan;
+import htsjdk.samtools.Chunk;
+import htsjdk.samtools.QueryInterval;
+import htsjdk.samtools.SamFiles;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.Interval;
-import htsjdk.samtools.util.Locatable;
-import htsjdk.samtools.util.OverlapDetector;
 import java.io.IOException;
-import java.util.Collection;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import htsjdk.samtools.BAMRecordCodec;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileHeader.SortOrder;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.util.BlockCompressedInputStream;
 
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
+import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
@@ -58,17 +64,12 @@ public class BAMRecordReader
 	private final LongWritable key = new LongWritable();
 	private final SAMRecordWritable record = new SAMRecordWritable();
 
-	private ValidationStringency stringency;
-
-	private BlockCompressedInputStream bci;
-	private BAMRecordCodec codec;
-	private long fileStart, virtualStart, virtualEnd;
+	private CloseableIterator<SAMRecord> iterator;
+	private boolean reachedEnd;
+	private WrapSeekable<FSDataInputStream> in;
+	private long fileStart;
+	private long virtualEnd;
 	private boolean isInitialized = false;
-	private boolean keepReadPairsTogether;
-	private boolean readPair;
-	private boolean lastOfPair;
-	private List<Interval> intervals;
-	private OverlapDetector<Interval> overlapDetector;
 
 	/** Note: this is the only getKey function that handles unmapped reads
 	 * specially!
@@ -126,6 +127,7 @@ public class BAMRecordReader
 		if(isInitialized)
 			close();
 		isInitialized = true;
+		reachedEnd = false;
 
 		final Configuration conf = ctx.getConfiguration();
 
@@ -133,55 +135,70 @@ public class BAMRecordReader
 		final Path             file  = split.getPath();
 		final FileSystem       fs    = file.getFileSystem(conf);
 
-		this.stringency = SAMHeaderReader.getValidationStringency(conf);
+		ValidationStringency stringency = SAMHeaderReader.getValidationStringency(conf);
 
-		final FSDataInputStream in = fs.open(file);
+		java.nio.file.Path index = SamFiles.findIndex(NIOFileUtil.asPath(fs.makeQualified(file).toUri()));
+		Path fileIndex = index == null ? null : new Path(index.toUri());
+		SeekableStream indexStream = fileIndex == null ? null : WrapSeekable.openPath(fs, fileIndex);
+		in = WrapSeekable.openPath(fs, file);
+		SamReader samReader = createSamReader(in, indexStream, stringency);
+		final SAMFileHeader header = samReader.getFileHeader();
 
-		final SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
-		codec = new BAMRecordCodec(header);
-
-		in.seek(0);
-		bci =
-			new BlockCompressedInputStream(
-				new WrapSeekable<FSDataInputStream>(
-					in, fs.getFileStatus(file).getLen(), file));
-
-		virtualStart = split.getStartVirtualOffset();
+		long virtualStart = split.getStartVirtualOffset();
 
 		fileStart  = virtualStart >>> 16;
 		virtualEnd = split.getEndVirtualOffset();
 
-		bci.seek(virtualStart);
-		codec.setInputStream(bci);
-		
+		SamReader.PrimitiveSamReader primitiveSamReader =
+				((SamReader.PrimitiveSamReaderToSamReaderAdapter) samReader).underlyingReader();
+		BAMFileReader bamFileReader = (BAMFileReader) primitiveSamReader;
+
 		if(BAMInputFormat.DEBUG_BAM_SPLITTER) {
 			final long recordStart = virtualStart & 0xffff;
                 	System.err.println("XXX inizialized BAMRecordReader byte offset: " +
 				fileStart + " record offset: " + recordStart);
 		}
 
-		keepReadPairsTogether = SortOrder.queryname.equals(header.getSortOrder()) &&
-			conf.getBoolean(BAMInputFormat.KEEP_PAIRED_READS_TOGETHER_PROPERTY, false);
-		readPair = false;
-		lastOfPair = false;
-		intervals = BAMInputFormat.getIntervals(conf);
-		if (intervals != null) {
-			overlapDetector = new OverlapDetector<>(0, 0);
-			overlapDetector.addAll(intervals, intervals);
+		if (conf.getBoolean("hadoopbam.bam.keep-paired-reads-together", false)) {
+			throw new IllegalArgumentException("Property hadoopbam.bam.keep-paired-reads-together is no longer honored.");
 		}
 
+		List<Interval> intervals = BAMInputFormat.getIntervals(conf);
+		if (intervals != null) {
+			QueryInterval[] queryIntervals = BAMInputFormat.prepareQueryIntervals(intervals, header.getSequenceDictionary());
+			iterator = bamFileReader.createIndexIterator(queryIntervals, false, split.getIntervalFilePointers());
+		} else {
+			BAMFileSpan splitSpan = new BAMFileSpan(new Chunk(virtualStart, virtualEnd));
+			iterator = bamFileReader.getIterator(splitSpan);
+		}
 	}
-	@Override public void close() throws IOException { bci.close(); }
+
+	private SamReader createSamReader(SeekableStream in, SeekableStream inIndex,
+			ValidationStringency stringency) {
+		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
+				.setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
+				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+				.setUseAsyncIo(false);
+		if (stringency != null) {
+			readerFactory.validationStringency(stringency);
+		}
+		SamInputResource resource = SamInputResource.of(in);
+		if (inIndex != null) {
+			resource.index(inIndex);
+		}
+		return readerFactory.open(resource);
+	}
+
+	@Override public void close() throws IOException { iterator.close(); }
 
 	/** Unless the end has been reached, this only takes file position into
 	 * account, not the position within the block.
 	 */
-	@Override public float getProgress() {
-		final long virtPos = bci.getFilePointer();
-		final long filePos = virtPos >>> 16;
-		if (virtPos >= virtualEnd)
+	@Override public float getProgress() throws IOException {
+		if (reachedEnd)
 			return 1;
 		else {
+			final long filePos = in.position();
 			final long fileEnd = virtualEnd >>> 16;
 			// Add 1 to the denominator to make sure it doesn't reach 1 here when
 			// filePos == fileEnd.
@@ -192,61 +209,13 @@ public class BAMRecordReader
 	@Override public SAMRecordWritable getCurrentValue() { return record; }
 
 	@Override public boolean nextKeyValue() {
-		long virtPos;
-		while ((virtPos = bci.getFilePointer()) < virtualEnd || (keepReadPairsTogether && readPair && !lastOfPair)) {
-
-			final SAMRecord r = codec.decode();
-			if (r == null)
+			if (!iterator.hasNext()) {
+				reachedEnd = true;
 				return false;
-
-			// Since we're reading from a BAMRecordCodec directly we have to set the
-			// validation stringency ourselves.
-			if (this.stringency != null)
-				r.setValidationStringency(this.stringency);
-
-			readPair = r.getReadPairedFlag();
-			if (readPair) {
-				boolean first = r.getFirstOfPairFlag(), second = r.getSecondOfPairFlag();
-				// According to the SAM spec (section 1.4) it is possible for pairs to have
-				// multiple segments (i.e. more than two), in which case both `first` and
-				// `second` will be true.
-				boolean firstOfPair = first && !second;
-				lastOfPair = !first && second;
-				// ignore any template that is not first in a pair right at the start of a split
-				// since it will have been returned in the previous split
-				if (virtPos == virtualStart && keepReadPairsTogether && !firstOfPair) {
-					continue;
-				}
 			}
-
-			if (!overlaps(r)) {
-				continue;
-			}
-
+			final SAMRecord r = iterator.next();
 			key.set(getKey(r));
 			record.set(r);
 			return true;
-		}
-		return false;
-	}
-
-	private boolean overlaps(SAMRecord r) {
-		if (intervals == null ||
-				(r.getReadUnmappedFlag() && r.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)) {
-			return true;
-		}
-		if (r.getReadUnmappedFlag()) { // special case for unmapped reads with coordinate set
-			for (Locatable interval : intervals) {
-				if (interval.getStart() <= r.getStart() && interval.getEnd() >= r.getStart()) {
-					// This follows the behavior of htsjdk's SamReader which states that
-					// "an unmapped read will be returned by this call if it has a coordinate for
-					// the purpose of sorting that is in the query region".
-					return true;
-				}
-			}
-		}
-		final Interval interval = new Interval(r.getContig(), r.getStart(), r.getEnd());
-		Collection<Interval> overlaps = overlapDetector.getOverlaps(interval);
-		return !overlaps.isEmpty();
 	}
 }

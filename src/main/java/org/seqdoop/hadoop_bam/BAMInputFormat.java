@@ -22,9 +22,11 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.BAMFileReader;
 import htsjdk.samtools.BAMFileSpan;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.Chunk;
+import htsjdk.samtools.QueryInterval;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SamReader;
@@ -32,7 +34,9 @@ import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -67,16 +71,6 @@ public class BAMInputFormat
 {
 	// set this to true for debug output
 	public final static boolean DEBUG_BAM_SPLITTER = false;
-
-	/**
-	 * If set to <code>true</code>, ensure that for paired reads both reads in a pair are
-	 * always in the same split for queryname-sorted BAM files.
-	 * <p>
-	 * Note: only use this option if for all paired reads both reads in each pair are
-	 * present, otherwise it is possible that reads may be silently dropped.
-	 */
-	public static final String KEEP_PAIRED_READS_TOGETHER_PROPERTY =
-			"hadoopbam.bam.keep-paired-reads-together";
 
 	/**
 	 * Filter by region, like <code>-L</code> in SAMtools. Takes a comma-separated
@@ -292,76 +286,100 @@ public class BAMInputFormat
 			return splits;
 		}
 
-		// Get the chunks in the intervals we want (chunks give start and end file pointers
-		// into a BAM file) by looking in all the indexes for the BAM files
-		List<Chunk> chunks = new ArrayList<Chunk>();
-		Set<Path> bamFiles = new LinkedHashSet<Path>();
+		// Get the chunk lists (BAMFileSpans) in the intervals we want (chunks give start
+		// and end file pointers into a BAM file) by looking in all the indexes for the BAM
+		// files
+		Set<Path> bamFiles = new LinkedHashSet<>();
 		for (InputSplit split : splits) {
 			bamFiles.add(((FileVirtualSplit) split).getPath());
 		}
+		Map<Path, BAMFileSpan> fileToSpan = new LinkedHashMap<>();
+		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
+				.setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
+				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+				.setUseAsyncIo(false);
 		for (Path bamFile : bamFiles) {
 			FileSystem fs = bamFile.getFileSystem(conf);
 
-			SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
-					.setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
-					.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
-					.setUseAsyncIo(false);
-			SamReader samReader = readerFactory.open(NIOFileUtil.asPath(fs.makeQualified(bamFile).toUri()));
-			if (!samReader.hasIndex()) {
-				System.err.println("WARNING: no BAM index file found, splits will not be " +
-						"filtered, which may be very inefficient: " + bamFile);
-				return splits;
-			}
+			try (SamReader samReader =
+							 readerFactory.open(NIOFileUtil.asPath(fs.makeQualified(bamFile).toUri()))) {
+				if (!samReader.hasIndex()) {
+					throw new IllegalArgumentException("Intervals set but no BAM index file found for " + bamFile);
 
-			FSDataInputStream in = fs.open(bamFile);
-			SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
-			SAMSequenceDictionary dict = header.getSequenceDictionary();
-			BAMIndex idx = samReader.indexing().getIndex();
+				}
 
-			for (Locatable interval : intervals) {
-				int referenceIndex = dict.getSequenceIndex(interval.getContig());
-				int intervalStart = interval.getStart();
-				int intervalEnd = interval.getEnd();
-				BAMFileSpan sfs = idx.getSpanOverlapping(referenceIndex, intervalStart, intervalEnd);
-				chunks.addAll(sfs.getChunks());
+				try (FSDataInputStream in = fs.open(bamFile)) {
+					SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
+					SAMSequenceDictionary dict = header.getSequenceDictionary();
+					BAMIndex idx = samReader.indexing().getIndex();
+					QueryInterval[] queryIntervals = prepareQueryIntervals(intervals, dict);
+					fileToSpan.put(bamFile, BAMFileReader.getFileSpan(queryIntervals, idx));
+				}
 			}
 		}
 
-		chunks = Chunk.optimizeChunkList(chunks, 0); // use conservative value for min offset
-
 		// Use the chunks to filter the splits
-		List<InputSplit> filteredSplits = new ArrayList<InputSplit>();
+		List<InputSplit> filteredSplits = new ArrayList<>();
 		for (InputSplit split : splits) {
 			FileVirtualSplit virtualSplit = (FileVirtualSplit) split;
 			long splitStart = virtualSplit.getStartVirtualOffset();
 			long splitEnd = virtualSplit.getEndVirtualOffset();
-			// if any chunk overlaps with the split, keep the split, but adjust the start and
-			// end to the maximally overlapping portion for all chunks that overlap
-			long newStart = Long.MAX_VALUE;
-			long newEnd = Long.MIN_VALUE;
-			boolean overlaps = false;
-			for (Chunk chunk : chunks) {
-				long chunkStart = chunk.getChunkStart();
-				long chunkEnd = chunk.getChunkEnd();
-				if (overlaps(splitStart, splitEnd, chunkStart, chunkEnd)) {
-					long overlapStart = Math.max(splitStart, chunkStart);
-					long overlapEnd = Math.min(splitEnd, chunkEnd);
-					newStart = Math.min(newStart, overlapStart);
-					newEnd = Math.max(newEnd, overlapEnd);
-					overlaps = true;
-				}
-			}
-			if (overlaps) {
-				filteredSplits.add(new FileVirtualSplit(virtualSplit.getPath(), newStart, newEnd,
-						virtualSplit.getLocations()));
+			BAMFileSpan splitSpan = new BAMFileSpan(new Chunk(splitStart, splitEnd));
+			BAMFileSpan span = fileToSpan.get(virtualSplit.getPath());
+			span = (BAMFileSpan) span.removeContentsBefore(splitSpan);
+			span = (BAMFileSpan) span.removeContentsAfter(splitSpan);
+			if (!span.getChunks().isEmpty()) {
+				filteredSplits.add(new FileVirtualSplit(virtualSplit.getPath(), splitStart, splitEnd,
+						virtualSplit.getLocations(), span.toCoordinateArray()));
 			}
 		}
 		return filteredSplits;
 	}
 
-	static boolean overlaps(long start, long end, long start2, long end2) {
-		return (start2 >= start && start2 <= end) || (end2 >=start && end2 <= end) ||
-				(start >= start2 && end <= end2);
+	/**
+	 * Converts a List of SimpleIntervals into the format required by the SamReader query API
+	 * @param rawIntervals SimpleIntervals to be converted
+	 * @return A sorted, merged list of QueryIntervals suitable for passing to the SamReader query API
+	 */
+	static QueryInterval[] prepareQueryIntervals( final List<Interval>
+			rawIntervals, final SAMSequenceDictionary sequenceDictionary ) {
+		if ( rawIntervals == null || rawIntervals.isEmpty() ) {
+			return null;
+		}
+
+		// Convert each SimpleInterval to a QueryInterval
+		final QueryInterval[] convertedIntervals =
+				rawIntervals.stream()
+						.map(rawInterval -> convertSimpleIntervalToQueryInterval(rawInterval, sequenceDictionary))
+						.toArray(QueryInterval[]::new);
+
+		// Intervals must be optimized (sorted and merged) in order to use the htsjdk query API
+		return QueryInterval.optimizeIntervals(convertedIntervals);
+	}
+	/**
+	 * Converts an interval in SimpleInterval format into an htsjdk QueryInterval.
+	 *
+	 * In doing so, a header lookup is performed to convert from contig name to index
+	 *
+	 * @param interval interval to convert
+	 * @param sequenceDictionary sequence dictionary used to perform the conversion
+	 * @return an equivalent interval in QueryInterval format
+	 */
+	private static QueryInterval convertSimpleIntervalToQueryInterval( final Interval interval,	final SAMSequenceDictionary sequenceDictionary ) {
+		if (interval == null) {
+			throw new IllegalArgumentException("interval may not be null");
+		}
+		if (sequenceDictionary == null) {
+			throw new IllegalArgumentException("sequence dictionary may not be null");
+		}
+
+		final int contigIndex = sequenceDictionary.getSequenceIndex(interval.getContig());
+		if ( contigIndex == -1 ) {
+			throw new IllegalArgumentException("Contig " + interval.getContig() + " not present in reads sequence " +
+					"dictionary");
+		}
+
+		return new QueryInterval(contigIndex, interval.getStart(), interval.getEnd());
 	}
 
 	@Override public boolean isSplitable(JobContext job, Path path) {
