@@ -478,6 +478,7 @@ public class VCFInputFormat
 	}
 
 	private static boolean overlaps(long start, long end, long start2, long end2) {
-		return BAMInputFormat.overlaps(start, end, start2, end2);
+		return (start2 >= start && start2 <= end) || (end2 >=start && end2 <= end) ||
+				(start >= start2 && end <= end2);
 	}
 }

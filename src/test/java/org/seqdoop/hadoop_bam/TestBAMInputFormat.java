@@ -18,7 +18,6 @@ import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -27,11 +26,9 @@ public class TestBAMInputFormat {
   private TaskAttemptContext taskAttemptContext;
   private JobContext jobContext;
   
-  private void completeSetup(boolean keepPairedReadsTogether, List<Interval> intervals) {
+  private void completeSetup(List<Interval> intervals) {
     Configuration conf = new Configuration();
     conf.set("mapred.input.dir", "file://" + input);
-    conf.setBoolean(BAMInputFormat.KEEP_PAIRED_READS_TOGETHER_PROPERTY,
-        keepPairedReadsTogether);
     if (intervals != null) {
       BAMInputFormat.setIntervals(conf, intervals);
     }
@@ -42,17 +39,17 @@ public class TestBAMInputFormat {
   @Test
   public void testNoReadsInFirstSplitBug() throws Exception {
     input = BAMTestUtil.writeBamFileWithLargeHeader().getAbsolutePath();
-    completeSetup(false, null);
+    completeSetup(null);
     BAMInputFormat inputFormat = new BAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
     assertEquals(1, splits.size());
   }
 
   @Test
-  public void testDontKeepPairedReadsTogether() throws Exception {
+  public void testMultipleSplits() throws Exception {
     input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname)
         .getAbsolutePath();
-    completeSetup(false, null);
+    completeSetup(null);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
@@ -69,32 +66,14 @@ public class TestBAMInputFormat {
   }
 
   @Test
-  public void testKeepPairedReadsTogether() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname)
-        .getAbsolutePath();
-    completeSetup(true, null);
-    jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
-    BAMInputFormat inputFormat = new BAMInputFormat();
-    List<InputSplit> splits = inputFormat.getSplits(jobContext);
-    assertEquals(2, splits.size());
-    List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
-    List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
-    assertEquals(1630, split0Records.size());
-    assertEquals(370, split1Records.size());
-    SAMRecord lastRecordOfSplit0 = split0Records.get(split0Records.size() - 1);
-    SAMRecord firstRecordOfSplit1 = split1Records.get(0);
-    assertNotEquals(lastRecordOfSplit0.getReadName(), firstRecordOfSplit1.getReadName());
-  }
-
-  @Test
   public void testIntervals() throws Exception {
     input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
         .getAbsolutePath();
     List<Interval> intervals = new ArrayList<Interval>();
-    intervals.add(new Interval("chr21", 5000, 9999)); // includes two unmapped fragments
+    intervals.add(new Interval("chr21", 5000, 9999)); // includes two unpaired fragments
     intervals.add(new Interval("chr21", 20000, 22999));
 
-    completeSetup(false, intervals);
+    completeSetup(intervals);
 
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
@@ -111,7 +90,7 @@ public class TestBAMInputFormat {
     List<Interval> intervals = new ArrayList<Interval>();
     intervals.add(new Interval("chr21", 1, 1000135));
 
-    completeSetup(false, intervals);
+    completeSetup(intervals);
 
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();

@@ -40,6 +40,7 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 	private long vStart;
 	private long vEnd;
 	private final String[] locations;
+	private long[] intervalFilePointers;
 
 	private static final String[] NO_LOCATIONS = {};
 
@@ -50,6 +51,14 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 		vStart    = vs;
 		vEnd      = ve;
 		locations = locs;
+	}
+
+	public FileVirtualSplit(Path f, long vs, long ve, String[] locs, long[] intervalFilePointers) {
+		file      = f;
+		vStart    = vs;
+		vEnd      = ve;
+		locations = locs;
+		this.intervalFilePointers = intervalFilePointers;
 	}
 
 	@Override public String[] getLocations() { return locations; }
@@ -79,15 +88,37 @@ public class FileVirtualSplit extends InputSplit implements Writable {
 	public void setStartVirtualOffset(long vo) { vStart = vo; }
 	public void   setEndVirtualOffset(long vo) { vEnd   = vo; }
 
+	/**
+	 * @return pairs of virtual file pointers for all intervals that should be used for
+	 * filtering the split, or <code>null</code> if there are none. These correspond to
+	 * BAMFileSpan chunk start/stop pointers in htsjdk.
+	 */
+	public long[] getIntervalFilePointers() {
+		return intervalFilePointers;
+	}
+
 	@Override public void write(DataOutput out) throws IOException {
 		Text.writeString(out, file.toString());
 		out.writeLong(vStart);
 		out.writeLong(vEnd);
+		out.writeBoolean(intervalFilePointers != null);
+		if (intervalFilePointers != null) {
+			out.writeInt(intervalFilePointers.length);
+			for (int i = 0; i < intervalFilePointers.length; i++) {
+				out.writeLong(intervalFilePointers[i]);
+			}
+		}
 	}
 	@Override public void readFields(DataInput in) throws IOException {
 		file   = new Path(Text.readString(in));
 		vStart = in.readLong();
 		vEnd   = in.readLong();
+		if (in.readBoolean()) {
+			intervalFilePointers = new long[in.readInt()];
+			for (int i = 0; i < intervalFilePointers.length; i++) {
+				intervalFilePointers[i] = in.readLong();
+			}
+		}
 	}
 
 	@Override
