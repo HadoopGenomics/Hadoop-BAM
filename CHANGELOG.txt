@@ -1,3 +1,7 @@
+2017-02-23 --- 7.8.0
+   - Optimize reading with intervals in BAMInputFormat.
+   - Remove support for hadoopbam.bam.keep-paired-reads-together.
+
 2016-11-03 --- 7.7.1
    - Handle FileSystemNotFoundException when loading a java.nio.file filesystem provider
 
