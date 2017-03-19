@@ -83,7 +83,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
                                  }
                              });
 
-            for (int i = 0; i < splits.size()-1;) {
+            for (int i = 0; i < splits.size()-1; i++) {
                 FileSplit fa = (FileSplit)splits.get(i);
                 FileSplit fb = (FileSplit)splits.get(i+1);
                     
