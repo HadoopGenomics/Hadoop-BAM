@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.seqdoop.hadoop_bam.util.NIOFileUtil;
@@ -111,6 +112,14 @@ public class BAMInputFormat
 		return path.suffix(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
 	}
 
+	static List<InputSplit> removeIndexFiles(List<InputSplit> splits) {
+		// Remove any splitting bai files
+		return splits.stream()
+				.filter(split -> !((FileSplit) split).getPath().getName().endsWith(
+						SplittingBAMIndexer.OUTPUT_FILE_EXTENSION))
+				.collect(Collectors.toList());
+	}
+
 	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
@@ -133,12 +142,15 @@ public class BAMInputFormat
 			List<InputSplit> splits, Configuration cfg)
 		throws IOException
 	{
+
+		final List<InputSplit> origSplits = removeIndexFiles(splits);
+
 		// Align the splits so that they don't cross blocks.
 
 		// addIndexedSplits() requires the given splits to be sorted by file
 		// path, so do so. Although FileInputFormat.getSplits() does, at the time
 		// of writing this, generate them in that order, we shouldn't rely on it.
-		Collections.sort(splits, new Comparator<InputSplit>() {
+		Collections.sort(origSplits, new Comparator<InputSplit>() {
 			public int compare(InputSplit a, InputSplit b) {
 				FileSplit fa = (FileSplit)a, fb = (FileSplit)b;
 				return fa.getPath().compareTo(fb.getPath());
@@ -146,13 +158,13 @@ public class BAMInputFormat
 		});
 
 		final List<InputSplit> newSplits =
-			new ArrayList<InputSplit>(splits.size());
+			new ArrayList<InputSplit>(origSplits.size());
 
-		for (int i = 0; i < splits.size();) {
+		for (int i = 0; i < origSplits.size();) {
 			try {
-				i = addIndexedSplits      (splits, i, newSplits, cfg);
+				i = addIndexedSplits      (origSplits, i, newSplits, cfg);
 			} catch (IOException e) {
-				i = addProbabilisticSplits(splits, i, newSplits, cfg);
+				i = addProbabilisticSplits(origSplits, i, newSplits, cfg);
 			}
 		}
 		return filterByInterval(newSplits, cfg);

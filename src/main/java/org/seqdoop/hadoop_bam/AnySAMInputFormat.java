@@ -226,7 +226,8 @@ public class AnySAMInputFormat
 		if (this.conf == null)
 			this.conf = job.getConfiguration();
 
-		final List<InputSplit> origSplits = super.getSplits(job);
+		final List<InputSplit> origSplits =
+				BAMInputFormat.removeIndexFiles(super.getSplits(job));
 
 		// We have to partition the splits by input format and hand them over to
 		// the *InputFormats for any further handling.
