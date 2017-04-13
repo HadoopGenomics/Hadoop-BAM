@@ -22,6 +22,8 @@
 
 package org.seqdoop.hadoop_bam;
 
+import com.google.common.collect.ImmutableList;
+import htsjdk.samtools.AbstractBAMFileIndex;
 import htsjdk.samtools.BAMFileReader;
 import htsjdk.samtools.BAMFileSpan;
 import htsjdk.samtools.BAMIndex;
@@ -74,29 +76,94 @@ public class BAMInputFormat
 	public final static boolean DEBUG_BAM_SPLITTER = false;
 
 	/**
+	 * If set to true, only include reads that overlap the given intervals (if specified),
+	 * and unplaced unmapped reads (if specified). For programmatic use
+	 * {@link #setTraversalParameters(Configuration, List, boolean)} should be preferred.
+	 */
+	public static final String BOUNDED_TRAVERSAL_PROPERTY = "hadoopbam.bam.bounded-traversal";
+
+	/**
 	 * Filter by region, like <code>-L</code> in SAMtools. Takes a comma-separated
 	 * list of intervals, e.g. <code>chr1:1-20000,chr2:12000-20000</code>. For
 	 * programmatic use {@link #setIntervals(Configuration, List)} should be preferred.
 	 */
 	public static final String INTERVALS_PROPERTY = "hadoopbam.bam.intervals";
 
+	/**
+	 * If set to true, include unplaced unmapped reads (that is, unmapped reads with no
+	 * position). For programmatic use
+	 * {@link #setTraversalParameters(Configuration, List, boolean)} should be preferred.
+	 */
+	public static final String TRAVERSE_UNPLACED_UNMAPPED_PROPERTY = "hadoopbam.bam.traverse-unplaced-unmapped";
+
+	/**
+	 * Only include reads that overlap the given intervals. Unplaced unmapped reads are not
+	 * included.
+	 * @param conf the Hadoop configuration to set properties on
+	 * @param intervals the intervals to filter by
+	 * @param <T> the {@link Locatable} type
+	 */
 	public static <T extends Locatable> void setIntervals(Configuration conf,
 			List<T> intervals) {
-		StringBuilder sb = new StringBuilder();
-		for (Iterator<T> it = intervals.iterator(); it.hasNext(); ) {
-			Locatable l = it.next();
-			sb.append(String.format("%s:%d-%d", l.getContig(), l.getStart(), l.getEnd()));
-			if (it.hasNext()) {
-				sb.append(",");
-			}
+		setTraversalParameters(conf, intervals, false);
+	}
+
+	/**
+	 * Only include reads that overlap the given intervals (if specified) and unplaced
+	 * unmapped reads (if <code>true</code>).
+	 * @param conf the Hadoop configuration to set properties on
+	 * @param intervals the intervals to filter by, or <code>null</code> if all reads
+	 *   are to be included (in which case <code>traverseUnplacedUnmapped</code> must be
+	 *   <code>true</code>)
+	 * @param traverseUnplacedUnmapped whether to included unplaced unampped reads
+	 * @param <T> the {@link Locatable} type
+	 */
+	public static <T extends Locatable> void setTraversalParameters(Configuration conf,
+			List<T> intervals, boolean traverseUnplacedUnmapped) {
+		if (intervals == null && !traverseUnplacedUnmapped) {
+			throw new IllegalArgumentException("Traversing mapped reads only is not supported.");
 		}
-		conf.set(INTERVALS_PROPERTY, sb.toString());
+		conf.setBoolean(BOUNDED_TRAVERSAL_PROPERTY, true);
+		if (intervals != null) {
+			StringBuilder sb = new StringBuilder();
+			for (Iterator<T> it = intervals.iterator(); it.hasNext(); ) {
+				Locatable l = it.next();
+				sb.append(String.format("%s:%d-%d", l.getContig(), l.getStart(), l.getEnd()));
+				if (it.hasNext()) {
+					sb.append(",");
+				}
+			}
+			conf.set(INTERVALS_PROPERTY, sb.toString());
+		}
+		conf.setBoolean(TRAVERSE_UNPLACED_UNMAPPED_PROPERTY, traverseUnplacedUnmapped);
+	}
+
+	/**
+	 * Reset traversal parameters so that all reads are included.
+	 * @param conf the Hadoop configuration to set properties on
+	 */
+	public static void unsetTraversalParameters(Configuration conf) {
+		conf.unset(BOUNDED_TRAVERSAL_PROPERTY);
+		conf.unset(INTERVALS_PROPERTY);
+		conf.unset(TRAVERSE_UNPLACED_UNMAPPED_PROPERTY);
+	}
+
+	static boolean isBoundedTraversal(Configuration conf) {
+		return conf.getBoolean(BOUNDED_TRAVERSAL_PROPERTY, false) ||
+				conf.get(INTERVALS_PROPERTY) != null; // backwards compatibility
+	}
+
+	static boolean traverseUnplacedUnmapped(Configuration conf) {
+		return conf.getBoolean(TRAVERSE_UNPLACED_UNMAPPED_PROPERTY, false);
 	}
 
 	static List<Interval> getIntervals(Configuration conf) {
 		String intervalsProperty = conf.get(INTERVALS_PROPERTY);
 		if (intervalsProperty == null) {
 			return null;
+		}
+		if (intervalsProperty.isEmpty()) {
+			return ImmutableList.of();
 		}
 		List<Interval> intervals = new ArrayList<Interval>();
 		for (String s : intervalsProperty.split(",")) {
@@ -297,8 +364,7 @@ public class BAMInputFormat
 
 	private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
 			throws IOException {
-		List<Interval> intervals = getIntervals(conf);
-		if (intervals == null) {
+		if (!isBoundedTraversal(conf)) {
 			return splits;
 		}
 
@@ -314,6 +380,12 @@ public class BAMInputFormat
 				.setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
 				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
 				.setUseAsyncIo(false);
+
+		List<Interval> intervals = getIntervals(conf);
+
+		Map<Path, Long> fileToUnmapped = new LinkedHashMap<>();
+		boolean traverseUnplacedUnmapped = traverseUnplacedUnmapped(conf);
+
 		for (Path bamFile : bamFiles) {
 			FileSystem fs = bamFile.getFileSystem(conf);
 
@@ -328,9 +400,23 @@ public class BAMInputFormat
 					SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
 					SAMSequenceDictionary dict = header.getSequenceDictionary();
 					BAMIndex idx = samReader.indexing().getIndex();
-					QueryInterval[] queryIntervals = prepareQueryIntervals(intervals, dict);
-					fileToSpan.put(bamFile, BAMFileReader.getFileSpan(queryIntervals, idx));
+
+					if (intervals != null && !intervals.isEmpty()) {
+						QueryInterval[] queryIntervals = prepareQueryIntervals(intervals, dict);
+						fileToSpan.put(bamFile, BAMFileReader.getFileSpan(queryIntervals, idx));
+					}
+
+					if (traverseUnplacedUnmapped) {
+						long startOfLastLinearBin = idx.getStartOfLastLinearBin();
+						long noCoordinateCount = ((AbstractBAMFileIndex) idx).getNoCoordinateCount();
+						if (startOfLastLinearBin != -1 && noCoordinateCount > 0) {
+							// add FileVirtualSplit (with no intervals) from startOfLastLinearBin to
+							// end of file
+							fileToUnmapped.put(bamFile, startOfLastLinearBin);
+						}
+					}
 				}
+
 			}
 		}
 
@@ -342,6 +428,9 @@ public class BAMInputFormat
 			long splitEnd = virtualSplit.getEndVirtualOffset();
 			BAMFileSpan splitSpan = new BAMFileSpan(new Chunk(splitStart, splitEnd));
 			BAMFileSpan span = fileToSpan.get(virtualSplit.getPath());
+			if (span == null) {
+				continue;
+			}
 			span = (BAMFileSpan) span.removeContentsBefore(splitSpan);
 			span = (BAMFileSpan) span.removeContentsAfter(splitSpan);
 			if (!span.getChunks().isEmpty()) {
@@ -349,6 +438,31 @@ public class BAMInputFormat
 						virtualSplit.getLocations(), span.toCoordinateArray()));
 			}
 		}
+
+		if (traverseUnplacedUnmapped) {
+			// add extra splits that contain only unmapped reads
+			for (Map.Entry<Path, Long> e : fileToUnmapped.entrySet()) {
+				Path file = e.getKey();
+				long unmappedStart = e.getValue();
+				boolean foundFirstSplit = false;
+				for (InputSplit split : splits) { // TODO: are splits in order of start position?
+					FileVirtualSplit virtualSplit = (FileVirtualSplit) split;
+					if (virtualSplit.getPath().equals(file)) {
+						long splitStart = virtualSplit.getStartVirtualOffset();
+						long splitEnd = virtualSplit.getEndVirtualOffset();
+						if (foundFirstSplit) {
+							filteredSplits.add(new FileVirtualSplit(virtualSplit.getPath(), splitStart, splitEnd,
+									virtualSplit.getLocations()));
+						} else if (splitStart <= unmappedStart && unmappedStart <= splitEnd) {
+							filteredSplits.add(new FileVirtualSplit(virtualSplit.getPath(), unmappedStart, splitEnd,
+									virtualSplit.getLocations()));
+							foundFirstSplit = true;
+						}
+					}
+				}
+			}
+		}
+
 		return filteredSplits;
 	}
 

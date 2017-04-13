@@ -201,7 +201,7 @@ public class TestBAMOutputFormat {
             new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.coordinate).getHeader());
 
         final int actualCount = getBAMRecordCount(outFile);
-        assertEquals(numPairs * 2, actualCount);
+        assertEquals(numPairs * 2 + 2, actualCount); // 2 unmapped reads
 
         File splittingBai = new File(outFile.getParentFile(), outFile.getName() +
             SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);

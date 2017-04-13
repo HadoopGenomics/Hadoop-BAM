@@ -30,11 +30,16 @@ class BAMTestUtil {
             false, true, null,
             null,
             -1, false);
-
       } else {
         samRecordSetBuilder.addPair(String.format("test-read-%03d", i), chr, start1,
             start2);
       }
+    }
+    if (numPairs > 0) { // add two unplaced unmapped fragments if non-empty
+      samRecordSetBuilder.addUnmappedFragment(String.format
+          ("test-read-%03d-unplaced-unmapped", numPairs++));
+      samRecordSetBuilder.addUnmappedFragment(String.format
+          ("test-read-%03d-unplaced-unmapped", numPairs++));
     }
 
     final File bamFile = File.createTempFile("test", ".bam");
