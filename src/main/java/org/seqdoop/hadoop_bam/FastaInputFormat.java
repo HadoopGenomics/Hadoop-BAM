@@ -155,7 +155,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 						origsplit.getLocations()
 					);
 
-				newSplits.add(fsplit); //conf));
+				newSplits.add(fsplit);
 				logger.debug("adding split: {}", fsplit);
 				break;
 			}
@@ -193,7 +193,6 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 
 		public FastaRecordReader(Configuration conf, FileSplit split) throws IOException
 		{
-			setConf(conf);
 			file = split.getPath();
 			start = split.getStart();
 			end = start + split.getLength();
@@ -250,10 +249,6 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 			start = start + bytesRead;
 			stream.seek(start);
 			pos = start;
-		}
-
-		protected void setConf(Configuration conf)
-		{
 		}
 
 		/**
