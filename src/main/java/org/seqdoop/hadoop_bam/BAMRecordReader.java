@@ -53,6 +53,8 @@ import org.seqdoop.hadoop_bam.util.MurmurHash3;
 import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** The key is the bitwise OR of the reference sequence ID in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
@@ -69,6 +71,8 @@ public class BAMRecordReader
 	private long fileStart;
 	private long virtualEnd;
 	private boolean isInitialized = false;
+
+	private Logger logger = LoggerFactory.getLogger(BAMRecordReader.class);
 
 	/** Note: this is the only getKey function that handles unmapped reads
 	 * specially!
@@ -152,10 +156,9 @@ public class BAMRecordReader
 				((SamReader.PrimitiveSamReaderToSamReaderAdapter) samReader).underlyingReader();
 		BAMFileReader bamFileReader = (BAMFileReader) primitiveSamReader;
 
-		if(BAMInputFormat.DEBUG_BAM_SPLITTER) {
+		if(logger.isDebugEnabled()) {
 			final long recordStart = virtualStart & 0xffff;
-                	System.err.println("XXX inizialized BAMRecordReader byte offset: " +
-				fileStart + " record offset: " + recordStart);
+			logger.debug("Initialized BAMRecordReader; byte offset: {}, record offset: {}", fileStart, recordStart);
 		}
 
 		if (conf.getBoolean("hadoopbam.bam.keep-paired-reads-together", false)) {

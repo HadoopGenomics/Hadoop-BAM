@@ -128,7 +128,7 @@ public class TestQseqInputFormat
 
 		boolean retval = reader.next(key, fragment);
 		assertTrue(retval);
-//System.err.println("in testReadFromStart quality: " + fragment.getQuality().toString());
+
 		assertEquals("ERR020229:10880:1:1:1373:2042:1", key.toString());
 		assertEquals("TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT", fragment.getSequence().toString());
 		assertEquals("###########################################################################################", fragment.getQuality().toString());

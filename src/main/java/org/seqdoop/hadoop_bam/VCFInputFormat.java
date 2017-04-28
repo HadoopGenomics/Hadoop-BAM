@@ -61,6 +61,8 @@ import htsjdk.samtools.seekablestream.SeekableStream;
 import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec;
 import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for VCF files. Values
  * are the individual records; see {@link VCFRecordReader} for the meaning of
@@ -69,6 +71,9 @@ import org.seqdoop.hadoop_bam.util.WrapSeekable;
 public class VCFInputFormat
 	extends FileInputFormat<LongWritable,VariantContextWritable>
 {
+
+	private Logger logger = LoggerFactory.getLogger(VCFInputFormat.class);
+
 	/** Whether file extensions are to be trusted, defaults to true.
 	 *
 	 * @see VCFFormat#inferFromFilePath
@@ -219,13 +224,11 @@ public class VCFInputFormat
 				splittable = false;
 			}
 			if (!splittable) {
-				System.err.printf("Warning: %s is not splittable, consider using block " +
-						"compressed gzip (BGZF).\n", filename);
+				logger.warn("{} is not splittable, consider using block-compressed gzip (BGZF)", filename);
 			}
 			return splittable;
 		} else if (codec instanceof GzipCodec) {
-			System.err.println("Warning: using GzipCodec, which is not splittable, consider " +
-					"using block compressed gzip (BGZF) and BGZFCodec/BGZFEnhancedGzipCodec.");
+			logger.warn("Using GzipCodec, which is not splittable, consider using block compressed gzip (BGZF) and BGZFCodec/BGZFEnhancedGzipCodec.");
 		}
 		return codec instanceof SplittableCompressionCodec;
 	}
@@ -409,8 +412,10 @@ public class VCFInputFormat
 			Path indexFile = vcfFile.suffix(TabixUtils.STANDARD_INDEX_EXTENSION);
 			FileSystem fs = vcfFile.getFileSystem(conf);
 			if (!fs.exists(indexFile)) {
-				System.err.println("WARNING: no tabix index file found, splits will not be " +
-						"filtered, which may be very inefficient: " + indexFile);
+				logger.warn(
+					"No tabix index file found for {}, splits will not be filtered, which may be very inefficient",
+					indexFile
+				);
 				return splits;
 			}
 
