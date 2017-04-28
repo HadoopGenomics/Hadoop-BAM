@@ -50,7 +50,7 @@ can change the version of Hadoop linked against by modifying the
 corresponding parameter in the pom.xml build file.
 
 HTSJDK (formerly Picard SAM-JDK) Version 2.3.0 is required. Later versions
-may also work but have not been tested.
+may also work; Hadoop-BAM currently builds against 2.9.1.
 
 Availability:
 
