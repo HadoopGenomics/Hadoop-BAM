@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -75,12 +73,9 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 		List<InputSplit> splits = super.getSplits(job);
 
 		// first sort by input path
-		Collections.sort(splits, new Comparator<InputSplit>()
-		{
-			public int compare(InputSplit a, InputSplit b) {
-				FileSplit fa = (FileSplit)a, fb = (FileSplit)b;
-				return fa.getPath().compareTo(fb.getPath());
-			}
+		splits.sort((a, b) -> {
+			FileSplit fa = (FileSplit) a, fb = (FileSplit) b;
+			return fa.getPath().compareTo(fb.getPath());
 		});
 
 		for (int i = 0; i < splits.size()-1; i++) {
@@ -93,7 +88,7 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 
 		// now we are sure we only have one FASTA input file
 
-		final List<InputSplit> newSplits = new ArrayList<InputSplit>(splits.size());
+		final List<InputSplit> newSplits = new ArrayList<>(splits.size());
 		FileSplit fileSplit = (FileSplit)splits.get(0);
 		Path path = fileSplit.getPath();
 

@@ -34,7 +34,6 @@ import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.Interval;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;

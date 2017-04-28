@@ -32,7 +32,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -103,7 +102,7 @@ public class VCFInputFormat
 		if (intervalsProperty == null) {
 			return null;
 		}
-		List<Interval> intervals = new ArrayList<Interval>();
+		List<Interval> intervals = new ArrayList<>();
 		for (String s : intervalsProperty.split(",")) {
 			String[] parts = s.split(":|-");
 			Interval interval =
@@ -133,7 +132,7 @@ public class VCFInputFormat
 	 * <code>Job.setInputFormatClass</code>.
 	 */
 	public VCFInputFormat() {
-		this.formatMap = new HashMap<Path,VCFFormat>();
+		this.formatMap = new HashMap<>();
 		this.givenMap  = false;
 		this.conf      = null;
 	}
@@ -142,7 +141,7 @@ public class VCFInputFormat
 	 * the given <code>Configuration</code>.
 	 */
 	public VCFInputFormat(Configuration conf) {
-		this.formatMap = new HashMap<Path,VCFFormat>();
+		this.formatMap = new HashMap<>();
 		this.conf      = conf;
 		this.trustExts = conf.getBoolean(TRUST_EXTS_PROPERTY, true);
 		this.givenMap  = false;
@@ -288,9 +287,9 @@ public class VCFInputFormat
 		// over to getBCFSplits().
 
 		final List<FileSplit>
-			bcfOrigSplits = new ArrayList<FileSplit>(origSplits.size());
+			bcfOrigSplits = new ArrayList<>(origSplits.size());
 		final List<InputSplit>
-			newSplits     = new ArrayList<InputSplit>(origSplits.size());
+			newSplits     = new ArrayList<>(origSplits.size());
 
 		for (final InputSplit iSplit : origSplits) {
 			final FileSplit split = (FileSplit)iSplit;
@@ -314,11 +313,7 @@ public class VCFInputFormat
 		// addGuessedSplits() requires the given splits to be sorted by file
 		// path, so do so. Although FileInputFormat.getSplits() does, at the time
 		// of writing this, generate them in that order, we shouldn't rely on it.
-		Collections.sort(splits, new Comparator<FileSplit>() {
-			public int compare(FileSplit a, FileSplit b) {
-				return a.getPath().compareTo(b.getPath());
-			}
-		});
+		splits.sort(Comparator.comparing(FileSplit::getPath));
 
 		for (int i = 0; i < splits.size();)
 			i = addGuessedSplits(splits, i, newSplits);
@@ -399,7 +394,7 @@ public class VCFInputFormat
 			return splits;
 		}
 		List<Block> blocks = new ArrayList<>();
-		Set<Path> vcfFiles = new LinkedHashSet<Path>();
+		Set<Path> vcfFiles = new LinkedHashSet<>();
 		for (InputSplit split : splits) {
 			if (split instanceof FileSplit) {
 				vcfFiles.add(((FileSplit) split).getPath());
@@ -431,7 +426,7 @@ public class VCFInputFormat
 		}
 
 		// Use the blocks to filter the splits
-		List<InputSplit> filteredSplits = new ArrayList<InputSplit>();
+		List<InputSplit> filteredSplits = new ArrayList<>();
 		for (InputSplit split : splits) {
 			if (split instanceof FileSplit) {
 				FileSplit fileSplit = (FileSplit) split;

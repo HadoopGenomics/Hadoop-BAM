@@ -47,7 +47,7 @@ public final class VCFHeaderReader {
 	public static VCFHeader readHeaderFrom(final SeekableStream in)
 		throws IOException
 	{
-		Object headerCodec = null;
+		FeatureCodecHeader headerCodec;
         Object header = null;
 		final long initialPos = in.position();
 		try {
@@ -67,9 +67,11 @@ public final class VCFHeaderReader {
 				new BCF2Codec().readHeader(
 					new PositionalBufferedStream(bin));
 		}
-		if (!(headerCodec instanceof FeatureCodecHeader))
+
+		if (!(headerCodec != null))
 			throw new IOException("No VCF header found");
-        header = ((FeatureCodecHeader)headerCodec).getHeaderValue();
+
+        header = headerCodec.getHeaderValue();
 		return (VCFHeader)header;
 	}
 }

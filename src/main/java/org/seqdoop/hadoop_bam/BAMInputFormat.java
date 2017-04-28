@@ -31,28 +31,12 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.seqdoop.hadoop_bam.util.NIOFileUtil;
-import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
-import org.seqdoop.hadoop_bam.util.WrapSeekable;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
-import htsjdk.samtools.seekablestream.SeekableStream;
-
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -61,6 +45,18 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.seqdoop.hadoop_bam.util.NIOFileUtil;
+import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
+import org.seqdoop.hadoop_bam.util.WrapSeekable;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for BAM files. Values
  * are the individual records; see {@link BAMRecordReader} for the meaning of
@@ -97,7 +93,7 @@ public class BAMInputFormat
 		if (intervalsProperty == null) {
 			return null;
 		}
-		List<Interval> intervals = new ArrayList<Interval>();
+		List<Interval> intervals = new ArrayList<>();
 		for (String s : intervalsProperty.split(",")) {
 			String[] parts = s.split(":|-");
 			Interval interval =
@@ -138,15 +134,13 @@ public class BAMInputFormat
 		// addIndexedSplits() requires the given splits to be sorted by file
 		// path, so do so. Although FileInputFormat.getSplits() does, at the time
 		// of writing this, generate them in that order, we shouldn't rely on it.
-		Collections.sort(splits, new Comparator<InputSplit>() {
-			public int compare(InputSplit a, InputSplit b) {
-				FileSplit fa = (FileSplit)a, fb = (FileSplit)b;
-				return fa.getPath().compareTo(fb.getPath());
-			}
+		splits.sort((a, b) -> {
+			FileSplit fa = (FileSplit) a, fb = (FileSplit) b;
+			return fa.getPath().compareTo(fb.getPath());
 		});
 
 		final List<InputSplit> newSplits =
-			new ArrayList<InputSplit>(splits.size());
+			new ArrayList<>(splits.size());
 
 		for (int i = 0; i < splits.size();) {
 			try {
@@ -166,7 +160,7 @@ public class BAMInputFormat
 		throws IOException
 	{
 		final Path file = ((FileSplit)splits.get(i)).getPath();
-		List<InputSplit> potentialSplits = new ArrayList<InputSplit>();
+		List<InputSplit> potentialSplits = new ArrayList<>();
 
 		final SplittingBAMIndex idx = new SplittingBAMIndex(
 			file.getFileSystem(cfg).open(getIdxPath(file)));
@@ -208,9 +202,7 @@ public class BAMInputFormat
 						file, blockStart, blockEnd, fileSplit.getLocations()));
 		}
 
-		for (InputSplit s : potentialSplits) {
-			newSplits.add(s);
-		}
+		newSplits.addAll(potentialSplits);
 		return splitsEnd;
 	}
 
