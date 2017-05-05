@@ -428,7 +428,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.7.5.201505241946</version>
+                        <version>0.7.6.201602180812</version>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>
@@ -441,7 +441,15 @@
                     <plugin>
                         <groupId>org.eluder.coveralls</groupId>
                         <artifactId>coveralls-maven-plugin</artifactId>
-                        <version>4.1.0</version>
+                        <version>4.3.0</version>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20</version>
+                        <configuration>
+                            <!-- Needed for jacoco data to be written, cf. http://stackoverflow.com/a/25378458/544236 -->
+                            <argLine>${argLine}</argLine>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
