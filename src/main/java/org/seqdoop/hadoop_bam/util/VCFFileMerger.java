@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.zip.GZIPOutputStream;
 import org.seqdoop.hadoop_bam.KeyIgnoringVCFOutputFormat;
 import org.seqdoop.hadoop_bam.VCFFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.seqdoop.hadoop_bam.util.NIOFileUtil.asPath;
 import static org.seqdoop.hadoop_bam.util.NIOFileUtil.deleteRecursive;
@@ -29,6 +31,9 @@ import static org.seqdoop.hadoop_bam.util.NIOFileUtil.mergeInto;
  * into a single file. BCF files are not supported.
  */
 public class VCFFileMerger {
+
+  private static Logger logger = LoggerFactory.getLogger(VCFFileMerger.class);
+
   /**
    * Merge part file shards produced by {@link KeyIgnoringVCFOutputFormat} into a
    * single file with the given header.
@@ -85,11 +90,9 @@ public class VCFFileMerger {
     boolean blockCompressed = isBlockCompressed(parts);
     boolean bgzExtension = outputPath.toString().endsWith(BGZFCodec.DEFAULT_EXTENSION);
     if (blockCompressed && !bgzExtension) {
-      System.err.println("WARNING: parts are block compressed, but output does not " +
-          "have .bgz extension: " + outputPath);
+      logger.warn("Parts are block compressed, but output does not have .bgz extension: {}", outputPath);
     } else if (!blockCompressed && bgzExtension) {
-      System.err.println("WARNING: parts are not block compressed, but output has a " +
-          ".bgz extension: " + outputPath);
+      logger.warn("WARNING: parts are not block compressed, but output has a .bgz extension: {}", outputPath);
     }
     boolean gzipCompressed = isGzipCompressed(parts);
     OutputStream headerOut;

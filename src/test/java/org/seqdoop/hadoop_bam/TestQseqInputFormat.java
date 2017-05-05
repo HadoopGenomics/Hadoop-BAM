@@ -23,8 +23,6 @@
 package org.seqdoop.hadoop_bam;
 
 import org.seqdoop.hadoop_bam.QseqInputFormat.QseqRecordReader;
-import org.seqdoop.hadoop_bam.SequencedFragment;
-import org.seqdoop.hadoop_bam.FormatException;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +36,6 @@ import org.junit.*;
 import static org.junit.Assert.*;
 
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.Text;
@@ -132,7 +128,7 @@ public class TestQseqInputFormat
 
 		boolean retval = reader.next(key, fragment);
 		assertTrue(retval);
-//System.err.println("in testReadFromStart quality: " + fragment.getQuality().toString());
+
 		assertEquals("ERR020229:10880:1:1:1373:2042:1", key.toString());
 		assertEquals("TTGGATGATAGGGATTATTTGACTCGAATATTGGAAATAGCTGTTTATATTTTTTAAAAATGGTCTGTAACTGGTGACAGGACGCTTCGAT", fragment.getSequence().toString());
 		assertEquals("###########################################################################################", fragment.getQuality().toString());
@@ -202,7 +198,7 @@ public class TestQseqInputFormat
 		assertEquals(1000, fragment.getXpos().intValue());
 		assertEquals(12850, fragment.getYpos().intValue());
 		assertEquals(1, fragment.getRead().intValue());
-		assertEquals(false, fragment.getFilterPassed().booleanValue());
+		assertEquals(false, fragment.getFilterPassed());
 		assertNull("control number not null", fragment.getControlNumber());
 		assertEquals("ATCACG", fragment.getIndexSequence());
 	}
@@ -285,14 +281,14 @@ public class TestQseqInputFormat
 	public void testCreateKey() throws IOException
 	{
 		QseqRecordReader reader = createReaderForOneQseq();
-		assertTrue(reader.createKey() instanceof Text);
+		assertNotNull(reader.createKey());
 	}
 
 	@Test
 	public void testCreateValue() throws IOException
 	{
 		QseqRecordReader reader = createReaderForOneQseq();
-		assertTrue(reader.createValue() instanceof SequencedFragment);
+		assertNotNull(reader.createValue());
 	}
 
 	@Test
@@ -348,8 +344,9 @@ public class TestQseqInputFormat
 
 		// now try to read it starting from the middle
 		split = new FileSplit(new Path(tempGz.toURI().toString()), 10, twoQseq.length(), null);
-		QseqRecordReader reader = new QseqRecordReader(conf, split);
+		new QseqRecordReader(conf, split);
 	}
+
 	@Test
 	public void testSkipFailedQC() throws IOException
 	{
