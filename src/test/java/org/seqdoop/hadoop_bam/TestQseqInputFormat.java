@@ -281,14 +281,14 @@ public class TestQseqInputFormat
 	public void testCreateKey() throws IOException
 	{
 		QseqRecordReader reader = createReaderForOneQseq();
-		assertTrue(reader.createKey() != null);
+		assertNotNull(reader.createKey());
 	}
 
 	@Test
 	public void testCreateValue() throws IOException
 	{
 		QseqRecordReader reader = createReaderForOneQseq();
-		assertTrue(reader.createValue() != null);
+		assertNotNull(reader.createValue());
 	}
 
 	@Test
