@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -81,13 +82,13 @@ public abstract class VCFRecordWriter<K>
 	{
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
+			header, writeHeader, ctx);
 	}
 	public VCFRecordWriter(
 			OutputStream output, VCFHeader header, boolean writeHeader)
 		throws IOException
 	{
-		init(output, header, writeHeader);
+		init(output, header, writeHeader, null);
 	}
 
 	// Working around not being able to call a constructor other than as the
@@ -99,22 +100,29 @@ public abstract class VCFRecordWriter<K>
 	{
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
+			header, writeHeader, ctx);
 	}
 	private void init(
-			OutputStream output, VCFHeader header, boolean writeHeader)
+			OutputStream output, VCFHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
 		throws IOException
 	{
 		final StoppableOutputStream stopOut =
 			new StoppableOutputStream(!writeHeader, output);
 
-		writer = new VariantContextWriterBuilder().clearOptions()
-				.setOutputStream(stopOut).build();
+		writer = createVariantContextWriter(ctx == null ? null : ctx.getConfiguration(),
+				stopOut);
 
 		writer.writeHeader(header);
 		stopOut.stopped = false;
 
 		setInputHeader(header);
+	}
+
+	protected VariantContextWriter createVariantContextWriter(Configuration conf,
+			OutputStream out) {
+		return new VariantContextWriterBuilder().clearOptions()
+				.setOutputStream(out).build();
 	}
 
 	@Override public void close(TaskAttemptContext ctx) throws IOException {
