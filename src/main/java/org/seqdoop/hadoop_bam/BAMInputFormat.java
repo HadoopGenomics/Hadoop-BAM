@@ -188,6 +188,10 @@ public class BAMInputFormat
 			if (!file.equals(((FileSplit)splits.get(j)).getPath()))
 				splitsEnd = j;
 
+		if (idx.size() == 1) { // no alignments, only the file size, so no splits to add
+			return splitsEnd;
+		}
+
 		for (int j = i; j < splitsEnd; ++j) {
 			final FileSplit fileSplit = (FileSplit)splits.get(j);
 
