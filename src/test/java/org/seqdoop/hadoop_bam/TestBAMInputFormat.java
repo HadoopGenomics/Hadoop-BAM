@@ -1,8 +1,10 @@
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
@@ -64,6 +66,65 @@ public class TestBAMInputFormat {
     input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname)
         .getAbsolutePath();
     completeSetup();
+    jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
+    BAMInputFormat inputFormat = new BAMInputFormat();
+    List<InputSplit> splits = inputFormat.getSplits(jobContext);
+    assertEquals(2, splits.size());
+    List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
+    List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
+    assertEquals(1577, split0Records.size());
+    assertEquals(425, split1Records.size());
+    SAMRecord lastRecordOfSplit0 = split0Records.get(split0Records.size() - 1);
+    SAMRecord firstRecordOfSplit1 = split1Records.get(0);
+    assertEquals(lastRecordOfSplit0.getReadName(), firstRecordOfSplit1.getReadName());
+    assertTrue(lastRecordOfSplit0.getFirstOfPairFlag());
+    assertTrue(firstRecordOfSplit1.getSecondOfPairFlag());
+  }
+
+  @Test
+  public void testMultipleSplitsBaiEnabled() throws Exception {
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
+        .getAbsolutePath();
+    completeSetup();
+    BAMInputFormat.setEnableBAISplitCalculator(jobContext.getConfiguration(), true);
+    jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
+    BAMInputFormat inputFormat = new BAMInputFormat();
+    List<InputSplit> splits = inputFormat.getSplits(jobContext);
+    assertEquals(3, splits.size());
+    List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
+    List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
+    List<SAMRecord> split2Records = getSAMRecordsFromSplit(inputFormat, splits.get(2));
+    assertEquals(1080, split0Records.size());
+    assertEquals(524, split1Records.size());
+    assertEquals(398, split2Records.size());
+  }
+
+  @Test
+  public void testMultipleSplitsBaiEnabledSuffixPath() throws Exception {
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
+        .getAbsolutePath();
+    File index = new File(input.replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix));
+    index.renameTo(new File(input + BAMIndex.BAMIndexSuffix));
+    completeSetup();
+    BAMInputFormat.setEnableBAISplitCalculator(jobContext.getConfiguration(), true);
+    jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
+    BAMInputFormat inputFormat = new BAMInputFormat();
+    List<InputSplit> splits = inputFormat.getSplits(jobContext);
+    assertEquals(3, splits.size());
+    List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
+    List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
+    List<SAMRecord> split2Records = getSAMRecordsFromSplit(inputFormat, splits.get(2));
+    assertEquals(1080, split0Records.size());
+    assertEquals(524, split1Records.size());
+    assertEquals(398, split2Records.size());
+  }
+
+  @Test
+  public void testMultipleSplitsBaiEnabledNoIndex() throws Exception {
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname)
+        .getAbsolutePath();
+    completeSetup();
+    BAMInputFormat.setEnableBAISplitCalculator(jobContext.getConfiguration(), true);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
