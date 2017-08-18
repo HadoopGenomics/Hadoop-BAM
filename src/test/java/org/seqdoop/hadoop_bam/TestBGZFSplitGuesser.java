@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.seqdoop.hadoop_bam.util.BGZFSplitGuesser;
-
+import org.seqdoop.hadoop_bam.util.WrapSeekable;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
@@ -42,7 +42,7 @@ public class TestBGZFSplitGuesser {
     Configuration conf = new Configuration();
     Path path = new Path(file.toURI());
     FSDataInputStream fsDataInputStream = path.getFileSystem(conf).open(path);
-    BGZFSplitGuesser bgzfSplitGuesser = new BGZFSplitGuesser(fsDataInputStream);
+    BGZFSplitGuesser bgzfSplitGuesser = new BGZFSplitGuesser(WrapSeekable.openPath(conf, path));
     LinkedList<Long> boundaries = new LinkedList<>();
     long start = 1;
     while (true) {

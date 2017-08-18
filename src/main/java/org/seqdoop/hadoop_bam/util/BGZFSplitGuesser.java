@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam.util;
 
+import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,30 +35,14 @@ import htsjdk.samtools.util.BlockCompressedInputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Seekable;
 
-public class BGZFSplitGuesser {
-	private InputStream inFile;
-	private Seekable seekableInFile;
-	private       ByteArraySeekableStream in;
-	private final ByteBuffer buf;
+import org.seqdoop.hadoop_bam.BaseSplitGuesser;
 
-	private final static int BGZF_MAGIC     = 0x04088b1f;
-	private final static int BGZF_MAGIC_SUB = 0x00024342;
-	private final static int BGZF_SUB_SIZE  = 4 + 2;
+public class BGZFSplitGuesser extends BaseSplitGuesser {
 
-	public BGZFSplitGuesser(InputStream is) {
+    private       SeekableStream             inFile;
+
+	public BGZFSplitGuesser(SeekableStream is) {
 		inFile = is;
-		seekableInFile = (Seekable) is;
-
-		buf = ByteBuffer.allocate(8);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-	}
-
-	public BGZFSplitGuesser(FSDataInputStream is) {
-		inFile = is;
-		seekableInFile = is;
-
-		buf = ByteBuffer.allocate(8);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
 	}
 
 	/// Looks in the range [beg,end). Returns end if no BAM record was found.
@@ -69,17 +54,23 @@ public class BGZFSplitGuesser {
 		// the previous one, we need 0xfffe bytes for the start, and then 0xffff
 		// for the block we're looking for.
 
-		byte[] arr = new byte[2*0xffff - 1];
+		byte[] arr = new byte[0xffff];
 
-		this.seekableInFile.seek(beg);
-		int totalRead = 0;
-		for (int left = Math.min((int)(end - beg), arr.length); left > 0;) {
-			final int r = inFile.read(arr, totalRead, left);
-			if (r < 0)
-				break;
-			totalRead += r;
-			left -= r;
-		}
+		this.inFile.seek(beg);
+                int bytesToRead = Math.min((int) (end - beg), arr.length);
+                int totalRead = 0;
+                // previously, this code did a single read and assumed that if it did not
+                // return an error code, then it had filled the array. however, when an
+                // incomplete copy occurs, the split picker will try to read past the end
+                // of the bucket, which will lead to the split picker returning an error
+                // code (-1), which gets mishandled elsewhere...
+                while(totalRead < bytesToRead) {
+                    int read = inFile.read(arr, totalRead, bytesToRead - totalRead);
+                    if (read == -1) {
+			return -1; // EOF
+                    }
+                    totalRead += read;
+                }
 		arr = Arrays.copyOf(arr, totalRead);
 
 		this.in = new ByteArraySeekableStream(arr);
@@ -90,11 +81,13 @@ public class BGZFSplitGuesser {
 
 		final int firstBGZFEnd = Math.min((int)(end - beg), 0xffff);
 
+                PosSize p;
 		for (int pos = 0;;) {
-			pos = guessNextBGZFPos(pos, firstBGZFEnd);
-			if (pos < 0)
+			p = guessNextBGZFPos(pos, firstBGZFEnd);
+			if (p == null)
 				return end;
-
+                        pos = p.pos;
+                        
 			try {
 				// Seek in order to trigger decompression of the block and a CRC
 				// check.
@@ -109,65 +102,5 @@ public class BGZFSplitGuesser {
 			}
 			return beg + pos;
 		}
-	}
-
-	// Returns a negative number if it doesn't find anything.
-	private int guessNextBGZFPos(int p, int end)
-		throws IOException
-	{
-		for (;;) {
-			for (;;) {
-				in.seek(p);
-				in.read(buf.array(), 0, 4);
-				int n = buf.getInt(0);
-
-				if (n == BGZF_MAGIC)
-					break;
-
-				// Skip ahead a bit more than 1 byte if you can.
-				if (n >>> 8 == BGZF_MAGIC << 8 >>> 8)
-					++p;
-				else if (n >>> 16 == BGZF_MAGIC << 16 >>> 16)
-					p += 2;
-				else
-					p += 3;
-
-				if (p >= end)
-					return -1;
-			}
-			// Found what looks like a gzip block header: now get XLEN and
-			// search for the BGZF subfield.
-			final int p0 = p;
-			p += 10;
-			in.seek(p);
-			in.read(buf.array(), 0, 2);
-			p += 2;
-			final int xlen   = getUShort(0);
-			final int subEnd = p + xlen;
-
-			while (p < subEnd) {
-				in.read(buf.array(), 0, 4);
-
-				if (buf.getInt(0) != BGZF_MAGIC_SUB) {
-					p += 4 + getUShort(2);
-					in.seek(p);
-					continue;
-				}
-
-				// Found it: this is close enough to a BGZF block, make it
-				// our guess.
-				return p0;
-			}
-			// No luck: look for the next gzip block header. Start right after
-			// where we last saw the identifiers, although we could probably
-			// safely skip further ahead. (If we find the correct one right
-			// now, the previous block contained 0x1f8b0804 bytes of data: that
-			// seems... unlikely.)
-			p = p0 + 4;
-		}
-	}
-
-	private int getUShort(final int idx) {
-		return (int)buf.getShort(idx) & 0xffff;
 	}
 }

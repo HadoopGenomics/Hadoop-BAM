@@ -3,6 +3,7 @@ package org.seqdoop.hadoop_bam.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
@@ -11,6 +12,7 @@ import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.compress.SplitCompressionInputStream;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
+import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
 /**
  * A Hadoop {@link CompressionCodec} for the
@@ -56,7 +58,7 @@ public class BGZFCodec extends GzipCodec implements SplittableCompressionCodec {
   @Override
   public SplitCompressionInputStream createInputStream(InputStream seekableIn,
       Decompressor decompressor, long start, long end, READ_MODE readMode) throws IOException {
-    BGZFSplitGuesser splitGuesser = new BGZFSplitGuesser(seekableIn);
+      BGZFSplitGuesser splitGuesser = new BGZFSplitGuesser(new WrapSeekable((FSDataInputStream)seekableIn, end, null));
     long adjustedStart = splitGuesser.guessNextBGZFBlockStart(start, end);
     ((Seekable)seekableIn).seek(adjustedStart);
     return new BGZFSplitCompressionInputStream(seekableIn, adjustedStart, end);
