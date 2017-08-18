@@ -39,10 +39,14 @@ public class BGZFSplitGuesser {
 	private Seekable seekableInFile;
 	private       ByteArraySeekableStream in;
 	private final ByteBuffer buf;
-
-	private final static int BGZF_MAGIC     = 0x04088b1f;
-	private final static int BGZF_MAGIC_SUB = 0x00024342;
-	private final static int BGZF_SUB_SIZE  = 4 + 2;
+    private String name = null;
+    
+    private final static int BGZF_MAGIC_0 = 0x1f;
+    private final static int BGZF_MAGIC_1 = 0x8b;
+    private final static int BGZF_MAGIC_2 = 0x08;
+    private final static int BGZF_MAGIC_3 = 0x04;
+    private final static int BGZF_MAGIC = 0x04088b1f;
+    private final static int BGZF_MAGIC_SUB = 0x00024342;
 
 	public BGZFSplitGuesser(InputStream is) {
 		inFile = is;
@@ -51,6 +55,10 @@ public class BGZFSplitGuesser {
 		buf = ByteBuffer.allocate(8);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 	}
+
+    public void setName(String _name) {
+        name = _name;
+    }
 
 	public BGZFSplitGuesser(FSDataInputStream is) {
 		inFile = is;
@@ -69,15 +77,24 @@ public class BGZFSplitGuesser {
 		// the previous one, we need 0xfffe bytes for the start, and then 0xffff
 		// for the block we're looking for.
 
-		byte[] arr = new byte[2*0xffff - 1];
+		byte[] arr = new byte[0xffff];
 
 		this.seekableInFile.seek(beg);
-		int read = inFile.read(arr, 0, Math.min((int) (end - beg),
-				arr.length));
-		if (read == -1) {
+                int bytesToRead = Math.min((int) (end - beg), arr.length);
+                int totalRead = 0;
+                // previously, this code did a single read and assumed that if it did not
+                // return an error code, then it had filled the array. however, when an
+                // incomplete copy occurs, the split picker will try to read past the end
+                // of the bucket, which will lead to the split picker returning an error
+                // code (-1), which gets mishandled elsewhere...
+                while(totalRead < bytesToRead) {
+                    int read = inFile.read(arr, totalRead, bytesToRead - totalRead);
+                    if (read == -1) {
 			return -1; // EOF
-		}
-		arr = Arrays.copyOf(arr, read);
+                    }
+                    totalRead += read;
+                }
+		arr = Arrays.copyOf(arr, totalRead);
 
 		this.in = new ByteArraySeekableStream(arr);
 
@@ -112,59 +129,55 @@ public class BGZFSplitGuesser {
 	private int guessNextBGZFPos(int p, int end)
 		throws IOException
 	{
-		for (;;) {
-			for (;;) {
-				in.seek(p);
-				in.read(buf.array(), 0, 4);
-				int n = buf.getInt(0);
+            while(true) {
+                boolean found_block_start = false;
+                boolean in_magic = false;
+                in.seek(p);
+                while(!found_block_start) {
+                    int n = in.read();
 
-				if (n == BGZF_MAGIC)
-					break;
+                    if (n == BGZF_MAGIC_0) {
+                        in_magic = true;
+                    } else if (n == BGZF_MAGIC_3 && in_magic) {
+                        found_block_start = true;
+                    } else if (p >= end) {
+                        return -1;
+                    } else if (!((n == BGZF_MAGIC_1 && in_magic) ||
+                                 (n == BGZF_MAGIC_2 && in_magic))) {
+                        in_magic = false;
+                    }
+                    p++;
+                }
 
-				// Skip ahead a bit more than 1 byte if you can.
-				if (n >>> 8 == BGZF_MAGIC << 8 >>> 8)
-					++p;
-				else if (n >>> 16 == BGZF_MAGIC << 16 >>> 16)
-					p += 2;
-				else
-					p += 3;
+                // after the magic number:
+                // skip 6 unspecified bytes (MTIME, XFL, OS)
+                // XLEN = 6 (little endian, so 0x0600)
+                // SI1  = 0x42
+                // SI2  = 0x43
+                // SLEN = 0x02
+                in.seek(p + 6);
+                int n = in.read();
+                if (0x06 != n) {
+                    continue;
+                }
+                n = in.read();
+                if (0x00 != n) {
+                    continue;
+                }
+                n = in.read();
+                if (0x42 != n) {
+                    continue;
+                }
+                n = in.read();
+                if (0x43 != n) {
+                    continue;
+                }
+                n = in.read();
+                if (0x02 != n) {
+                    continue;
+                }         
 
-				if (p >= end)
-					return -1;
-			}
-			// Found what looks like a gzip block header: now get XLEN and
-			// search for the BGZF subfield.
-			final int p0 = p;
-			p += 10;
-			in.seek(p);
-			in.read(buf.array(), 0, 2);
-			p += 2;
-			final int xlen   = getUShort(0);
-			final int subEnd = p + xlen;
-
-			while (p < subEnd) {
-				in.read(buf.array(), 0, 4);
-
-				if (buf.getInt(0) != BGZF_MAGIC_SUB) {
-					p += 4 + getUShort(2);
-					in.seek(p);
-					continue;
-				}
-
-				// Found it: this is close enough to a BGZF block, make it
-				// our guess.
-				return p0;
-			}
-			// No luck: look for the next gzip block header. Start right after
-			// where we last saw the identifiers, although we could probably
-			// safely skip further ahead. (If we find the correct one right
-			// now, the previous block contained 0x1f8b0804 bytes of data: that
-			// seems... unlikely.)
-			p = p0 + 4;
-		}
-	}
-
-	private int getUShort(final int idx) {
-		return (int)buf.getShort(idx) & 0xffff;
+                return p - 4;
+            }
 	}
 }
