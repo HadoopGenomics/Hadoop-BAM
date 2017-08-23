@@ -40,12 +40,11 @@ public class VCFFileMerger {
   public static void mergeParts(final String partDirectory, final String outputFile,
       final VCFHeader header) throws IOException {
     // First, check for the _SUCCESS file.
-    final String successFile = partDirectory + "/_SUCCESS";
-    final Path successPath = asPath(successFile);
-    if (!Files.exists(successPath)) {
-      throw new NoSuchFileException(successFile, null, "Unable to find _SUCCESS file");
-    }
     final Path partPath = asPath(partDirectory);
+    final Path successPath = partPath.resolve("_SUCCESS");
+    if (!Files.exists(successPath)) {
+      throw new NoSuchFileException(successPath.toString(), null, "Unable to find _SUCCESS file");
+    }
     final Path outputPath = asPath(outputFile);
     if (partPath.equals(outputPath)) {
       throw new IllegalArgumentException("Cannot merge parts into output with same " +
