@@ -163,11 +163,17 @@ public class BAMRecordReader
 			throw new IllegalArgumentException("Property hadoopbam.bam.keep-paired-reads-together is no longer honored.");
 		}
 
-		List<Interval> intervals = BAMInputFormat.getIntervals(conf);
-		if (intervals != null) {
+		boolean boundedTraversal = BAMInputFormat.isBoundedTraversal(conf);
+		if (boundedTraversal && split.getIntervalFilePointers() != null) {
+			// return reads for intervals
+			List<Interval> intervals = BAMInputFormat.getIntervals(conf);
 			QueryInterval[] queryIntervals = BAMInputFormat.prepareQueryIntervals(intervals, header.getSequenceDictionary());
 			iterator = bamFileReader.createIndexIterator(queryIntervals, false, split.getIntervalFilePointers());
+		} else if (boundedTraversal && split.getIntervalFilePointers() == null) {
+			// return unmapped reads
+			iterator = bamFileReader.queryUnmapped();
 		} else {
+			// return everything
 			BAMFileSpan splitSpan = new BAMFileSpan(new Chunk(virtualStart, virtualEnd));
 			iterator = bamFileReader.getIterator(splitSpan);
 		}

@@ -146,7 +146,9 @@ below:
 |`AnySAMInputFormat`|`hadoopbam.anysam.trust-exts`|`true`|Whether to detect the file format (BAM, SAM, or CRAM) by file extension. If `false`, use the file contents to detect the format.|
 |`KeyIgnoringAnySAMOutputFormat`|`hadoopbam.anysam.output-format`| |(Required.) The file format to use when writing BAM, SAM, or CRAM files. Should be one of `BAM`, `SAM`, or `CRAM`.|
 | |`hadoopbam.anysam.write-header`|`true`|Whether to write the SAM header in each output file part. If `true`, call `setSAMHeader()` or `readSAMHeaderFrom()` to set the desired header.|
-|`BAMInputFormat`|`hadoopbam.bam.intervals`| |Only include reads that match the specified intervals. BAM files must be indexed in this case. Intervals are comma-separated and follow the same syntax as the `-L` option in SAMtools. E.g. `chr1:1-20000,chr2:12000-20000`.|
+|`BAMInputFormat`|`hadoopbam.bam.bounded-traversal`|`false`|If `true`, only include reads that match the intervals specified in `hadoopbam.bam.intervals`, and unplaced unmapped reads, if `hadoopbam.bam.traverse-unplaced-unmapped` is set to `true`.|
+| |`hadoopbam.bam.intervals`| |Only include reads that match the specified intervals. BAM files must be indexed in this case. Intervals are comma-separated and follow the same syntax as the `-L` option in SAMtools. E.g. `chr1:1-20000,chr2:12000-20000`. When using this option `hadoopbam.bam.bounded-traversal` should be set to `true`.|
+| |`hadoopbam.bam.traverse-unplaced-unmapped`|`false`|If `true`, include unplaced unmapped reads (that is, unmapped reads with no position) When using this option `hadoopbam.bam.bounded-traversal` should be set to `true`.|
 |`KeyIgnoringBAMOutputFormat`|`hadoopbam.bam.write-splitting-bai`|`false`|If `true`, write _.splitting-bai_ files for every BAM file.|
 |`CRAMInputFormat`|`hadoopbam.cram.reference-source-path`| |(Required.) The path to the reference. May be an `hdfs://` path.|
 |`FastqInputFormat`|`hbam.fastq-input.base-quality-encoding`|`sanger`|The encoding used for base qualities. One of `sanger` or `illumina`.|
