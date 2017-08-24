@@ -56,8 +56,8 @@ public class TestBAMInputFormat {
     assertEquals(2, splits.size());
     List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
     List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
-    assertEquals(1629, split0Records.size());
-    assertEquals(371, split1Records.size());
+    assertEquals(1577, split0Records.size());
+    assertEquals(423, split1Records.size());
     SAMRecord lastRecordOfSplit0 = split0Records.get(split0Records.size() - 1);
     SAMRecord firstRecordOfSplit1 = split1Records.get(0);
     assertEquals(lastRecordOfSplit0.getReadName(), firstRecordOfSplit1.getReadName());
@@ -98,8 +98,8 @@ public class TestBAMInputFormat {
     assertEquals(2, splits.size());
     List<SAMRecord> split0Records = getSAMRecordsFromSplit(inputFormat, splits.get(0));
     List<SAMRecord> split1Records = getSAMRecordsFromSplit(inputFormat, splits.get(1));
-    assertEquals(1629, split0Records.size());
-    assertEquals(371, split1Records.size());
+    assertEquals(1577, split0Records.size());
+    assertEquals(423, split1Records.size());
   }
 
   private List<SAMRecord> getSAMRecordsFromSplit(BAMInputFormat inputFormat,
