@@ -65,10 +65,10 @@ public final class SplittingBAMIndex {
 		}
 		in.close();
 
-		if (virtualOffsets.size() < 2)
+		if (virtualOffsets.size() < 1)
 			throw new IOException(
 				"Invalid splitting BAM index: "+
-				"should contain at least 1 offset and the file size");
+				"should contain at least the file size");
 	}
 
 	public List<Long> getVirtualOffsets() {
@@ -128,17 +128,22 @@ public final class SplittingBAMIndex {
 				try {
 					System.err.printf("%s:\n", f);
 					final SplittingBAMIndex bi = new SplittingBAMIndex(f);
-					final long first = bi.first();
-					final long last  = bi.last();
-					System.err.printf(
-						"\t%d alignments\n" +
-						"\tfirst is at %#06x in BGZF block at %#014x\n" +
-						"\tlast  is at %#06x in BGZF block at %#014x\n" +
-						"\tassociated BAM file size %d\n",
-						bi.size(),
-						first & 0xffff, first >>> 16,
-						last  & 0xffff, last  >>> 16,
-						bi.bamSize());
+					if (bi.size() == 1) {
+						System.err.printf("\t0 alignments\n" +
+								"\tassociated BAM file size %d\n", bi.bamSize());
+					} else {
+						final long first = bi.first();
+						final long last = bi.last();
+						System.err.printf(
+								"\t%d alignments\n" +
+										"\tfirst is at %#06x in BGZF block at %#014x\n" +
+										"\tlast  is at %#06x in BGZF block at %#014x\n" +
+										"\tassociated BAM file size %d\n",
+								bi.size(),
+								first & 0xffff, first >>> 16,
+								last & 0xffff, last >>> 16,
+								bi.bamSize());
+					}
 				} catch (IOException e) {
 					System.err.printf("Failed to read %s!\n", f);
 					e.printStackTrace();

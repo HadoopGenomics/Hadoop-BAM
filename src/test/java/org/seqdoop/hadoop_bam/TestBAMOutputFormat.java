@@ -159,6 +159,20 @@ public class TestBAMOutputFormat {
     }
 
     @Test
+    public void testEmptyBAM() throws Exception {
+        String bam = BAMTestUtil.writeBamFile(0,
+            SAMFileHeader.SortOrder.coordinate).toURI().toString();
+        conf.setBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, true);
+        final Path outputPath = doMapReduce(bam);
+        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        outFile.deleteOnExit();
+        SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
+            SAMFormat.BAM, new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.coordinate).getHeader());
+        final int actualCount = getBAMRecordCount(outFile);
+        assertEquals(0, actualCount);
+    }
+
+    @Test
     public void testBAMWithSplittingBai() throws Exception {
         int numPairs = 20000;
         // create a large BAM with lots of index points
