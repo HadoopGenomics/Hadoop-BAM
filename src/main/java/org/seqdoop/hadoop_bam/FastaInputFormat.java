@@ -43,6 +43,8 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads the FASTA reference sequence format.
@@ -54,6 +56,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  */
 public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 {
+	private static final Logger logger = LoggerFactory.getLogger(FastaInputFormat.class);
 	public static final Charset UTF8 = Charset.forName("UTF8");
 
     @Override public List<InputSplit> getSplits(JobContext job) throws IOException
@@ -111,16 +114,22 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 		while(byte_counter < origsplit.getStart()+origsplit.getLength()) {
 		    long bytes_read = fis.read(byte_counter, buffer, 0, (int)Math.min(buffer.length,
 										      origsplit.getStart()+origsplit.getLength()- byte_counter));
-		    //System.err.println("bytes_read: "+Integer.toString((int)bytes_read)+" of "+Integer.toString(splits.size())+" splits");
+		    if (logger.isDebugEnabled()) {
+			logger.debug("bytes_read: {} of {} splits", bytes_read, splits.size());
+		    }
 		    if(bytes_read > 0) {
 			for(int i=0;i<bytes_read;i++) {
 			    if(buffer[i] == (byte)'>') {
-				//System.err.println("found chromosome at position "+Integer.toString((int)byte_counter+i));
+				if (logger.isDebugEnabled()) {
+					logger.debug("found chromosome at position {}", byte_counter + i);
+				}
 				
 				if(!first_chromosome) {
 				    FileSplit fsplit = new FileSplit(path, prev_chromosome_byte_offset, byte_counter + i-1 - prev_chromosome_byte_offset, origsplit.getLocations());
-				    //System.err.println("adding split: start: "+Integer.toString((int)fsplit.getStart())+" length: "+Integer.toString((int)fsplit.getLength()));
-				    
+
+					if (logger.isDebugEnabled()) {
+						logger.debug("adding split: start: {}, length: {}", fsplit.getStart(), fsplit.getLength());
+					}
 				    newSplits.add(fsplit);
 				}
 				first_chromosome = false;
@@ -132,10 +141,11 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 		}
 
 		if(j == splits.size()-1) {
-		    //System.err.println("EOF");
 		    FileSplit fsplit = new FileSplit(path, prev_chromosome_byte_offset, byte_counter - prev_chromosome_byte_offset, origsplit.getLocations());
-		    newSplits.add(fsplit); //conf));
-		    //System.err.println("adding split: "+fsplit.toString());
+		    newSplits.add(fsplit);
+			if (logger.isDebugEnabled()) {
+				logger.debug("adding split: {}", fsplit);
+			}
 		    break;
 		}
 	    }
@@ -224,8 +234,10 @@ public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
 		    
 		    // initialize position counter
 		    current_split_pos = 1;
-		    
-		    //System.err.println("read index sequence: "+current_split_indexseq);
+
+			if (logger.isDebugEnabled()) {
+				logger.debug("read index sequence: {}", current_split_indexseq);
+			}
 		    start = start + bytesRead;
 		    stream.seek(start);
 		    pos = start;

@@ -46,6 +46,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -72,8 +74,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 public class BAMInputFormat
 	extends FileInputFormat<LongWritable,SAMRecordWritable>
 {
-	// set this to true for debug output
-	public final static boolean DEBUG_BAM_SPLITTER = false;
+	private static final Logger logger = LoggerFactory.getLogger(BAMInputFormat.class);
 
 	/**
 	 * If set to true, only include reads that overlap the given intervals (if specified),
@@ -281,9 +282,7 @@ public class BAMInputFormat
 			}
 
 			if (blockStart == null || blockEnd == null) {
-				System.err.println("Warning: index for " + file.toString() +
-						" was not good. Generating probabilistic splits.");
-
+				logger.warn("Index for {} was not good. Generating probabilistic splits.", file);
 				return addProbabilisticSplits(splits, i, newSplits, cfg);
 			}
 
@@ -347,12 +346,12 @@ public class BAMInputFormat
 			} else {
 				previousSplit = new FileVirtualSplit(
                                         path, alignedBeg, alignedEnd, fspl.getLocations());
-				if(DEBUG_BAM_SPLITTER) {	
-					final long byte_offset  = alignedBeg >>> 16;
-                                	final long record_offset = alignedBeg & 0xffff;
-					System.err.println("XXX split " + i +
-						" byte offset: " + byte_offset + " record offset: " + 
-						record_offset + " virtual offset: " + alignedBeg);
+				if (logger.isDebugEnabled()) {
+					final long byteOffset  = alignedBeg >>> 16;
+					final long recordOffset = alignedBeg & 0xffff;
+					logger.debug(
+						"Split {}: byte offset: {} record offset: {}, virtual offset: {}",
+						i, byteOffset, recordOffset, alignedBeg);
 				}
 				newSplits.add(previousSplit);
 			}
