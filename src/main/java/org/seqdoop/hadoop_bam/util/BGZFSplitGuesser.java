@@ -72,12 +72,15 @@ public class BGZFSplitGuesser {
 		byte[] arr = new byte[2*0xffff - 1];
 
 		this.seekableInFile.seek(beg);
-		int read = inFile.read(arr, 0, Math.min((int) (end - beg),
-				arr.length));
-		if (read == -1) {
-			return -1; // EOF
+		int totalRead = 0;
+		for (int left = Math.min((int)(end - beg), arr.length); left > 0;) {
+			final int r = inFile.read(arr, totalRead, left);
+			if (r < 0)
+				break;
+			totalRead += r;
+			left -= r;
 		}
-		arr = Arrays.copyOf(arr, read);
+		arr = Arrays.copyOf(arr, totalRead);
 
 		this.in = new ByteArraySeekableStream(arr);
 
