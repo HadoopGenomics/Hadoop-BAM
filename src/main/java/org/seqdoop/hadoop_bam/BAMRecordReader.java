@@ -120,7 +120,7 @@ public class BAMRecordReader
 	}
 
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
-		throws IOException
+            throws IOException
 	{
 		// This method should only be called once (see Hadoop API). However,
 		// there seems to be disagreement between implementations that call

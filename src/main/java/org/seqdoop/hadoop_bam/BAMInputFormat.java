@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.ProviderNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -191,7 +192,7 @@ public class BAMInputFormat
 	/** Returns a {@link BAMRecordReader} initialized with the parameters. */
 	@Override public RecordReader<LongWritable,SAMRecordWritable>
 		createRecordReader(InputSplit split, TaskAttemptContext ctx)
-			throws InterruptedException, IOException
+            throws InterruptedException, IOException
 	{
 		final RecordReader<LongWritable,SAMRecordWritable> rr =
 			new BAMRecordReader();
@@ -231,7 +232,7 @@ public class BAMInputFormat
 		for (int i = 0; i < origSplits.size();) {
 			try {
 				i = addIndexedSplits      (origSplits, i, newSplits, cfg);
-			} catch (IOException e) {
+			} catch (IOException | ProviderNotFoundException e) {
 				i = addProbabilisticSplits(origSplits, i, newSplits, cfg);
 			}
 		}
