@@ -115,8 +115,7 @@ public class VCFRecordReader
 
 		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
 		if (intervals != null) {
-			overlapDetector = new OverlapDetector<>(0, 0);
-			overlapDetector.addAll(intervals, intervals);
+			overlapDetector = OverlapDetector.create(intervals);
 		}
 	}
 	@Override public void close() throws IOException { lineRecordReader.close(); }
@@ -163,7 +162,6 @@ public class VCFRecordReader
 			return true;
 		}
 		final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
-		Collection<Interval> overlaps = overlapDetector.getOverlaps(interval);
-		return !overlaps.isEmpty();
+		return overlapDetector.overlapsAny(interval);
 	}
 }
