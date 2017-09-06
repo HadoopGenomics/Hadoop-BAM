@@ -184,7 +184,7 @@ it is by relying on the OSS Sonatype repository:
         <dependency>
             <groupId>org.seqdoop</groupId>
             <artifactId>hadoop-bam</artifactId>
-            <version>7.8.0</version>
+            <version>7.9.0</version>
         </dependency>
         ...
     </dependencies>
