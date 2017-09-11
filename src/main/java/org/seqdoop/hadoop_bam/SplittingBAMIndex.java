@@ -25,131 +25,157 @@ package org.seqdoop.hadoop_bam;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
-/** An index into BAM files, for {@link BAMInputFormat}. Reads files that are
+/**
+ * An index into BAM files, for {@link BAMInputFormat}. Reads files that are
  * created by {@link SplittingBAMIndexer}.
- *
+ * <p>
  * <p>Indexes the positions of individual BAM records in the file.</p>
  */
 public final class SplittingBAMIndex {
-	private final NavigableSet<Long> virtualOffsets = new TreeSet<Long>();
+    private final NavigableSet<Long> virtualOffsets = new TreeSet<Long>();
 
-	public SplittingBAMIndex() {}
-	public SplittingBAMIndex(final File path) throws IOException {
-		this(new BufferedInputStream(new FileInputStream(path)));
-	}
-	public SplittingBAMIndex(final InputStream in) throws IOException {
-		readIndex(in);
-	}
+    public SplittingBAMIndex() {
+    }
 
-	public void readIndex(final InputStream in) throws IOException {
-		virtualOffsets.clear();
+    public SplittingBAMIndex(final File path) throws IOException {
+        this(new BufferedInputStream(new FileInputStream(path)));
+    }
 
-		final ByteBuffer bb = ByteBuffer.allocate(8);
+    public SplittingBAMIndex(final InputStream in) throws IOException {
+        readIndex(in);
+    }
 
-		for (long prev = -1; in.read(bb.array()) == 8;) {
-			final long cur = bb.getLong(0);
-			if (prev > cur)
-				throw new IOException(String.format(
-					"Invalid splitting BAM index; offsets not in order: %#x > %#x",
-					prev, cur));
+    public void readIndex(final InputStream in) throws IOException {
+        virtualOffsets.clear();
 
-			virtualOffsets.add(prev = cur);
-		}
-		in.close();
+        final ByteBuffer bb = ByteBuffer.allocate(8);
 
-		if (virtualOffsets.size() < 1)
-			throw new IOException(
-				"Invalid splitting BAM index: "+
-				"should contain at least the file size");
-	}
+        for (long prev = -1; in.read(bb.array()) == 8; ) {
+            final long cur = bb.getLong(0);
+            if (prev > cur) {
+                throw new IOException(String.format(
+                        "Invalid splitting BAM index; offsets not in order: %#x > %#x",
+                        prev, cur));
+            }
 
-	public List<Long> getVirtualOffsets() {
-		return new ArrayList<>(virtualOffsets);
-	}
+            virtualOffsets.add(prev = cur);
+        }
+        in.close();
 
-	public Long prevAlignment(final long filePos) {
-		return virtualOffsets.floor(filePos << 16);
-	}
-	public Long nextAlignment(final long filePos) {
-		return virtualOffsets.higher(filePos << 16);
-	}
+        if (virtualOffsets.size() < 1) {
+            throw new IOException(
+                    "Invalid splitting BAM index: " +
+                            "should contain at least the file size");
+        }
+    }
 
-	public int size() { return virtualOffsets.size(); }
+    public List<Long> getVirtualOffsets() {
+        return new ArrayList<>(virtualOffsets);
+    }
 
-	private long   first() { return virtualOffsets.first(); }
-	private long    last() { return prevAlignment(bamSize() - 1); }
-	long bamSize() { return virtualOffsets.last() >>> 16; }
+    public Long prevAlignment(final long filePos) {
+        return virtualOffsets.floor(filePos << 16);
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+    public Long nextAlignment(final long filePos) {
+        return virtualOffsets.higher(filePos << 16);
+    }
 
-		SplittingBAMIndex that = (SplittingBAMIndex) o;
+    public int size() {
+        return virtualOffsets.size();
+    }
 
-		return virtualOffsets != null ? virtualOffsets.equals(that.virtualOffsets) : that
-				.virtualOffsets == null;
+    private long first() {
+        return virtualOffsets.first();
+    }
 
-	}
+    private long last() {
+        return prevAlignment(bamSize() - 1);
+    }
 
-	@Override
-	public int hashCode() {
-		return virtualOffsets != null ? virtualOffsets.hashCode() : 0;
-	}
+    long bamSize() {
+        return virtualOffsets.last() >>> 16;
+    }
 
-	@Override
-	public String toString() {
-		return virtualOffsets.toString();
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
-	/** Writes some statistics about each splitting BAM index file given as an
-	 * argument.
-	 */
-	public static void main(String[] args) {
-		if (args.length == 0) {
-			System.out.println(
-				"Usage: SplittingBAMIndex [splitting BAM indices...]\n\n"+
+        SplittingBAMIndex that = (SplittingBAMIndex) o;
 
-				"Writes a few statistics about each splitting BAM index.");
-			return;
-		}
+        return virtualOffsets != null ? virtualOffsets.equals(that.virtualOffsets) : that
+                .virtualOffsets == null;
 
-		for (String arg : args) {
-			final File f = new File(arg);
-			if (f.isFile() && f.canRead()) {
-				try {
-					System.err.printf("%s:\n", f);
-					final SplittingBAMIndex bi = new SplittingBAMIndex(f);
-					if (bi.size() == 1) {
-						System.err.printf("\t0 alignments\n" +
-								"\tassociated BAM file size %d\n", bi.bamSize());
-					} else {
-						final long first = bi.first();
-						final long last = bi.last();
-						System.err.printf(
-								"\t%d alignments\n" +
-										"\tfirst is at %#06x in BGZF block at %#014x\n" +
-										"\tlast  is at %#06x in BGZF block at %#014x\n" +
-										"\tassociated BAM file size %d\n",
-								bi.size(),
-								first & 0xffff, first >>> 16,
-								last & 0xffff, last >>> 16,
-								bi.bamSize());
-					}
-				} catch (IOException e) {
-					System.err.printf("Failed to read %s!\n", f);
-					e.printStackTrace();
-				}
-			} else
-				System.err.printf("%s does not look like a readable file!\n", f);
-		}
-	}
+    }
+
+    @Override
+    public int hashCode() {
+        return virtualOffsets != null ? virtualOffsets.hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return virtualOffsets.toString();
+    }
+
+    /**
+     * Writes some statistics about each splitting BAM index file given as an
+     * argument.
+     */
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println(
+                    "Usage: SplittingBAMIndex [splitting BAM indices...]\n\n" +
+
+                            "Writes a few statistics about each splitting BAM index.");
+            return;
+        }
+
+        for (String arg : args) {
+            final File f = new File(arg);
+            if (f.isFile() && f.canRead()) {
+                try {
+                    System.err.printf("%s:\n", f);
+                    final SplittingBAMIndex bi = new SplittingBAMIndex(f);
+                    if (bi.size() == 1) {
+                        System.err.printf("\t0 alignments\n" +
+                                "\tassociated BAM file size %d\n", bi.bamSize());
+                    }
+                    else {
+                        final long first = bi.first();
+                        final long last = bi.last();
+                        System.err.printf(
+                                "\t%d alignments\n" +
+                                        "\tfirst is at %#06x in BGZF block at %#014x\n" +
+                                        "\tlast  is at %#06x in BGZF block at %#014x\n" +
+                                        "\tassociated BAM file size %d\n",
+                                bi.size(),
+                                first & 0xffff, first >>> 16,
+                                last & 0xffff, last >>> 16,
+                                bi.bamSize());
+                    }
+                }
+                catch (IOException e) {
+                    System.err.printf("Failed to read %s!\n", f);
+                    e.printStackTrace();
+                }
+            }
+            else {
+                System.err.printf("%s does not look like a readable file!\n", f);
+            }
+        }
+    }
 }

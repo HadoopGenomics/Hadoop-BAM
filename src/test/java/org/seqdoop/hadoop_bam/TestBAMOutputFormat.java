@@ -1,12 +1,23 @@
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.samtools.*;
-import htsjdk.samtools.util.BlockCompressedInputStream;
-import htsjdk.samtools.util.BlockCompressedStreamConstants;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import htsjdk.samtools.BAMRecordCodec;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordSetBuilder;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -23,10 +34,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.SAMFileMerger;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
-
-import java.io.*;
-import java.util.Iterator;
 import org.seqdoop.hadoop_bam.util.SAMOutputPreparer;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathNotFoundException;
 import org.junit.Test;
 
+
 import static org.junit.Assert.assertEquals;
 
 public class TestAnySAMInputFormat {

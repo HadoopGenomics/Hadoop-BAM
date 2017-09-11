@@ -1,6 +1,5 @@
 package org.seqdoop.hadoop_bam.util;
 
-import htsjdk.variant.vcf.VCFHeader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +7,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import htsjdk.variant.vcf.VCFHeader;
 import org.junit.Before;
 import org.junit.Test;
 

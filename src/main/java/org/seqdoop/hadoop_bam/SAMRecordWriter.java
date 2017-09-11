@@ -24,81 +24,80 @@ package org.seqdoop.hadoop_bam;
 
 import java.io.IOException;
 import java.io.OutputStream;
-
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMTextWriter;
-
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-/** A base {@link RecordWriter} for SAM records.
- *
+/**
+ * A base {@link RecordWriter} for SAM records.
+ * <p>
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeAlignment} function for subclasses.</p>
  */
 public abstract class SAMRecordWriter<K>
-	extends RecordWriter<K,SAMRecordWritable>
-{
-	private SAMTextWriter writer;
-	private SAMFileHeader header;
+        extends RecordWriter<K, SAMRecordWritable> {
+    private SAMTextWriter writer;
+    private SAMFileHeader header;
 
-	/** A SAMFileHeader is read from the input Path. */
-	public SAMRecordWriter(
-			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output,
-			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
-			writeHeader, ctx);
-	}
-	public SAMRecordWriter(
-			Path output, SAMFileHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-	}
-	public SAMRecordWriter(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
-		throws IOException
-	{
-		init(output, header, writeHeader);
-	}
+    /**
+     * A SAMFileHeader is read from the input Path.
+     */
+    public SAMRecordWriter(
+            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output,
+                SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
+                writeHeader, ctx);
+    }
 
-	private void init(
-			Path output, SAMFileHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-	}
-	private void init(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
-		throws IOException
-	{
-		this.header = header;
-		writer = new SAMTextWriter(output);
+    public SAMRecordWriter(
+            Path output, SAMFileHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output.getFileSystem(ctx.getConfiguration()).create(output),
+                header, writeHeader);
+    }
 
-		writer.setSortOrder(header.getSortOrder(), false);
-		if (writeHeader)
-			writer.setHeader(header);
-	}
+    public SAMRecordWriter(
+            OutputStream output, SAMFileHeader header, boolean writeHeader)
+            throws IOException {
+        init(output, header, writeHeader);
+    }
 
-	@Override public void close(TaskAttemptContext ctx) {
-		writer.close();
-	}
+    private void init(
+            Path output, SAMFileHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output.getFileSystem(ctx.getConfiguration()).create(output),
+                header, writeHeader);
+    }
 
-	protected void writeAlignment(final SAMRecord rec) {
-		rec.setHeader(header);
-		writer.writeAlignment(rec);
-	}
+    private void init(
+            OutputStream output, SAMFileHeader header, boolean writeHeader)
+            throws IOException {
+        this.header = header;
+        writer = new SAMTextWriter(output);
+
+        writer.setSortOrder(header.getSortOrder(), false);
+        if (writeHeader) {
+            writer.setHeader(header);
+        }
+    }
+
+    @Override
+    public void close(TaskAttemptContext ctx) {
+        writer.close();
+    }
+
+    protected void writeAlignment(final SAMRecord rec) {
+        rec.setHeader(header);
+        writer.writeAlignment(rec);
+    }
 }

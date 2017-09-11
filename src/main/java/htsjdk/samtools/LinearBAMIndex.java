@@ -19,9 +19,6 @@
 // IN THE SOFTWARE.
 package htsjdk.samtools;
 
-import htsjdk.samtools.CachingBAMFileIndex;
-import htsjdk.samtools.LinearIndex;
-import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.seekablestream.SeekableStream;
 
 /**
@@ -29,11 +26,11 @@ import htsjdk.samtools.seekablestream.SeekableStream;
  */
 public class LinearBAMIndex extends CachingBAMFileIndex {
 
-        public LinearBAMIndex(SeekableStream stream, SAMSequenceDictionary dict) {
-                super(stream, dict);
-        }
-        
-        public LinearIndex getLinearIndex(int idx) {
-                return getQueryResults(idx).getLinearIndex();
-        }
+    public LinearBAMIndex(SeekableStream stream, SAMSequenceDictionary dict) {
+        super(stream, dict);
+    }
+
+    public LinearIndex getLinearIndex(int idx) {
+        return getQueryResults(idx).getLinearIndex();
+    }
 }

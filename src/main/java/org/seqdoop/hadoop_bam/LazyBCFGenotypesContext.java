@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import htsjdk.tribble.TribbleException;
 import htsjdk.variant.bcf2.BCF2Decoder;
 import htsjdk.variant.bcf2.BCF2GenotypeFieldDecoders;
@@ -41,109 +40,123 @@ import htsjdk.variant.vcf.VCFHeader;
 //      is, unfortunately, simply copied from there.
 public class LazyBCFGenotypesContext extends LazyParsingGenotypesContext {
 
-	/** Takes ownership of the given byte[]: don't modify its contents. */
-	public LazyBCFGenotypesContext(
-		List<Allele> alleles, int fields, byte[] unparsed, int count)
-	{
-		super(new Parser(alleles, fields), unparsed, count);
-	}
+    /**
+     * Takes ownership of the given byte[]: don't modify its contents.
+     */
+    public LazyBCFGenotypesContext(
+            List<Allele> alleles, int fields, byte[] unparsed, int count) {
+        super(new Parser(alleles, fields), unparsed, count);
+    }
 
-	public static class HeaderDataCache
-		implements LazyParsingGenotypesContext.HeaderDataCache
-	{
-		public static final BCF2Decoder decoder = new BCF2Decoder();
+    public static class HeaderDataCache
+            implements LazyParsingGenotypesContext.HeaderDataCache {
+        public static final BCF2Decoder decoder = new BCF2Decoder();
 
-		private BCF2GenotypeFieldDecoders genoFieldDecoders;
-		private List<String>              fieldDict;
-		private GenotypeBuilder[]         builders;
+        private BCF2GenotypeFieldDecoders genoFieldDecoders;
+        private List<String> fieldDict;
+        private GenotypeBuilder[] builders;
 
-		private ArrayList<String>        sampleNamesInOrder;
-		private HashMap<String, Integer> sampleNameToOffset;
+        private ArrayList<String> sampleNamesInOrder;
+        private HashMap<String, Integer> sampleNameToOffset;
 
-		@Override public void setHeader(VCFHeader header) {
-			genoFieldDecoders = new BCF2GenotypeFieldDecoders(header);
-			fieldDict = BCF2Utils.makeDictionary(header);
+        @Override
+        public void setHeader(VCFHeader header) {
+            genoFieldDecoders = new BCF2GenotypeFieldDecoders(header);
+            fieldDict = BCF2Utils.makeDictionary(header);
 
-			builders = new GenotypeBuilder[header.getNGenotypeSamples()];
-			final List<String> genotypeSamples = header.getGenotypeSamples();
-			for (int i = 0; i < builders.length; ++i)
-				builders[i] = new GenotypeBuilder(genotypeSamples.get(i));
+            builders = new GenotypeBuilder[header.getNGenotypeSamples()];
+            final List<String> genotypeSamples = header.getGenotypeSamples();
+            for (int i = 0; i < builders.length; ++i) {
+                builders[i] = new GenotypeBuilder(genotypeSamples.get(i));
+            }
 
-			sampleNamesInOrder = header.getSampleNamesInOrder();
-			sampleNameToOffset = header.getSampleNameToOffset();
-		}
+            sampleNamesInOrder = header.getSampleNamesInOrder();
+            sampleNameToOffset = header.getSampleNameToOffset();
+        }
 
-		public BCF2GenotypeFieldDecoders getGenoFieldDecoders() {
-			return genoFieldDecoders;
-		}
-		public List<String>      getFieldDict() { return fieldDict; }
-		public GenotypeBuilder[] getBuilders () { return builders; }
+        public BCF2GenotypeFieldDecoders getGenoFieldDecoders() {
+            return genoFieldDecoders;
+        }
 
-		public ArrayList<String> getSampleNamesInOrder() {
-			return sampleNamesInOrder;
-		}
-		public HashMap<String, Integer> getSampleNameToOffset() {
-			return sampleNameToOffset;
-		}
-	}
+        public List<String> getFieldDict() {
+            return fieldDict;
+        }
 
-	public static class Parser extends LazyParsingGenotypesContext.Parser {
-		private final List<Allele> alleles;
-		private final int fields;
+        public GenotypeBuilder[] getBuilders() {
+            return builders;
+        }
 
-		private HeaderDataCache hd = null;
+        public ArrayList<String> getSampleNamesInOrder() {
+            return sampleNamesInOrder;
+        }
 
-		public Parser(List<Allele> alleles, int fields) {
-			this.alleles = alleles;
-			this.fields = fields;
-		}
+        public HashMap<String, Integer> getSampleNameToOffset() {
+            return sampleNameToOffset;
+        }
+    }
 
-		@Override public void setHeaderDataCache(
-			LazyParsingGenotypesContext.HeaderDataCache data)
-		{
-			this.hd = (HeaderDataCache)data;
-		}
+    public static class Parser extends LazyParsingGenotypesContext.Parser {
+        private final List<Allele> alleles;
+        private final int fields;
 
-		@Override public LazyGenotypesContext.LazyData parse(final Object data) {
-			if (hd == null)
-				throw new IllegalStateException(
-					"Cannot decode genotypes without HeaderDataCache");
+        private HeaderDataCache hd = null;
 
-			final GenotypeBuilder[] builders = hd.getBuilders();
+        public Parser(List<Allele> alleles, int fields) {
+            this.alleles = alleles;
+            this.fields = fields;
+        }
 
-			// The following is essentially the contents of
-			// BCF2LazyGenotypesDecoder.parse().
+        @Override
+        public void setHeaderDataCache(
+                LazyParsingGenotypesContext.HeaderDataCache data) {
+            this.hd = (HeaderDataCache) data;
+        }
 
-			try {
-				hd.decoder.setRecordBytes((byte[])data);
+        @Override
+        public LazyGenotypesContext.LazyData parse(final Object data) {
+            if (hd == null) {
+                throw new IllegalStateException(
+                        "Cannot decode genotypes without HeaderDataCache");
+            }
 
-				for (final GenotypeBuilder gb : builders)
-					gb.reset(true);
+            final GenotypeBuilder[] builders = hd.getBuilders();
 
-				for (int i = 0; i < fields; ++i) {
-					final String field =
-						hd.getFieldDict().get(
-							(Integer)hd.decoder.decodeTypedValue());
+            // The following is essentially the contents of
+            // BCF2LazyGenotypesDecoder.parse().
 
-					final byte type = hd.decoder.readTypeDescriptor();
-					final int numElems = hd.decoder.decodeNumberOfElements(type);
+            try {
+                hd.decoder.setRecordBytes((byte[]) data);
 
-					hd.getGenoFieldDecoders().getDecoder(field).decode(
-						alleles, field, hd.decoder, type, numElems, builders);
-				}
+                for (final GenotypeBuilder gb : builders) {
+                    gb.reset(true);
+                }
 
-				final ArrayList<Genotype> genotypes =
-					new ArrayList<Genotype>(builders.length);
-				for (final GenotypeBuilder gb : builders)
-					genotypes.add(gb.make());
+                for (int i = 0; i < fields; ++i) {
+                    final String field =
+                            hd.getFieldDict().get(
+                                    (Integer) hd.decoder.decodeTypedValue());
 
-				return new LazyGenotypesContext.LazyData(
-					genotypes,
-					hd.getSampleNamesInOrder(), hd.getSampleNameToOffset());
-			} catch (IOException e) {
-            throw new TribbleException(
-            	"Unexpected IOException parsing genotypes data block", e);
-			}
-		}
-	}
+                    final byte type = hd.decoder.readTypeDescriptor();
+                    final int numElems = hd.decoder.decodeNumberOfElements(type);
+
+                    hd.getGenoFieldDecoders().getDecoder(field).decode(
+                            alleles, field, hd.decoder, type, numElems, builders);
+                }
+
+                final ArrayList<Genotype> genotypes =
+                        new ArrayList<Genotype>(builders.length);
+                for (final GenotypeBuilder gb : builders) {
+                    genotypes.add(gb.make());
+                }
+
+                return new LazyGenotypesContext.LazyData(
+                        genotypes,
+                        hd.getSampleNamesInOrder(), hd.getSampleNameToOffset());
+            }
+            catch (IOException e) {
+                throw new TribbleException(
+                        "Unexpected IOException parsing genotypes data block", e);
+            }
+        }
+    }
 }

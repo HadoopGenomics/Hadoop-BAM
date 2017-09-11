@@ -23,7 +23,6 @@
 package org.seqdoop.hadoop_bam.util;
 
 import java.io.IOException;
-
 import htsjdk.samtools.seekablestream.SeekableStream;
 
 /**
@@ -32,32 +31,60 @@ import htsjdk.samtools.seekablestream.SeekableStream;
  */
 @Deprecated
 public class SeekableArrayStream extends SeekableStream {
-	private final byte[] arr;
-	private       int    pos;
+    private final byte[] arr;
+    private int pos;
 
-	public SeekableArrayStream(byte[] a) { this.arr = a; this.pos = 0; }
+    public SeekableArrayStream(byte[] a) {
+        this.arr = a;
+        this.pos = 0;
+    }
 
-	@Override public void    close   () {}
-	@Override public long    length  () { return arr.length; }
-	@Override public long    position() { return pos; }
-	@Override public boolean eof     () { return pos == length(); }
+    @Override
+    public void close() {
+    }
 
-	@Override public void seek(long lp) throws IOException {
-		final int p = (int)lp;
-		if (p < 0 || p > arr.length)
-			throw new IOException("position " +p+ " is out of bounds");
-		pos = p;
-	}
+    @Override
+    public long length() {
+        return arr.length;
+    }
 
-	@Override public int read(byte[] b, int off, int len) {
-		if (eof())
-			return -1;
-		len = Math.min(len, arr.length - pos);
-		System.arraycopy(arr, pos, b, off, len);
-		pos += len;
-		return len;
-	}
-	@Override public int read() { return eof() ? -1 : arr[pos++]; }
+    @Override
+    public long position() {
+        return pos;
+    }
 
-	@Override public String getSource() { return null; }
+    @Override
+    public boolean eof() {
+        return pos == length();
+    }
+
+    @Override
+    public void seek(long lp) throws IOException {
+        final int p = (int) lp;
+        if (p < 0 || p > arr.length) {
+            throw new IOException("position " + p + " is out of bounds");
+        }
+        pos = p;
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) {
+        if (eof()) {
+            return -1;
+        }
+        len = Math.min(len, arr.length - pos);
+        System.arraycopy(arr, pos, b, off, len);
+        pos += len;
+        return len;
+    }
+
+    @Override
+    public int read() {
+        return eof() ? -1 : arr[pos++];
+    }
+
+    @Override
+    public String getSource() {
+        return null;
+    }
 }

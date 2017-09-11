@@ -22,7 +22,6 @@ package org.seqdoop.hadoop_bam;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.LazyGenotypesContext;
@@ -36,93 +35,106 @@ import htsjdk.variant.vcf.VCFHeaderVersion;
 // The actual parsing is delegated to AbstractVCFCodec.
 public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
 
-	/** Takes ownership of the given byte[]: don't modify its contents. */
-	public LazyVCFGenotypesContext(
-		List<Allele> alleles, String chrom, int start,
-		byte[] utf8Unparsed, int count)
-	{
-		super(new Parser(alleles, chrom, start), utf8Unparsed, count);
-	}
+    /**
+     * Takes ownership of the given byte[]: don't modify its contents.
+     */
+    public LazyVCFGenotypesContext(
+            List<Allele> alleles, String chrom, int start,
+            byte[] utf8Unparsed, int count) {
+        super(new Parser(alleles, chrom, start), utf8Unparsed, count);
+    }
 
-	public static class HeaderDataCache
-		implements LazyParsingGenotypesContext.HeaderDataCache
-	{
-		private HeaderSettableVCFCodec codec = new HeaderSettableVCFCodec();
+    public static class HeaderDataCache
+            implements LazyParsingGenotypesContext.HeaderDataCache {
+        private HeaderSettableVCFCodec codec = new HeaderSettableVCFCodec();
 
-		@Override public void setHeader(VCFHeader header) {
-			VCFHeaderVersion version = null;
+        @Override
+        public void setHeader(VCFHeader header) {
+            VCFHeaderVersion version = null;
 
-			// Normally AbstractVCFCodec parses the header and thereby sets the
-			// version field. It gets used later on so we need to set it.
-			for (final VCFHeaderLine line : header.getMetaDataInInputOrder()) {
-				if (VCFHeaderVersion.isFormatString(line.getKey())) {
-					version = VCFHeaderVersion.toHeaderVersion(line.getValue());
-					break;
-				}
-			}
+            // Normally AbstractVCFCodec parses the header and thereby sets the
+            // version field. It gets used later on so we need to set it.
+            for (final VCFHeaderLine line : header.getMetaDataInInputOrder()) {
+                if (VCFHeaderVersion.isFormatString(line.getKey())) {
+                    version = VCFHeaderVersion.toHeaderVersion(line.getValue());
+                    break;
+                }
+            }
 
-			codec.setHeaderAndVersion(header, version);
-		}
+            codec.setHeaderAndVersion(header, version);
+        }
 
-		public AbstractVCFCodec getCodec() { return codec; }
-	}
+        public AbstractVCFCodec getCodec() {
+            return codec;
+        }
+    }
 
-	public static class Parser extends LazyParsingGenotypesContext.Parser {
-		private HeaderSettableVCFCodec codec = null;
-		private final List<Allele> alleles;
-		private final String chrom;
-		private final int start;
+    public static class Parser extends LazyParsingGenotypesContext.Parser {
+        private HeaderSettableVCFCodec codec = null;
+        private final List<Allele> alleles;
+        private final String chrom;
+        private final int start;
 
-		public Parser(List<Allele> alleles, String chrom, int start) {
-			this.alleles = alleles;
-			this.chrom = chrom;
-			this.start = start;
-		}
+        public Parser(List<Allele> alleles, String chrom, int start) {
+            this.alleles = alleles;
+            this.chrom = chrom;
+            this.start = start;
+        }
 
-		@Override public void setHeaderDataCache(
-			LazyParsingGenotypesContext.HeaderDataCache data)
-		{
-			codec = (HeaderSettableVCFCodec)((HeaderDataCache)data).getCodec();
-		}
+        @Override
+        public void setHeaderDataCache(
+                LazyParsingGenotypesContext.HeaderDataCache data) {
+            codec = (HeaderSettableVCFCodec) ((HeaderDataCache) data).getCodec();
+        }
 
-		@Override public LazyGenotypesContext.LazyData parse(final Object data) {
-			if (codec == null || !codec.hasHeader())
-				throw new IllegalStateException(
-					"Cannot decode genotypes without a codec with a VCFHeader");
+        @Override
+        public LazyGenotypesContext.LazyData parse(final Object data) {
+            if (codec == null || !codec.hasHeader()) {
+                throw new IllegalStateException(
+                        "Cannot decode genotypes without a codec with a VCFHeader");
+            }
 
-			final String str;
-			try {
-				str = new String((byte[])data, "UTF-8");
-			} catch (UnsupportedEncodingException absurd) {
-				throw new RuntimeException(
-					"Can never happen on a compliant Java implementation because "+
-					"UTF-8 is guaranteed to be supported");
-			}
-			return codec.createGenotypeMap(str, alleles, chrom, start);
-		}
-	}
+            final String str;
+            try {
+                str = new String((byte[]) data, "UTF-8");
+            }
+            catch (UnsupportedEncodingException absurd) {
+                throw new RuntimeException(
+                        "Can never happen on a compliant Java implementation because " +
+                                "UTF-8 is guaranteed to be supported");
+            }
+            return codec.createGenotypeMap(str, alleles, chrom, start);
+        }
+    }
 }
 
 // This is a HACK. But, the functionality is only in AbstractVCFCodec so it
 // can't be helped. This is preferable to copying the functionality into
 // parse() above.
 class HeaderSettableVCFCodec extends AbstractVCFCodec {
-	public boolean hasHeader() { return header != null; }
+    public boolean hasHeader() {
+        return header != null;
+    }
 
-	public void setHeaderAndVersion(VCFHeader header, VCFHeaderVersion ver) {
-		this.header = header;
-		this.version = ver;
-	}
+    public void setHeaderAndVersion(VCFHeader header, VCFHeaderVersion ver) {
+        this.header = header;
+        this.version = ver;
+    }
 
-	@Override public Object readActualHeader(LineIterator reader) {
-		throw new UnsupportedOperationException(
-			"Internal error: this shouldn't be called");
-	}
-	@Override public List<String> parseFilters(String filterString) {
-		throw new UnsupportedOperationException(
-			"Internal error: this shouldn't be called");
-	}
-	@Override public boolean canDecode(String s) {
-		return true;
-	}
+    @Override
+    public Object readActualHeader(LineIterator reader) {
+        throw new UnsupportedOperationException(
+                "Internal error: this shouldn't be called");
+    }
+
+    @Override
+    public List<String> parseFilters(String filterString) {
+        throw new UnsupportedOperationException(
+                "Internal error: this shouldn't be called");
+    }
+
+    @Override
+    public boolean canDecode(String s) {
+        return true;
+    }
 }

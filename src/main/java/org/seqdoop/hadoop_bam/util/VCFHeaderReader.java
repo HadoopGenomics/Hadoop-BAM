@@ -23,12 +23,11 @@
 package org.seqdoop.hadoop_bam.util;
 
 import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.io.IOException;
-
+import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.util.BlockCompressedInputStream;
-
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.readers.AsciiLineReader;
@@ -37,43 +36,45 @@ import htsjdk.tribble.readers.PositionalBufferedStream;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
-import java.util.zip.GZIPInputStream;
 import org.seqdoop.hadoop_bam.VCFFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Can read a VCF header without being told beforehand whether the input is
+/**
+ * Can read a VCF header without being told beforehand whether the input is
  * VCF or BCF.
  */
 public final class VCFHeaderReader {
-	private static final Logger logger = LoggerFactory.getLogger(VCFHeaderReader.class);
+    private static final Logger logger = LoggerFactory.getLogger(VCFHeaderReader.class);
 
-	public static VCFHeader readHeaderFrom(final SeekableStream in)
-		throws IOException
-	{
-		Object headerCodec = null;
+    public static VCFHeader readHeaderFrom(final SeekableStream in)
+            throws IOException {
+        Object headerCodec = null;
         Object header = null;
-		final long initialPos = in.position();
-		try {
-			BufferedInputStream bis = new BufferedInputStream(in);
-			InputStream is = VCFFormat.isGzip(bis) ? new GZIPInputStream(bis) : bis;
-			headerCodec = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(is)));
-		} catch (TribbleException e) {
-			logger.warn("Exception while trying to read VCF header from file:", e);
+        final long initialPos = in.position();
+        try {
+            BufferedInputStream bis = new BufferedInputStream(in);
+            InputStream is = VCFFormat.isGzip(bis) ? new GZIPInputStream(bis) : bis;
+            headerCodec = new VCFCodec().readHeader(new AsciiLineReaderIterator(new AsciiLineReader(is)));
+        }
+        catch (TribbleException e) {
+            logger.warn("Exception while trying to read VCF header from file:", e);
 
-			in.seek(initialPos);
+            in.seek(initialPos);
 
-			InputStream bin = new BufferedInputStream(in);
-			if (BlockCompressedInputStream.isValidFile(bin))
-				bin = new BlockCompressedInputStream(bin);
+            InputStream bin = new BufferedInputStream(in);
+            if (BlockCompressedInputStream.isValidFile(bin)) {
+                bin = new BlockCompressedInputStream(bin);
+            }
 
-			headerCodec =
-				new BCF2Codec().readHeader(
-					new PositionalBufferedStream(bin));
-		}
-		if (!(headerCodec instanceof FeatureCodecHeader))
-			throw new IOException("No VCF header found");
-        header = ((FeatureCodecHeader)headerCodec).getHeaderValue();
-		return (VCFHeader)header;
-	}
+            headerCodec =
+                    new BCF2Codec().readHeader(
+                            new PositionalBufferedStream(bin));
+        }
+        if (!(headerCodec instanceof FeatureCodecHeader)) {
+            throw new IOException("No VCF header found");
+        }
+        header = ((FeatureCodecHeader) headerCodec).getHeaderValue();
+        return (VCFHeader) header;
+    }
 }

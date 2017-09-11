@@ -24,47 +24,45 @@ package org.seqdoop.hadoop_bam.util;
 
 import org.apache.hadoop.conf.Configuration;
 
-public class ConfHelper
-{
-	/**
-	 * Convert a string to a boolean.
-	 *
-	 * Accepted values: "yes", "true", "t", "y", "1"
-	 *                  "no", "false", "f", "n", "0" 
-	 * All comparisons are case insensitive.
-	 *
-	 * If the value provided is null, defaultValue is returned.
-	 *
-	 * @exception IllegalArgumentException Thrown if value is not
-	 * null and doesn't match any of the accepted strings.
-	 */
-	public static boolean parseBoolean(String value, boolean defaultValue)
-	{
-		if (value == null)
-			return defaultValue;
+public class ConfHelper {
+    /**
+     * Convert a string to a boolean.
+     * <p>
+     * Accepted values: "yes", "true", "t", "y", "1"
+     * "no", "false", "f", "n", "0"
+     * All comparisons are case insensitive.
+     * <p>
+     * If the value provided is null, defaultValue is returned.
+     *
+     * @throws IllegalArgumentException Thrown if value is not
+     * null and doesn't match any of the accepted strings.
+     */
+    public static boolean parseBoolean(String value, boolean defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
 
-		value = value.trim();
+        value = value.trim();
 
-		// any of the following will 
-		final String[] acceptedTrue = new String[]{ "yes", "true", "t", "y", "1" };
-		final String[] acceptedFalse = new String[]{ "no", "false", "f", "n", "0" };
+        // any of the following will
+        final String[] acceptedTrue = new String[] { "yes", "true", "t", "y", "1" };
+        final String[] acceptedFalse = new String[] { "no", "false", "f", "n", "0" };
 
-		for (String possible: acceptedTrue)
-		{
-			if (possible.equalsIgnoreCase(value))
-				return true;
-		}
-		for (String possible: acceptedFalse)
-		{
-			if (possible.equalsIgnoreCase(value))
-				return false;
-		}
+        for (String possible : acceptedTrue) {
+            if (possible.equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        for (String possible : acceptedFalse) {
+            if (possible.equalsIgnoreCase(value)) {
+                return false;
+            }
+        }
 
-		throw new IllegalArgumentException("Unrecognized boolean value '" + value + "'");
-	}
+        throw new IllegalArgumentException("Unrecognized boolean value '" + value + "'");
+    }
 
-	public static boolean parseBoolean(Configuration conf, String propertyName, boolean defaultValue)
-	{
-		return parseBoolean(conf.get(propertyName), defaultValue);
-	}
+    public static boolean parseBoolean(Configuration conf, String propertyName, boolean defaultValue) {
+        return parseBoolean(conf.get(propertyName), defaultValue);
+    }
 }

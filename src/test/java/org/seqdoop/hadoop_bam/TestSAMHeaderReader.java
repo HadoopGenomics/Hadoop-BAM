@@ -1,15 +1,17 @@
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.samtools.*;
-import htsjdk.samtools.cram.CRAMException;
+import java.io.InputStream;
+import java.net.URI;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-import java.io.InputStream;
-import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
 

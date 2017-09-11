@@ -23,9 +23,8 @@
 package org.seqdoop.hadoop_bam;
 
 import java.io.DataOutputStream;
-import java.io.OutputStream;
 import java.io.IOException;
-
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -38,7 +37,6 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
-
 import org.seqdoop.hadoop_bam.FormatConstants.BaseQualityEncoding;
 
 /**
@@ -50,135 +48,134 @@ import org.seqdoop.hadoop_bam.FormatConstants.BaseQualityEncoding;
 // Illumina-style fastq id as specified in the Casava users' guide v1.8:
 // @instrument:run number:flowcell ID:lane:tile:x-pos:y-pos \s+ read:is filtered:control number:index sequence
 //
-public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
-{
-	public static final String CONF_BASE_QUALITY_ENCODING         = "hbam.fastq-output.base-quality-encoding";
-	public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "sanger";
-	public static final Charset UTF8 = Charset.forName("UTF8");
+public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment> {
+    public static final String CONF_BASE_QUALITY_ENCODING = "hbam.fastq-output.base-quality-encoding";
+    public static final String CONF_BASE_QUALITY_ENCODING_DEFAULT = "sanger";
+    public static final Charset UTF8 = Charset.forName("UTF8");
 
-	static final byte[] PLUS_LINE;
-	static {
-		try {
-			PLUS_LINE = "\n+\n".getBytes("us-ascii");
-		} catch (java.io.UnsupportedEncodingException e) {
-			throw new RuntimeException("us-ascii encoding not supported!");
-		}
-	}
+    static final byte[] PLUS_LINE;
 
-	public static class FastqRecordWriter extends RecordWriter<Text,SequencedFragment>
-	{
-		protected StringBuilder       sBuilder          = new StringBuilder(800);
-		protected Text                buffer            = new Text();
-		protected OutputStream        out;
-		protected BaseQualityEncoding baseQualityFormat;
+    static {
+        try {
+            PLUS_LINE = "\n+\n".getBytes("us-ascii");
+        }
+        catch (java.io.UnsupportedEncodingException e) {
+            throw new RuntimeException("us-ascii encoding not supported!");
+        }
+    }
 
-		public FastqRecordWriter(Configuration conf, OutputStream out)
-		{
-			this.out = out;
-			setConf(conf);
-		}
+    public static class FastqRecordWriter extends RecordWriter<Text, SequencedFragment> {
+        protected StringBuilder sBuilder = new StringBuilder(800);
+        protected Text buffer = new Text();
+        protected OutputStream out;
+        protected BaseQualityEncoding baseQualityFormat;
 
-		public void setConf(Configuration conf)
-		{
-			String setting = conf.get(CONF_BASE_QUALITY_ENCODING, CONF_BASE_QUALITY_ENCODING_DEFAULT);
-			if ("illumina".equals(setting))
-				baseQualityFormat = BaseQualityEncoding.Illumina;
-			else if ("sanger".equals(setting))
-				baseQualityFormat = BaseQualityEncoding.Sanger;
-			else
-				throw new RuntimeException("Invalid property value '" + setting + "' for " + CONF_BASE_QUALITY_ENCODING + ".  Valid values are 'illumina' or 'sanger'");
-		}
+        public FastqRecordWriter(Configuration conf, OutputStream out) {
+            this.out = out;
+            setConf(conf);
+        }
 
-		protected String makeId(SequencedFragment seq) throws IOException
-		{
-			String delim = ":";
-			sBuilder.delete(0, sBuilder.length()); // clear
+        public void setConf(Configuration conf) {
+            String setting = conf.get(CONF_BASE_QUALITY_ENCODING, CONF_BASE_QUALITY_ENCODING_DEFAULT);
+            if ("illumina".equals(setting)) {
+                baseQualityFormat = BaseQualityEncoding.Illumina;
+            }
+            else if ("sanger".equals(setting)) {
+                baseQualityFormat = BaseQualityEncoding.Sanger;
+            }
+            else {
+                throw new RuntimeException("Invalid property value '" + setting + "' for " + CONF_BASE_QUALITY_ENCODING + ".  Valid values are 'illumina' or 'sanger'");
+            }
+        }
 
-			sBuilder.append( seq.getInstrument() == null ? "" : seq.getInstrument() ).append(delim);
-			sBuilder.append( seq.getRunNumber()  == null ? "" : seq.getRunNumber().toString() ).append(delim);
-			sBuilder.append( seq.getFlowcellId() == null ? "" : seq.getFlowcellId() ).append(delim);
-			sBuilder.append( seq.getLane()       == null ? "" : seq.getLane().toString() ).append(delim);
-			sBuilder.append( seq.getTile()       == null ? "" : seq.getTile().toString() ).append(delim);
-			sBuilder.append( seq.getXpos()       == null ? "" : seq.getXpos().toString() ).append(delim);
-			sBuilder.append( seq.getYpos()       == null ? "" : seq.getYpos().toString() );
+        protected String makeId(SequencedFragment seq) throws IOException {
+            String delim = ":";
+            sBuilder.delete(0, sBuilder.length()); // clear
 
-			sBuilder.append(" "); // space
+            sBuilder.append(seq.getInstrument() == null ? "" : seq.getInstrument()).append(delim);
+            sBuilder.append(seq.getRunNumber() == null ? "" : seq.getRunNumber().toString()).append(delim);
+            sBuilder.append(seq.getFlowcellId() == null ? "" : seq.getFlowcellId()).append(delim);
+            sBuilder.append(seq.getLane() == null ? "" : seq.getLane().toString()).append(delim);
+            sBuilder.append(seq.getTile() == null ? "" : seq.getTile().toString()).append(delim);
+            sBuilder.append(seq.getXpos() == null ? "" : seq.getXpos().toString()).append(delim);
+            sBuilder.append(seq.getYpos() == null ? "" : seq.getYpos().toString());
 
-			sBuilder.append( seq.getRead()       == null ? "" : seq.getRead().toString() ).append(delim);
-			sBuilder.append(seq.getFilterPassed() == null || seq.getFilterPassed() ? "N" : "Y");
-			sBuilder.append(delim);
+            sBuilder.append(" "); // space
 
-			sBuilder.append( seq.getControlNumber() == null ? "0" : seq.getControlNumber().toString()).append(delim);
-			sBuilder.append( seq.getIndexSequence() == null ? "" : seq.getIndexSequence());
+            sBuilder.append(seq.getRead() == null ? "" : seq.getRead().toString()).append(delim);
+            sBuilder.append(seq.getFilterPassed() == null || seq.getFilterPassed() ? "N" : "Y");
+            sBuilder.append(delim);
 
-			return sBuilder.toString();
-		}
+            sBuilder.append(seq.getControlNumber() == null ? "0" : seq.getControlNumber().toString()).append(delim);
+            sBuilder.append(seq.getIndexSequence() == null ? "" : seq.getIndexSequence());
 
-		public void write(Text key, SequencedFragment seq) throws IOException
-		{
-			// write the id line
-			out.write('@');
-			if (key != null)
-				out.write(key.getBytes(), 0, key.getLength());
-			else
-				out.write(makeId(seq).getBytes(UTF8));
-			out.write('\n');
+            return sBuilder.toString();
+        }
 
-			// write the sequence and separator
-			out.write(seq.getSequence().getBytes(), 0, seq.getSequence().getLength());
-			out.write(PLUS_LINE);
+        public void write(Text key, SequencedFragment seq) throws IOException {
+            // write the id line
+            out.write('@');
+            if (key != null) {
+                out.write(key.getBytes(), 0, key.getLength());
+            }
+            else {
+                out.write(makeId(seq).getBytes(UTF8));
+            }
+            out.write('\n');
 
-			// now the quality
-			if (baseQualityFormat == BaseQualityEncoding.Sanger)
-				out.write(seq.getQuality().getBytes(), 0, seq.getQuality().getLength());
-			else if (baseQualityFormat == BaseQualityEncoding.Illumina)
-			{
-				buffer.set(seq.getQuality());
-				SequencedFragment.convertQuality(buffer, BaseQualityEncoding.Sanger, baseQualityFormat);
-				out.write(buffer.getBytes(), 0, buffer.getLength());
-			}
-			else
-				throw new RuntimeException("FastqOutputFormat: unknown base quality format " + baseQualityFormat);
+            // write the sequence and separator
+            out.write(seq.getSequence().getBytes(), 0, seq.getSequence().getLength());
+            out.write(PLUS_LINE);
 
-			// and the final newline
-			out.write('\n');
-		}
+            // now the quality
+            if (baseQualityFormat == BaseQualityEncoding.Sanger) {
+                out.write(seq.getQuality().getBytes(), 0, seq.getQuality().getLength());
+            }
+            else if (baseQualityFormat == BaseQualityEncoding.Illumina) {
+                buffer.set(seq.getQuality());
+                SequencedFragment.convertQuality(buffer, BaseQualityEncoding.Sanger, baseQualityFormat);
+                out.write(buffer.getBytes(), 0, buffer.getLength());
+            }
+            else {
+                throw new RuntimeException("FastqOutputFormat: unknown base quality format " + baseQualityFormat);
+            }
 
-		public void close(TaskAttemptContext task) throws IOException
-		{
-			out.close();
-		}
-  }
+            // and the final newline
+            out.write('\n');
+        }
 
-	public RecordWriter<Text,SequencedFragment> getRecordWriter(TaskAttemptContext task)
-	  throws IOException
-	{
-		Configuration conf = task.getConfiguration();
-		boolean isCompressed = getCompressOutput(task);
+        public void close(TaskAttemptContext task) throws IOException {
+            out.close();
+        }
+    }
 
-		CompressionCodec codec = null;
-		String extension = "";
+    public RecordWriter<Text, SequencedFragment> getRecordWriter(TaskAttemptContext task)
+            throws IOException {
+        Configuration conf = task.getConfiguration();
+        boolean isCompressed = getCompressOutput(task);
 
-		if (isCompressed)
-		{
-			Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(task, GzipCodec.class);
-			codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, conf);
-			extension = codec.getDefaultExtension();
-		}
+        CompressionCodec codec = null;
+        String extension = "";
 
-		Path file = getDefaultWorkFile(task, extension);
-		FileSystem fs = file.getFileSystem(conf);
+        if (isCompressed) {
+            Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(task, GzipCodec.class);
+            codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, conf);
+            extension = codec.getDefaultExtension();
+        }
 
-		OutputStream output;
+        Path file = getDefaultWorkFile(task, extension);
+        FileSystem fs = file.getFileSystem(conf);
 
-		if (isCompressed)
-		{
-			FSDataOutputStream fileOut = fs.create(file, false);
-			output = new DataOutputStream(codec.createOutputStream(fileOut));
-		}
-		else
-			output = fs.create(file, false);
+        OutputStream output;
 
-		return new FastqRecordWriter(conf, output);
-	}
+        if (isCompressed) {
+            FSDataOutputStream fileOut = fs.create(file, false);
+            output = new DataOutputStream(codec.createOutputStream(fileOut));
+        }
+        else {
+            output = fs.create(file, false);
+        }
+
+        return new FastqRecordWriter(conf, output);
+    }
 }

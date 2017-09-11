@@ -22,152 +22,156 @@
 
 package org.seqdoop.hadoop_bam.util;
 
-import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
-
+import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import htsjdk.samtools.util.BlockCompressedInputStream;
-
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Seekable;
 
 public class BGZFSplitGuesser {
-	private InputStream inFile;
-	private Seekable seekableInFile;
-	private       ByteArraySeekableStream in;
-	private final ByteBuffer buf;
+    private InputStream inFile;
+    private Seekable seekableInFile;
+    private ByteArraySeekableStream in;
+    private final ByteBuffer buf;
 
-	private final static int BGZF_MAGIC     = 0x04088b1f;
-	private final static int BGZF_MAGIC_SUB = 0x00024342;
-	private final static int BGZF_SUB_SIZE  = 4 + 2;
+    private final static int BGZF_MAGIC = 0x04088b1f;
+    private final static int BGZF_MAGIC_SUB = 0x00024342;
+    private final static int BGZF_SUB_SIZE = 4 + 2;
 
-	public BGZFSplitGuesser(InputStream is) {
-		inFile = is;
-		seekableInFile = (Seekable) is;
+    public BGZFSplitGuesser(InputStream is) {
+        inFile = is;
+        seekableInFile = (Seekable) is;
 
-		buf = ByteBuffer.allocate(8);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-	}
+        buf = ByteBuffer.allocate(8);
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+    }
 
-	public BGZFSplitGuesser(FSDataInputStream is) {
-		inFile = is;
-		seekableInFile = is;
+    public BGZFSplitGuesser(FSDataInputStream is) {
+        inFile = is;
+        seekableInFile = is;
 
-		buf = ByteBuffer.allocate(8);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-	}
+        buf = ByteBuffer.allocate(8);
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+    }
 
-	/// Looks in the range [beg,end). Returns end if no BAM record was found.
-	public long guessNextBGZFBlockStart(long beg, long end)
-		throws IOException
-	{
-		// Buffer what we need to go through. Since the max size of a BGZF block
-		// is 0xffff (64K), and we might be just one byte off from the start of
-		// the previous one, we need 0xfffe bytes for the start, and then 0xffff
-		// for the block we're looking for.
+    /// Looks in the range [beg,end). Returns end if no BAM record was found.
+    public long guessNextBGZFBlockStart(long beg, long end)
+            throws IOException {
+        // Buffer what we need to go through. Since the max size of a BGZF block
+        // is 0xffff (64K), and we might be just one byte off from the start of
+        // the previous one, we need 0xfffe bytes for the start, and then 0xffff
+        // for the block we're looking for.
 
-		byte[] arr = new byte[2*0xffff - 1];
+        byte[] arr = new byte[2 * 0xffff - 1];
 
-		this.seekableInFile.seek(beg);
-		int totalRead = 0;
-		for (int left = Math.min((int)(end - beg), arr.length); left > 0;) {
-			final int r = inFile.read(arr, totalRead, left);
-			if (r < 0)
-				break;
-			totalRead += r;
-			left -= r;
-		}
-		arr = Arrays.copyOf(arr, totalRead);
+        this.seekableInFile.seek(beg);
+        int totalRead = 0;
+        for (int left = Math.min((int) (end - beg), arr.length); left > 0; ) {
+            final int r = inFile.read(arr, totalRead, left);
+            if (r < 0) {
+                break;
+            }
+            totalRead += r;
+            left -= r;
+        }
+        arr = Arrays.copyOf(arr, totalRead);
 
-		this.in = new ByteArraySeekableStream(arr);
+        this.in = new ByteArraySeekableStream(arr);
 
-		final BlockCompressedInputStream bgzf =
-			new BlockCompressedInputStream(this.in);
-		bgzf.setCheckCrcs(true);
+        final BlockCompressedInputStream bgzf =
+                new BlockCompressedInputStream(this.in);
+        bgzf.setCheckCrcs(true);
 
-		final int firstBGZFEnd = Math.min((int)(end - beg), 0xffff);
+        final int firstBGZFEnd = Math.min((int) (end - beg), 0xffff);
 
-		for (int pos = 0;;) {
-			pos = guessNextBGZFPos(pos, firstBGZFEnd);
-			if (pos < 0)
-				return end;
+        for (int pos = 0; ; ) {
+            pos = guessNextBGZFPos(pos, firstBGZFEnd);
+            if (pos < 0) {
+                return end;
+            }
 
-			try {
-				// Seek in order to trigger decompression of the block and a CRC
-				// check.
-				bgzf.seek((long)pos << 16);
+            try {
+                // Seek in order to trigger decompression of the block and a CRC
+                // check.
+                bgzf.seek((long) pos << 16);
 
-			// This has to catch Throwable, because it's possible to get an
-			// OutOfMemoryError due to an overly large size.
-			} catch (Throwable e) {
-				// Guessed BGZF position incorrectly: try the next guess.
-				++pos;
-				continue;
-			}
-			return beg + pos;
-		}
-	}
+                // This has to catch Throwable, because it's possible to get an
+                // OutOfMemoryError due to an overly large size.
+            }
+            catch (Throwable e) {
+                // Guessed BGZF position incorrectly: try the next guess.
+                ++pos;
+                continue;
+            }
+            return beg + pos;
+        }
+    }
 
-	// Returns a negative number if it doesn't find anything.
-	private int guessNextBGZFPos(int p, int end)
-		throws IOException
-	{
-		for (;;) {
-			for (;;) {
-				in.seek(p);
-				in.read(buf.array(), 0, 4);
-				int n = buf.getInt(0);
+    // Returns a negative number if it doesn't find anything.
+    private int guessNextBGZFPos(int p, int end)
+            throws IOException {
+        for (; ; ) {
+            for (; ; ) {
+                in.seek(p);
+                in.read(buf.array(), 0, 4);
+                int n = buf.getInt(0);
 
-				if (n == BGZF_MAGIC)
-					break;
+                if (n == BGZF_MAGIC) {
+                    break;
+                }
 
-				// Skip ahead a bit more than 1 byte if you can.
-				if (n >>> 8 == BGZF_MAGIC << 8 >>> 8)
-					++p;
-				else if (n >>> 16 == BGZF_MAGIC << 16 >>> 16)
-					p += 2;
-				else
-					p += 3;
+                // Skip ahead a bit more than 1 byte if you can.
+                if (n >>> 8 == BGZF_MAGIC << 8 >>> 8) {
+                    ++p;
+                }
+                else if (n >>> 16 == BGZF_MAGIC << 16 >>> 16) {
+                    p += 2;
+                }
+                else {
+                    p += 3;
+                }
 
-				if (p >= end)
-					return -1;
-			}
-			// Found what looks like a gzip block header: now get XLEN and
-			// search for the BGZF subfield.
-			final int p0 = p;
-			p += 10;
-			in.seek(p);
-			in.read(buf.array(), 0, 2);
-			p += 2;
-			final int xlen   = getUShort(0);
-			final int subEnd = p + xlen;
+                if (p >= end) {
+                    return -1;
+                }
+            }
+            // Found what looks like a gzip block header: now get XLEN and
+            // search for the BGZF subfield.
+            final int p0 = p;
+            p += 10;
+            in.seek(p);
+            in.read(buf.array(), 0, 2);
+            p += 2;
+            final int xlen = getUShort(0);
+            final int subEnd = p + xlen;
 
-			while (p < subEnd) {
-				in.read(buf.array(), 0, 4);
+            while (p < subEnd) {
+                in.read(buf.array(), 0, 4);
 
-				if (buf.getInt(0) != BGZF_MAGIC_SUB) {
-					p += 4 + getUShort(2);
-					in.seek(p);
-					continue;
-				}
+                if (buf.getInt(0) != BGZF_MAGIC_SUB) {
+                    p += 4 + getUShort(2);
+                    in.seek(p);
+                    continue;
+                }
 
-				// Found it: this is close enough to a BGZF block, make it
-				// our guess.
-				return p0;
-			}
-			// No luck: look for the next gzip block header. Start right after
-			// where we last saw the identifiers, although we could probably
-			// safely skip further ahead. (If we find the correct one right
-			// now, the previous block contained 0x1f8b0804 bytes of data: that
-			// seems... unlikely.)
-			p = p0 + 4;
-		}
-	}
+                // Found it: this is close enough to a BGZF block, make it
+                // our guess.
+                return p0;
+            }
+            // No luck: look for the next gzip block header. Start right after
+            // where we last saw the identifiers, although we could probably
+            // safely skip further ahead. (If we find the correct one right
+            // now, the previous block contained 0x1f8b0804 bytes of data: that
+            // seems... unlikely.)
+            p = p0 + 4;
+        }
+    }
 
-	private int getUShort(final int idx) {
-		return (int)buf.getShort(idx) & 0xffff;
-	}
+    private int getUShort(final int idx) {
+        return (int) buf.getShort(idx) & 0xffff;
+    }
 }

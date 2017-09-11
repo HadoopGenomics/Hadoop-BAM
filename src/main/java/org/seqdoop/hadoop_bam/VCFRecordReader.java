@@ -22,6 +22,10 @@
 
 package org.seqdoop.hadoop_bam;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.OverlapDetector;
 import htsjdk.tribble.FeatureCodecHeader;
@@ -31,11 +35,6 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -52,116 +51,133 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
 
-/** The key is the bitwise OR of the chromosome index in the upper 32 bits
+/**
+ * The key is the bitwise OR of the chromosome index in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
- *
+ * <p>
  * The chromosome index is based on the ordering of the contig lines in the VCF
  * header. If a chromosome name that cannot be found in the contig lines is
  * used, that name is instead hashed to form the upper part of the key.
  */
 public class VCFRecordReader
-	extends RecordReader<LongWritable,VariantContextWritable>
-{
-	private final LongWritable          key = new LongWritable();
-	private final VariantContextWritable vc = new VariantContextWritable();
+        extends RecordReader<LongWritable, VariantContextWritable> {
+    private final LongWritable key = new LongWritable();
+    private final VariantContextWritable vc = new VariantContextWritable();
 
-	private VCFCodec codec = new VCFCodec();
-	private LineRecordReader lineRecordReader = new LineRecordReader();
+    private VCFCodec codec = new VCFCodec();
+    private LineRecordReader lineRecordReader = new LineRecordReader();
 
-	private VCFHeader header;
+    private VCFHeader header;
 
-	private final Map<String,Integer> contigDict =
-		new HashMap<String,Integer>();
+    private final Map<String, Integer> contigDict =
+            new HashMap<String, Integer>();
 
-	private List<Interval> intervals;
-	private OverlapDetector<Interval> overlapDetector;
+    private List<Interval> intervals;
+    private OverlapDetector<Interval> overlapDetector;
 
-	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
-		throws IOException
-	{
-		final FileSplit split = (FileSplit)spl;
+    @Override
+    public void initialize(InputSplit spl, TaskAttemptContext ctx)
+            throws IOException {
+        final FileSplit split = (FileSplit) spl;
 
-		final Path file = split.getPath();
-		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
+        final Path file = split.getPath();
+        final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
-		final FSDataInputStream ins = fs.open(file);
+        final FSDataInputStream ins = fs.open(file);
 
-		CompressionCodec compressionCodec =
-				new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
-		AsciiLineReader reader;
-		if (compressionCodec == null) {
-			reader = new AsciiLineReader(ins);
-		} else {
-			Decompressor decompressor = CodecPool.getDecompressor(compressionCodec);
-			CompressionInputStream in = compressionCodec.createInputStream(ins,
-					decompressor);
-			reader = new AsciiLineReader(in);
-		}
+        CompressionCodec compressionCodec =
+                new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
+        AsciiLineReader reader;
+        if (compressionCodec == null) {
+            reader = new AsciiLineReader(ins);
+        }
+        else {
+            Decompressor decompressor = CodecPool.getDecompressor(compressionCodec);
+            CompressionInputStream in = compressionCodec.createInputStream(ins,
+                    decompressor);
+            reader = new AsciiLineReader(in);
+        }
 
-		AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
+        AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
 
-		final FeatureCodecHeader h = codec.readHeader(it);
-		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
-			throw new IOException("No VCF header found in "+ file);
+        final FeatureCodecHeader h = codec.readHeader(it);
+        if (h == null || !(h.getHeaderValue() instanceof VCFHeader)) {
+            throw new IOException("No VCF header found in " + file);
+        }
 
-		header = (VCFHeader) h.getHeaderValue();
+        header = (VCFHeader) h.getHeaderValue();
 
-		contigDict.clear();
-		int i = 0;
-		for (final VCFContigHeaderLine contig : header.getContigLines())
-			contigDict.put(contig.getID(), i++);
+        contigDict.clear();
+        int i = 0;
+        for (final VCFContigHeaderLine contig : header.getContigLines()) {
+            contigDict.put(contig.getID(), i++);
+        }
 
-		lineRecordReader.initialize(spl, ctx);
+        lineRecordReader.initialize(spl, ctx);
 
-		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
-		if (intervals != null) {
-			overlapDetector = OverlapDetector.create(intervals);
-		}
-	}
-	@Override public void close() throws IOException { lineRecordReader.close(); }
+        intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
+        if (intervals != null) {
+            overlapDetector = OverlapDetector.create(intervals);
+        }
+    }
 
-	@Override public float getProgress() throws IOException {
-		return lineRecordReader.getProgress();
-	}
+    @Override
+    public void close() throws IOException {
+        lineRecordReader.close();
+    }
 
-	@Override public LongWritable           getCurrentKey  () { return key; }
-	@Override public VariantContextWritable getCurrentValue() { return vc; }
+    @Override
+    public float getProgress() throws IOException {
+        return lineRecordReader.getProgress();
+    }
 
-	@Override public boolean nextKeyValue() throws IOException {
-		while (true) {
-			String line;
-			while (true) {
-				if (!lineRecordReader.nextKeyValue()) {
-					return false;
-				}
-				line = lineRecordReader.getCurrentValue().toString();
-				if (!line.startsWith("#")) {
-					break;
-				}
-			}
+    @Override
+    public LongWritable getCurrentKey() {
+        return key;
+    }
 
-			final VariantContext v = codec.decode(line);
+    @Override
+    public VariantContextWritable getCurrentValue() {
+        return vc;
+    }
 
-			if (!overlaps(v)) {
-				continue;
-			}
+    @Override
+    public boolean nextKeyValue() throws IOException {
+        while (true) {
+            String line;
+            while (true) {
+                if (!lineRecordReader.nextKeyValue()) {
+                    return false;
+                }
+                line = lineRecordReader.getCurrentValue().toString();
+                if (!line.startsWith("#")) {
+                    break;
+                }
+            }
 
-			Integer chromIdx = contigDict.get(v.getContig());
-			if (chromIdx == null)
-				chromIdx = (int) MurmurHash3.murmurhash3(v.getContig(), 0);
+            final VariantContext v = codec.decode(line);
 
-			key.set((long) chromIdx << 32 | (long) (v.getStart() - 1));
-			vc.set(v, header);
+            if (!overlaps(v)) {
+                continue;
+            }
 
-			return true;
-		}
-	}
+            Integer chromIdx = contigDict.get(v.getContig());
+            if (chromIdx == null) {
+                chromIdx = (int) MurmurHash3.murmurhash3(v.getContig(), 0);
+            }
 
-	private boolean overlaps(VariantContext v) {
-		if (intervals == null) {
-			return true;
-		}
-		final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
-		return overlapDetector.overlapsAny(interval);
-	}
+            key.set((long) chromIdx << 32 | (long) (v.getStart() - 1));
+            vc.set(v, header);
+
+            return true;
+        }
+    }
+
+    private boolean overlaps(VariantContext v) {
+        if (intervals == null) {
+            return true;
+        }
+        final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
+        return overlapDetector.overlapsAny(interval);
+    }
 }

@@ -25,97 +25,118 @@ package org.seqdoop.hadoop_bam.util;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
-/** An index into BGZF-compressed files, for {@link BGZFSplitFileInputFormat}.
+/**
+ * An index into BGZF-compressed files, for {@link BGZFSplitFileInputFormat}.
  * Reads files that are created by {@link BGZFBlockIndexer}.
- *
+ * <p>
  * <p>Indexes the positions of individual gzip blocks in the file.</p>
  */
 public final class BGZFBlockIndex {
-	private final NavigableSet<Long> offsets = new TreeSet<Long>();
+    private final NavigableSet<Long> offsets = new TreeSet<Long>();
 
-	public BGZFBlockIndex() {}
-	public BGZFBlockIndex(final File path) throws IOException {
-		this(new BufferedInputStream(new FileInputStream(path)));
-	}
-	public BGZFBlockIndex(final InputStream in) throws IOException {
-		readIndex(in);
-	}
+    public BGZFBlockIndex() {
+    }
 
-	public void readIndex(final InputStream in) throws IOException {
-		offsets.clear();
+    public BGZFBlockIndex(final File path) throws IOException {
+        this(new BufferedInputStream(new FileInputStream(path)));
+    }
 
-		final ByteBuffer bb = ByteBuffer.allocate(8);
+    public BGZFBlockIndex(final InputStream in) throws IOException {
+        readIndex(in);
+    }
 
-		for (long prev = -1; in.read(bb.array(), 2, 6) == 6;) {
-			final long cur = bb.getLong(0);
-			if (prev > cur)
-				throw new IOException(String.format(
-					"Invalid BGZF block index; offsets not in order: %#x > %#x",
-					prev, cur));
+    public void readIndex(final InputStream in) throws IOException {
+        offsets.clear();
 
-			offsets.add(prev = cur);
-		}
-		in.close();
+        final ByteBuffer bb = ByteBuffer.allocate(8);
 
-		if (offsets.size() < 1)
-			throw new IOException(
-				"Invalid BGZF block index: should contain at least the file size");
+        for (long prev = -1; in.read(bb.array(), 2, 6) == 6; ) {
+            final long cur = bb.getLong(0);
+            if (prev > cur) {
+                throw new IOException(String.format(
+                        "Invalid BGZF block index; offsets not in order: %#x > %#x",
+                        prev, cur));
+            }
 
-		offsets.add(0L);
-	}
+            offsets.add(prev = cur);
+        }
+        in.close();
 
-	public Long prevBlock(final long filePos) {
-		return offsets.floor(filePos);
-	}
-	public Long nextBlock(final long filePos) {
-		return offsets.higher(filePos);
-	}
+        if (offsets.size() < 1) {
+            throw new IOException(
+                    "Invalid BGZF block index: should contain at least the file size");
+        }
 
-	public int size() { return offsets.size(); }
+        offsets.add(0L);
+    }
 
-	private long secondBlock() { return nextBlock(0); }
-	private long   lastBlock() { return prevBlock(fileSize() - 1); }
-	private long    fileSize() { return offsets.last(); }
+    public Long prevBlock(final long filePos) {
+        return offsets.floor(filePos);
+    }
 
-	/** Writes some statistics about each BGZF block index file given as an
-	 * argument.
-	 */
-	public static void main(String[] args) {
-		if (args.length == 0) {
-			System.out.println(
-				"Usage: BGZFBlockIndex [BGZF block indices...]\n\n"+
+    public Long nextBlock(final long filePos) {
+        return offsets.higher(filePos);
+    }
 
-				"Writes a few statistics about each BGZF block index.");
-			return;
-		}
+    public int size() {
+        return offsets.size();
+    }
 
-		for (String arg : args) {
-			final File f = new File(arg);
-			if (f.isFile() && f.canRead()) {
-				try {
-					System.err.printf("%s:\n", f);
-					final BGZFBlockIndex bi = new BGZFBlockIndex(f);
-					final long second = bi.secondBlock();
-					final long last   = bi.lastBlock();
-					System.err.printf(
-						"\t%d blocks\n" +
-						"\tfirst after 0 is at %#014x\n" +
-						"\tlast          is at %#014x\n" +
-						"\tassociated BGZF file size %d\n",
-						bi.size()-1,
-						bi.secondBlock(), bi.lastBlock(), bi.fileSize());
-				} catch (IOException e) {
-					System.err.printf("Failed to read %s!\n", f);
-					e.printStackTrace();
-				}
-			} else
-				System.err.printf("%s does not look like a readable file!\n", f);
-		}
-	}
+    private long secondBlock() {
+        return nextBlock(0);
+    }
+
+    private long lastBlock() {
+        return prevBlock(fileSize() - 1);
+    }
+
+    private long fileSize() {
+        return offsets.last();
+    }
+
+    /**
+     * Writes some statistics about each BGZF block index file given as an
+     * argument.
+     */
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println(
+                    "Usage: BGZFBlockIndex [BGZF block indices...]\n\n" +
+
+                            "Writes a few statistics about each BGZF block index.");
+            return;
+        }
+
+        for (String arg : args) {
+            final File f = new File(arg);
+            if (f.isFile() && f.canRead()) {
+                try {
+                    System.err.printf("%s:\n", f);
+                    final BGZFBlockIndex bi = new BGZFBlockIndex(f);
+                    final long second = bi.secondBlock();
+                    final long last = bi.lastBlock();
+                    System.err.printf(
+                            "\t%d blocks\n" +
+                                    "\tfirst after 0 is at %#014x\n" +
+                                    "\tlast          is at %#014x\n" +
+                                    "\tassociated BGZF file size %d\n",
+                            bi.size() - 1,
+                            bi.secondBlock(), bi.lastBlock(), bi.fileSize());
+                }
+                catch (IOException e) {
+                    System.err.printf("Failed to read %s!\n", f);
+                    e.printStackTrace();
+                }
+            }
+            else {
+                System.err.printf("%s does not look like a readable file!\n", f);
+            }
+        }
+    }
 }

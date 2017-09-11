@@ -22,20 +22,18 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.seqdoop.hadoop_bam.FastqOutputFormat.FastqRecordWriter;
-import org.seqdoop.hadoop_bam.SequencedFragment;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-
-import java.io.DataOutputStream;
 import java.io.ByteArrayOutputStream;
-
-import org.junit.*;
-import static org.junit.Assert.*;
-
+import java.io.DataOutputStream;
+import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
+import org.seqdoop.hadoop_bam.FastqOutputFormat.FastqRecordWriter;
+
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestFastqOutputFormat
 {

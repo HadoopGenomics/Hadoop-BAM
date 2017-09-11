@@ -22,130 +22,134 @@
 
 package org.seqdoop.hadoop_bam;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
-import java.io.IOException;
-import java.io.DataInput;
-import java.io.DataOutput;
-
 // partly based on SequencedFragment
 // note: this class is supposed to represent a single line of a fasta input file, augmented by chromosome/contig name and start position
 
-public class ReferenceFragment implements Writable
-{
+public class ReferenceFragment implements Writable {
     protected Text sequence = new Text();
-    
+
     protected Integer position;
     protected String indexSequence;
 
-    public void clear()
-    {
-	sequence.clear();
-	indexSequence = null;
-	position = null;
+    public void clear() {
+        sequence.clear();
+        indexSequence = null;
+        position = null;
     }
 
     /**
      * Get sequence Text object.
      * Trade encapsulation for efficiency.  Here we expose the internal Text
      * object so that data may be read and written diretly from/to it.
-     *
+     * <p>
      * Sequence should always be written using CAPITAL letters and 'N' for unknown bases.
      */
-    public Text getSequence() { return sequence; }
+    public Text getSequence() {
+        return sequence;
+    }
 
     /**
      * Get quality Text object.
      * Trade encapsulation for efficiency.  Here we expose the internal Text
      * object so that data may be read and written diretly from/to it.
-     *
      */
     public void setPosition(Integer pos) {
-	if (pos == null)
-	    throw new IllegalArgumentException("can't have null reference position");
-	position = pos;
+        if (pos == null) {
+            throw new IllegalArgumentException("can't have null reference position");
+        }
+        position = pos;
     }
 
     public void setIndexSequence(String v) {
-	if (v == null)
-	    throw new IllegalArgumentException("can't have null index sequence");
-	indexSequence = v;
+        if (v == null) {
+            throw new IllegalArgumentException("can't have null index sequence");
+        }
+        indexSequence = v;
     }
 
-    public void setSequence(Text seq)
-    {
-	if (seq == null)
-	    throw new IllegalArgumentException("can't have a null sequence");
-	sequence = seq;
+    public void setSequence(Text seq) {
+        if (seq == null) {
+            throw new IllegalArgumentException("can't have a null sequence");
+        }
+        sequence = seq;
     }
 
-    public Integer getPosition() { return position; }
-    public String getIndexSequence() { return indexSequence; }
+    public Integer getPosition() {
+        return position;
+    }
+
+    public String getIndexSequence() {
+        return indexSequence;
+    }
 
     /**
      * Recreates a pseudo fasta record with the fields available.
      */
-    public String toString()
-    {
-	String delim = "\t";
-	StringBuilder builder = new StringBuilder(800);
-	builder.append(indexSequence).append(delim);
-	builder.append(position).append(delim);
-	builder.append(sequence);
-	return builder.toString();
+    public String toString() {
+        String delim = "\t";
+        StringBuilder builder = new StringBuilder(800);
+        builder.append(indexSequence).append(delim);
+        builder.append(position).append(delim);
+        builder.append(sequence);
+        return builder.toString();
     }
 
-    public boolean equals(Object other)
-    {
-	if (other != null && other instanceof ReferenceFragment)
-	    {
-		ReferenceFragment otherFrag = (ReferenceFragment)other;
+    public boolean equals(Object other) {
+        if (other != null && other instanceof ReferenceFragment) {
+            ReferenceFragment otherFrag = (ReferenceFragment) other;
 
-		if (position == null && otherFrag.position != null || position != null && !position.equals(otherFrag.position))
-		    return false;
-		if (indexSequence == null && otherFrag.indexSequence != null || indexSequence != null && !indexSequence.equals(otherFrag.indexSequence))
-		    return false;
-		// sequence can't be null
-		if (!sequence.equals(otherFrag.sequence))
-		    return false;
+            if (position == null && otherFrag.position != null || position != null && !position.equals(otherFrag.position)) {
+                return false;
+            }
+            if (indexSequence == null && otherFrag.indexSequence != null || indexSequence != null && !indexSequence.equals(otherFrag.indexSequence)) {
+                return false;
+            }
+            // sequence can't be null
+            if (!sequence.equals(otherFrag.sequence)) {
+                return false;
+            }
 
-		return true;
-	    }
-	else
-	    return false;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
-	@Override
-	public int hashCode() {
-		int result = sequence.hashCode();
-		result = 31 * result + (position != null ? position.hashCode() : 0);
-		result = 31 * result + (indexSequence != null ? indexSequence.hashCode() : 0);
-		return result;
-	}
-
-	public void readFields(DataInput in) throws IOException
-    {
-	// serialization order:
-	// 1) sequence
-	// 2) indexSequence (chromosome/contig name)
-	// 3) position of first base in this line of the fasta file
-
-	this.clear();
-
-	sequence.readFields(in);
-
-	indexSequence = WritableUtils.readString(in);
-	position = WritableUtils.readVInt(in);
+    @Override
+    public int hashCode() {
+        int result = sequence.hashCode();
+        result = 31 * result + (position != null ? position.hashCode() : 0);
+        result = 31 * result + (indexSequence != null ? indexSequence.hashCode() : 0);
+        return result;
     }
 
-    public void write(DataOutput out) throws IOException
-    {
-	sequence.write(out);
+    public void readFields(DataInput in) throws IOException {
+        // serialization order:
+        // 1) sequence
+        // 2) indexSequence (chromosome/contig name)
+        // 3) position of first base in this line of the fasta file
 
-	WritableUtils.writeString(out, indexSequence);
-	WritableUtils.writeVInt(out, position);
-	
+        this.clear();
+
+        sequence.readFields(in);
+
+        indexSequence = WritableUtils.readString(in);
+        position = WritableUtils.readVInt(in);
+    }
+
+    public void write(DataOutput out) throws IOException {
+        sequence.write(out);
+
+        WritableUtils.writeString(out, indexSequence);
+        WritableUtils.writeVInt(out, position);
+
     }
 }
