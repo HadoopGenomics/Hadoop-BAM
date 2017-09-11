@@ -27,11 +27,21 @@ package org.seqdoop.hadoop_bam.util;
  */
 @Deprecated
 public class Timer {
-	private long t0, td;
+    private long t0, td;
 
-	public long start () { return t0 = System.nanoTime(); }
-	public long stopNs() { return td = System.nanoTime() - t0; }
-	public long stopS () { return stopNs() / 1000000000L; }
+    public long start() {
+        return t0 = System.nanoTime();
+    }
 
-	public int fms() { return (int)(td / 1000000 % 1000); }
+    public long stopNs() {
+        return td = System.nanoTime() - t0;
+    }
+
+    public long stopS() {
+        return stopNs() / 1000000000L;
+    }
+
+    public int fms() {
+        return (int) (td / 1000000 % 1000);
+    }
 }

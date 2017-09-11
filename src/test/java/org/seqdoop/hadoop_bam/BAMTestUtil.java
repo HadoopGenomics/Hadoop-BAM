@@ -1,5 +1,7 @@
 package org.seqdoop.hadoop_bam;
 
+import java.io.File;
+import java.io.IOException;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.SAMFileHeader;
@@ -9,8 +11,6 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordSetBuilder;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
-import java.io.File;
-import java.io.IOException;
 
 class BAMTestUtil {
   public static File writeBamFile(int numPairs, SAMFileHeader.SortOrder sortOrder)

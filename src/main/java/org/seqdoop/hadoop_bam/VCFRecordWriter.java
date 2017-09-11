@@ -22,131 +22,132 @@
 
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.tribble.FeatureCodecHeader;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringWriter;
-import java.io.Writer;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
-import htsjdk.variant.vcf.VCFCodec;
-import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-/** A base {@link RecordWriter} for VCF.
- *
+/**
+ * A base {@link RecordWriter} for VCF.
+ * <p>
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeRecord} function for subclasses.</p>
  */
 public abstract class VCFRecordWriter<K>
-	extends RecordWriter<K,VariantContextWritable>
-{
-	private VCFCodec codec = new VCFCodec();
-	private VariantContextWriter writer;
+        extends RecordWriter<K, VariantContextWritable> {
+    private VCFCodec codec = new VCFCodec();
+    private VariantContextWriter writer;
 
-	private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
-		new LazyVCFGenotypesContext.HeaderDataCache();
-	private LazyBCFGenotypesContext.HeaderDataCache bcfHeaderDataCache =
-		new LazyBCFGenotypesContext.HeaderDataCache();
+    private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
+            new LazyVCFGenotypesContext.HeaderDataCache();
+    private LazyBCFGenotypesContext.HeaderDataCache bcfHeaderDataCache =
+            new LazyBCFGenotypesContext.HeaderDataCache();
 
-	/** A VCFHeader is read from the input Path. */
-	public VCFRecordWriter(
-			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
-		throws IOException
-	{
-		final AsciiLineReader r = new AsciiLineReader(
-			input.getFileSystem(ctx.getConfiguration()).open(input));
+    /**
+     * A VCFHeader is read from the input Path.
+     */
+    public VCFRecordWriter(
+            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+            throws IOException {
+        final AsciiLineReader r = new AsciiLineReader(
+                input.getFileSystem(ctx.getConfiguration()).open(input));
 
-		final FeatureCodecHeader h = codec.readHeader(new AsciiLineReaderIterator(r));
-		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
-			throw new IOException("No VCF header found in "+ input);
+        final FeatureCodecHeader h = codec.readHeader(new AsciiLineReaderIterator(r));
+        if (h == null || !(h.getHeaderValue() instanceof VCFHeader)) {
+            throw new IOException("No VCF header found in " + input);
+        }
 
-		r.close();
+        r.close();
 
-		init(output, (VCFHeader) h.getHeaderValue(), writeHeader, ctx);
-	}
-	public VCFRecordWriter(
-			Path output, VCFHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader, ctx);
-	}
-	public VCFRecordWriter(
-			OutputStream output, VCFHeader header, boolean writeHeader)
-		throws IOException
-	{
-		init(output, header, writeHeader, null);
-	}
+        init(output, (VCFHeader) h.getHeaderValue(), writeHeader, ctx);
+    }
 
-	// Working around not being able to call a constructor other than as the
-	// first statement...
-	private void init(
-			Path output, VCFHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader, ctx);
-	}
-	private void init(
-			OutputStream output, VCFHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		final StoppableOutputStream stopOut =
-			new StoppableOutputStream(!writeHeader, output);
+    public VCFRecordWriter(
+            Path output, VCFHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output.getFileSystem(ctx.getConfiguration()).create(output),
+                header, writeHeader, ctx);
+    }
 
-		writer = createVariantContextWriter(ctx == null ? null : ctx.getConfiguration(),
-				stopOut);
+    public VCFRecordWriter(
+            OutputStream output, VCFHeader header, boolean writeHeader)
+            throws IOException {
+        init(output, header, writeHeader, null);
+    }
 
-		writer.writeHeader(header);
-		stopOut.stopped = false;
+    // Working around not being able to call a constructor other than as the
+    // first statement...
+    private void init(
+            Path output, VCFHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output.getFileSystem(ctx.getConfiguration()).create(output),
+                header, writeHeader, ctx);
+    }
 
-		setInputHeader(header);
-	}
+    private void init(
+            OutputStream output, VCFHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        final StoppableOutputStream stopOut =
+                new StoppableOutputStream(!writeHeader, output);
 
-	protected VariantContextWriter createVariantContextWriter(Configuration conf,
-			OutputStream out) {
-		return new VariantContextWriterBuilder().clearOptions()
-				.setOutputStream(out).build();
-	}
+        writer = createVariantContextWriter(ctx == null ? null : ctx.getConfiguration(),
+                stopOut);
 
-	@Override public void close(TaskAttemptContext ctx) throws IOException {
-		writer.close();
-	}
+        writer.writeHeader(header);
+        stopOut.stopped = false;
 
-	/** Used for lazy decoding of genotype data. Of course, each input record
-	 * may have a different header, but we currently only support one header
-	 * here... This is in part due to the fact that it's not clear what the best
-	 * solution is. */
-	public void setInputHeader(VCFHeader header) {
-		vcfHeaderDataCache.setHeader(header);
-		bcfHeaderDataCache.setHeader(header);
-	}
+        setInputHeader(header);
+    }
 
-	protected void writeRecord(VariantContext vc) {
-		final GenotypesContext gc = vc.getGenotypes();
-		if (gc instanceof LazyParsingGenotypesContext)
-			((LazyParsingGenotypesContext)gc).getParser().setHeaderDataCache(
-				gc instanceof LazyVCFGenotypesContext ? vcfHeaderDataCache
-				                                      : bcfHeaderDataCache);
+    protected VariantContextWriter createVariantContextWriter(Configuration conf,
+                                                              OutputStream out) {
+        return new VariantContextWriterBuilder().clearOptions()
+                .setOutputStream(out).build();
+    }
 
-		writer.add(vc);
-	}
+    @Override
+    public void close(TaskAttemptContext ctx) throws IOException {
+        writer.close();
+    }
+
+    /**
+     * Used for lazy decoding of genotype data. Of course, each input record
+     * may have a different header, but we currently only support one header
+     * here... This is in part due to the fact that it's not clear what the best
+     * solution is.
+     */
+    public void setInputHeader(VCFHeader header) {
+        vcfHeaderDataCache.setHeader(header);
+        bcfHeaderDataCache.setHeader(header);
+    }
+
+    protected void writeRecord(VariantContext vc) {
+        final GenotypesContext gc = vc.getGenotypes();
+        if (gc instanceof LazyParsingGenotypesContext) {
+            ((LazyParsingGenotypesContext) gc).getParser().setHeaderDataCache(
+                    gc instanceof LazyVCFGenotypesContext ? vcfHeaderDataCache
+                            : bcfHeaderDataCache);
+        }
+
+        writer.add(vc);
+    }
 }
 
 // We must always call writer.writeHeader() because the writer requires
@@ -158,20 +159,31 @@ public abstract class VCFRecordWriter<K>
 // does any buffering of its own and doesn't flush after writing the
 // header, this isn't as easy as this.
 final class StoppableOutputStream extends FilterOutputStream {
-	public boolean stopped;
+    public boolean stopped;
 
-	public StoppableOutputStream(boolean startStopped, OutputStream out) {
-		super(out);
-		stopped = startStopped;
-	}
+    public StoppableOutputStream(boolean startStopped, OutputStream out) {
+        super(out);
+        stopped = startStopped;
+    }
 
-	@Override public void write(int b) throws IOException {
-		if (!stopped) super.write(b);
-	}
-	@Override public void write(byte[] b) throws IOException {
-		if (!stopped) super.write(b);
-	}
-	@Override public void write(byte[] b, int off, int len) throws IOException {
-		if (!stopped) super.write(b, off, len);
-	}
+    @Override
+    public void write(int b) throws IOException {
+        if (!stopped) {
+            super.write(b);
+        }
+    }
+
+    @Override
+    public void write(byte[] b) throws IOException {
+        if (!stopped) {
+            super.write(b);
+        }
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        if (!stopped) {
+            super.write(b, off, len);
+        }
+    }
 }

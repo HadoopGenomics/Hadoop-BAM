@@ -22,28 +22,29 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.seqdoop.hadoop_bam.QseqInputFormat.QseqRecordReader;
-import org.seqdoop.hadoop_bam.SequencedFragment;
-import org.seqdoop.hadoop_bam.FormatException;
-
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.FileOutputStream;
-import java.io.BufferedOutputStream;
-
-import org.junit.*;
-import static org.junit.Assert.*;
-
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.seqdoop.hadoop_bam.QseqInputFormat.QseqRecordReader;
+
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestQseqInputFormat
 {

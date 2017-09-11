@@ -1,15 +1,30 @@
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.samtools.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import htsjdk.samtools.CRAMContainerStreamWriter;
+import htsjdk.samtools.CRAMFileReader;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.seekablestream.SeekableStream;
-import java.nio.file.Files;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
@@ -17,11 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.SAMFileMerger;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
-
-import java.io.*;
-import java.nio.file.Paths;
-import java.util.Iterator;
 import org.seqdoop.hadoop_bam.util.SAMOutputPreparer;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

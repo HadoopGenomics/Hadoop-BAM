@@ -22,63 +22,76 @@
 
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.samtools.util.BlockCompressedInputStream;
 import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.io.IOException;
-
+import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 import org.apache.hadoop.fs.Path;
 
-/** Describes a VCF format. */
+/**
+ * Describes a VCF format.
+ */
 public enum VCFFormat {
-	VCF, BCF;
+    VCF, BCF;
 
-	/** Infers the VCF format by looking at the filename of the given path.
-	 *
-	 * @see #inferFromFilePath(String)
-	 */
-	public static VCFFormat inferFromFilePath(final Path path) {
-		return inferFromFilePath(path.getName());
-	}
+    /**
+     * Infers the VCF format by looking at the filename of the given path.
+     *
+     * @see #inferFromFilePath(String)
+     */
+    public static VCFFormat inferFromFilePath(final Path path) {
+        return inferFromFilePath(path.getName());
+    }
 
-	/** Infers the VCF format by looking at the extension of the given file
-	 * name. <code>*.vcf</code> is recognized as {@link #VCF} and
-	 * <code>*.bcf</code> as {@link #BCF}.
-	 */
-	public static VCFFormat inferFromFilePath(final String name) {
-		if (name.endsWith(".bcf")) return BCF;
-		if (name.endsWith(".vcf")) return VCF;
-		if (name.endsWith(".gz")) return VCF;
-		if (name.endsWith(".bgz")) return VCF;
-		return null;
-	}
+    /**
+     * Infers the VCF format by looking at the extension of the given file
+     * name. <code>*.vcf</code> is recognized as {@link #VCF} and
+     * <code>*.bcf</code> as {@link #BCF}.
+     */
+    public static VCFFormat inferFromFilePath(final String name) {
+        if (name.endsWith(".bcf")) {
+            return BCF;
+        }
+        if (name.endsWith(".vcf")) {
+            return VCF;
+        }
+        if (name.endsWith(".gz")) {
+            return VCF;
+        }
+        if (name.endsWith(".bgz")) {
+            return VCF;
+        }
+        return null;
+    }
 
-	/** Infers the VCF format by looking at the first few bytes of the input.
-	 */
-	public static VCFFormat inferFromData(final InputStream in) throws IOException {
-		BufferedInputStream bis = new BufferedInputStream(in); // so mark/reset is supported
-		return inferFromUncompressedData(isGzip(bis) ? new GZIPInputStream(bis) : bis);
-	}
+    /**
+     * Infers the VCF format by looking at the first few bytes of the input.
+     */
+    public static VCFFormat inferFromData(final InputStream in) throws IOException {
+        BufferedInputStream bis = new BufferedInputStream(in); // so mark/reset is supported
+        return inferFromUncompressedData(isGzip(bis) ? new GZIPInputStream(bis) : bis);
+    }
 
-	private static VCFFormat inferFromUncompressedData(final InputStream in) throws IOException {
-		final byte b = (byte)in.read();
-		in.close();
-		switch (b) {
-			case 'B':  return BCF;
-			case '#':  return VCF;
-		}
-		return null;
-	}
+    private static VCFFormat inferFromUncompressedData(final InputStream in) throws IOException {
+        final byte b = (byte) in.read();
+        in.close();
+        switch (b) {
+            case 'B':
+                return BCF;
+            case '#':
+                return VCF;
+        }
+        return null;
+    }
 
-	/**
-	 * @return <code>true</code> if the stream is compressed with gzip (or BGZF)
-	*/
-	public static boolean isGzip(final InputStream in) throws IOException {
-		in.mark(1);
-		final byte b = (byte)in.read();
-		in.reset();
-		return b == 0x1f;
-	}
+    /**
+     * @return <code>true</code> if the stream is compressed with gzip (or BGZF)
+     */
+    public static boolean isGzip(final InputStream in) throws IOException {
+        in.mark(1);
+        final byte b = (byte) in.read();
+        in.reset();
+        return b == 0x1f;
+    }
 
 }

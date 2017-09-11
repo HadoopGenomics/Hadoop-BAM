@@ -22,38 +22,42 @@
 
 package org.seqdoop.hadoop_bam;
 
-public class FormatConstants
-{
-	/**
-	 * Offset by which Sanger-style ASCII-encoded quality scores are shifted.
-	 */
-	public static final int SANGER_OFFSET = 33;
+public class FormatConstants {
+    /**
+     * Offset by which Sanger-style ASCII-encoded quality scores are shifted.
+     */
+    public static final int SANGER_OFFSET = 33;
 
-	/**
-	 * Maximum encodable quality score for Sanger Phred+33 encoded base qualities.
-	 *
-	 * Range of legal values is [0,93], according to wikipedia on 10/9/2013:
-	 *   http://en.wikipedia.org/wiki/FASTQ_format#Quality
-	 */
-	public static final int SANGER_MAX = 93;
+    /**
+     * Maximum encodable quality score for Sanger Phred+33 encoded base qualities.
+     * <p>
+     * Range of legal values is [0,93], according to wikipedia on 10/9/2013:
+     * http://en.wikipedia.org/wiki/FASTQ_format#Quality
+     */
+    public static final int SANGER_MAX = 93;
 
-	/**
-	 * Offset by which Illumina-style ASCII-encoded quality scores are shifted.
-	 */
-	public static final int ILLUMINA_OFFSET = 64;
+    /**
+     * Offset by which Illumina-style ASCII-encoded quality scores are shifted.
+     */
+    public static final int ILLUMINA_OFFSET = 64;
 
-	/**
-	 * Maximum encodable quality score for Illumina Phred+64 encoded base qualities.
-	 */
-	public static final int ILLUMINA_MAX = 62;
+    /**
+     * Maximum encodable quality score for Illumina Phred+64 encoded base qualities.
+     */
+    public static final int ILLUMINA_MAX = 62;
 
-	/**
-	 * Encodings for base quality formats.
-	 */
-	public enum BaseQualityEncoding { Illumina, Sanger };
+    /**
+     * Encodings for base quality formats.
+     */
+    public enum BaseQualityEncoding {
+        Illumina, Sanger
+    }
 
-	private FormatConstants() {} // no instantiation
+    ;
 
-	public static final String CONF_INPUT_BASE_QUALITY_ENCODING = "hbam.input.base-quality-encoding";
-	public static final String CONF_INPUT_FILTER_FAILED_QC      = "hbam.input.filter-failed-qc";
+    private FormatConstants() {
+    } // no instantiation
+
+    public static final String CONF_INPUT_BASE_QUALITY_ENCODING = "hbam.input.base-quality-encoding";
+    public static final String CONF_INPUT_FILTER_FAILED_QC = "hbam.input.filter-failed-qc";
 }

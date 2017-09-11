@@ -1,12 +1,13 @@
 package org.seqdoop.hadoop_bam;
 
+import java.io.File;
 import htsjdk.samtools.SAMUtils;
 import htsjdk.samtools.seekablestream.SeekableStream;
-import java.io.File;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
+
 
 import static org.junit.Assert.assertEquals;
 

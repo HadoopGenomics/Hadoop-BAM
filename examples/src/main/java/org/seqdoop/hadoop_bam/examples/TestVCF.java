@@ -22,7 +22,7 @@ package org.seqdoop.hadoop_bam.examples;
 
 import java.io.IOException;
 import java.util.Iterator;
-
+import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -34,9 +34,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-
-import htsjdk.variant.variantcontext.VariantContext;
-
 import org.seqdoop.hadoop_bam.KeyIgnoringVCFOutputFormat;
 import org.seqdoop.hadoop_bam.VCFInputFormat;
 import org.seqdoop.hadoop_bam.VCFOutputFormat;

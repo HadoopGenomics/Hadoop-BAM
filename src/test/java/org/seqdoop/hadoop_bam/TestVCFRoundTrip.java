@@ -20,14 +20,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import com.google.common.collect.Iterators;
-import com.google.common.io.Files;
-import htsjdk.samtools.seekablestream.SeekableFileStream;
-import htsjdk.samtools.util.BlockCompressedInputStream;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.VariantContextComparator;
-import htsjdk.variant.vcf.VCFFileReader;
-import htsjdk.variant.vcf.VCFHeader;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +28,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import com.google.common.collect.Iterators;
+import com.google.common.io.Files;
+import htsjdk.samtools.seekablestream.SeekableFileStream;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextComparator;
+import htsjdk.variant.vcf.VCFFileReader;
+import htsjdk.variant.vcf.VCFHeader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -56,6 +56,7 @@ import org.seqdoop.hadoop_bam.util.BGZFCodec;
 import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec;
 import org.seqdoop.hadoop_bam.util.VCFFileMerger;
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

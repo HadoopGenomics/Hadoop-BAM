@@ -27,14 +27,19 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class DataOutputWrapper extends OutputStream {
-	private final DataOutput out;
+    private final DataOutput out;
 
-	public DataOutputWrapper(DataOutput o) { out = o; }
+    public DataOutputWrapper(DataOutput o) {
+        out = o;
+    }
 
-	@Override public void write(int b) throws IOException {
-		out.writeByte(b);
-	}
-	@Override public void write(byte[] b, int off, int len) throws IOException {
-		out.write(b, off, len);
-	}
+    @Override
+    public void write(int b) throws IOException {
+        out.writeByte(b);
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        out.write(b, off, len);
+    }
 }

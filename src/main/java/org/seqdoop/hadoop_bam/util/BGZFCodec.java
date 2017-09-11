@@ -24,48 +24,49 @@ import org.apache.hadoop.io.compress.SplittableCompressionCodec;
  * {@code
  * conf.set("io.compression.codecs", BGZFCodec.class.getCanonicalName())
  * }
+ *
  * @see BGZFEnhancedGzipCodec
  */
 public class BGZFCodec extends GzipCodec implements SplittableCompressionCodec {
 
-  public static final String DEFAULT_EXTENSION = ".bgz";
+    public static final String DEFAULT_EXTENSION = ".bgz";
 
-  @Override
-  public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
-    return new BGZFCompressionOutputStream(out);
-  }
+    @Override
+    public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
+        return new BGZFCompressionOutputStream(out);
+    }
 
-  // compressors are not used, so ignore/return null
+    // compressors are not used, so ignore/return null
 
-  @Override
-  public CompressionOutputStream createOutputStream(OutputStream out,
-      Compressor compressor) throws IOException {
-    return createOutputStream(out); // compressors are not used, so ignore
-  }
+    @Override
+    public CompressionOutputStream createOutputStream(OutputStream out,
+                                                      Compressor compressor) throws IOException {
+        return createOutputStream(out); // compressors are not used, so ignore
+    }
 
-  @Override
-  public Class<? extends Compressor> getCompressorType() {
-    return null; // compressors are not used, so return null
-  }
+    @Override
+    public Class<? extends Compressor> getCompressorType() {
+        return null; // compressors are not used, so return null
+    }
 
-  @Override
-  public Compressor createCompressor() {
-    return null; // compressors are not used, so return null
-  }
+    @Override
+    public Compressor createCompressor() {
+        return null; // compressors are not used, so return null
+    }
 
-  @Override
-  public SplitCompressionInputStream createInputStream(InputStream seekableIn,
-      Decompressor decompressor, long start, long end, READ_MODE readMode) throws IOException {
-    BGZFSplitGuesser splitGuesser = new BGZFSplitGuesser(seekableIn);
-    long adjustedStart = splitGuesser.guessNextBGZFBlockStart(start, end);
-    ((Seekable)seekableIn).seek(adjustedStart);
-    return new BGZFSplitCompressionInputStream(seekableIn, adjustedStart, end);
-  }
+    @Override
+    public SplitCompressionInputStream createInputStream(InputStream seekableIn,
+                                                         Decompressor decompressor, long start, long end, READ_MODE readMode) throws IOException {
+        BGZFSplitGuesser splitGuesser = new BGZFSplitGuesser(seekableIn);
+        long adjustedStart = splitGuesser.guessNextBGZFBlockStart(start, end);
+        ((Seekable) seekableIn).seek(adjustedStart);
+        return new BGZFSplitCompressionInputStream(seekableIn, adjustedStart, end);
+    }
 
-  // fall back to GzipCodec for input streams without a start position
+    // fall back to GzipCodec for input streams without a start position
 
-  @Override
-  public String getDefaultExtension() {
-    return DEFAULT_EXTENSION;
-  }
+    @Override
+    public String getDefaultExtension() {
+        return DEFAULT_EXTENSION;
+    }
 }

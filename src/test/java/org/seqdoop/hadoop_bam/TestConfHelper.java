@@ -22,12 +22,13 @@
 
 package org.seqdoop.hadoop_bam;
 
+import org.apache.hadoop.conf.Configuration;
+import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.ConfHelper;
 
-import org.junit.*;
-import static org.junit.Assert.*;
 
-import org.apache.hadoop.conf.Configuration;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestConfHelper
 {

@@ -27,85 +27,93 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordFactory;
 
-/** A factory for the kind of lazy {@link BAMRecord} used internally. */
+/**
+ * A factory for the kind of lazy {@link BAMRecord} used internally.
+ */
 public class LazyBAMRecordFactory implements SAMRecordFactory {
-	@Override public SAMRecord createSAMRecord(SAMFileHeader hdr) {
-		throw new UnsupportedOperationException(
-			"LazyBAMRecordFactory can only create BAM records");
-	}
+    @Override
+    public SAMRecord createSAMRecord(SAMFileHeader hdr) {
+        throw new UnsupportedOperationException(
+                "LazyBAMRecordFactory can only create BAM records");
+    }
 
-	@Override public BAMRecord createBAMRecord(
-		SAMFileHeader hdr,
-		int referenceSequenceIndex, int alignmentStart,
-		short readNameLength, short mappingQuality,
-		int indexingBin, int cigarLen, int flags, int readLen,
-		int mateReferenceSequenceIndex, int mateAlignmentStart,
-		int insertSize, byte[] variableLengthBlock)
-	{
-		return new LazyBAMRecord(
-			hdr, referenceSequenceIndex, alignmentStart, readNameLength,
-			mappingQuality, indexingBin, cigarLen, flags, readLen,
-			mateReferenceSequenceIndex, mateAlignmentStart, insertSize,
-			variableLengthBlock);
-	}
+    @Override
+    public BAMRecord createBAMRecord(
+            SAMFileHeader hdr,
+            int referenceSequenceIndex, int alignmentStart,
+            short readNameLength, short mappingQuality,
+            int indexingBin, int cigarLen, int flags, int readLen,
+            int mateReferenceSequenceIndex, int mateAlignmentStart,
+            int insertSize, byte[] variableLengthBlock) {
+        return new LazyBAMRecord(
+                hdr, referenceSequenceIndex, alignmentStart, readNameLength,
+                mappingQuality, indexingBin, cigarLen, flags, readLen,
+                mateReferenceSequenceIndex, mateAlignmentStart, insertSize,
+                variableLengthBlock);
+    }
 }
 
 class LazyBAMRecord extends BAMRecord {
-	private boolean decodedRefIdx     = false;
-	private boolean decodedMateRefIdx = false;
+    private boolean decodedRefIdx = false;
+    private boolean decodedMateRefIdx = false;
 
-	public LazyBAMRecord(
-		SAMFileHeader hdr, int referenceID, int coordinate, short readNameLength,
-		short mappingQuality, int indexingBin, int cigarLen, int flags,
-		int readLen, int mateReferenceID, int mateCoordinate, int insertSize,
-		byte[] restOfData)
-	{
-		super(
-			hdr, referenceID, coordinate, readNameLength, mappingQuality,
-			indexingBin, cigarLen, flags, readLen, mateReferenceID,
-			mateCoordinate, insertSize, restOfData);
-	}
+    public LazyBAMRecord(
+            SAMFileHeader hdr, int referenceID, int coordinate, short readNameLength,
+            short mappingQuality, int indexingBin, int cigarLen, int flags,
+            int readLen, int mateReferenceID, int mateCoordinate, int insertSize,
+            byte[] restOfData) {
+        super(
+                hdr, referenceID, coordinate, readNameLength, mappingQuality,
+                indexingBin, cigarLen, flags, readLen, mateReferenceID,
+                mateCoordinate, insertSize, restOfData);
+    }
 
-	@Override public void setReferenceIndex(final int referenceIndex) {
-		mReferenceIndex = referenceIndex;
-		decodedRefIdx = false;
-	}
-	@Override public void setMateReferenceIndex(final int referenceIndex) {
-		mMateReferenceIndex = referenceIndex;
-		decodedMateRefIdx = false;
-	}
+    @Override
+    public void setReferenceIndex(final int referenceIndex) {
+        mReferenceIndex = referenceIndex;
+        decodedRefIdx = false;
+    }
 
-	@Override public String getReferenceName() {
-		if (mReferenceIndex != null && !decodedRefIdx) {
-			decodedRefIdx = true;
-			super.setReferenceIndex(mReferenceIndex);
-		}
-		return super.getReferenceName();
-	}
+    @Override
+    public void setMateReferenceIndex(final int referenceIndex) {
+        mMateReferenceIndex = referenceIndex;
+        decodedMateRefIdx = false;
+    }
 
-	@Override public String getMateReferenceName() {
-		if (mMateReferenceIndex != null && !decodedMateRefIdx) {
-			decodedMateRefIdx = true;
-			super.setMateReferenceIndex(mMateReferenceIndex);
-		}
-		return super.getMateReferenceName();
-	}
+    @Override
+    public String getReferenceName() {
+        if (mReferenceIndex != null && !decodedRefIdx) {
+            decodedRefIdx = true;
+            super.setReferenceIndex(mReferenceIndex);
+        }
+        return super.getReferenceName();
+    }
 
-	@Override protected void eagerDecode() {
-		getReferenceName();
-		getMateReferenceName();
-		super.eagerDecode();
-	}
+    @Override
+    public String getMateReferenceName() {
+        if (mMateReferenceIndex != null && !decodedMateRefIdx) {
+            decodedMateRefIdx = true;
+            super.setMateReferenceIndex(mMateReferenceIndex);
+        }
+        return super.getMateReferenceName();
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		// don't use decoded flags for equality check
-		return super.equals(o);
-	}
+    @Override
+    protected void eagerDecode() {
+        getReferenceName();
+        getMateReferenceName();
+        super.eagerDecode();
+    }
 
-	@Override
-	public int hashCode() {
-		// don't use decoded flags for hash code
-		return super.hashCode();
-	}
+    @Override
+    public boolean equals(Object o) {
+        // don't use decoded flags for equality check
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        // don't use decoded flags for hash code
+        return super.hashCode();
+    }
 }

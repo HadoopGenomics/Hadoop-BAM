@@ -22,7 +22,7 @@ package org.seqdoop.hadoop_bam.examples;
 
 import java.io.IOException;
 import java.util.Iterator;
-
+import htsjdk.samtools.SAMRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -34,9 +34,6 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-
-import htsjdk.samtools.SAMRecord;
-
 import org.seqdoop.hadoop_bam.AnySAMInputFormat;
 import org.seqdoop.hadoop_bam.KeyIgnoringBAMOutputFormat;
 import org.seqdoop.hadoop_bam.SAMRecordWritable;

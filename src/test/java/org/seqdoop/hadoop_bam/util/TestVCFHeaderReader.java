@@ -1,13 +1,11 @@
 package org.seqdoop.hadoop_bam.util;
 
 import java.io.IOException;
-
 import com.google.common.io.Resources;
-
 import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStream;
-
 import org.junit.Test;
+
 
 import static org.junit.Assert.assertNotNull;
 

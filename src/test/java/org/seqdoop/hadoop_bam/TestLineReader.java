@@ -22,15 +22,13 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.junit.*;
-import static org.junit.Assert.*;
-
-import org.seqdoop.hadoop_bam.LineReader;
-
-import org.apache.hadoop.io.Text;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
+
+
+import static org.junit.Assert.assertEquals;
 
 public class TestLineReader
 {

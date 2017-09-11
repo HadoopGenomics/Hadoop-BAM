@@ -1,14 +1,15 @@
 package org.seqdoop.hadoop_bam;
 
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.SamReaderFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Before;
 import org.junit.Test;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

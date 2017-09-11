@@ -22,23 +22,21 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.junit.*;
-import static org.junit.Assert.*;
-
-import org.seqdoop.hadoop_bam.SequencedFragment;
-import org.seqdoop.hadoop_bam.FormatConstants;
-import org.seqdoop.hadoop_bam.FormatException;
-
-import java.io.IOException;
-import java.io.DataInput;
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-
-import java.io.DataOutput;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
-
+import java.io.IOException;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
+
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestSequencedFragment
 {
