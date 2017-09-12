@@ -108,8 +108,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
             CompressionCodec codec = codecFactory.getCodec(file);
 
-            if (codec == null) // no codec.  Uncompressed file.
-            {
+            if (codec == null) { // no codec.  Uncompressed file.
                 positionAtFirstRecord(fileIn);
                 inputStream = fileIn;
             }

@@ -105,7 +105,8 @@ public abstract class BCFRecordWriter<K>
         final BCFStoppableOutputStream stopOut =
                 new BCFStoppableOutputStream(!writeHeader, output);
 
-        writer = new VariantContextWriterBuilder().clearOptions()
+        writer = new VariantContextWriterBuilder()
+                .clearOptions()
                 .setOption(Options.FORCE_BCF)
                 .setOutputBCFStream(stopOut).build();
 

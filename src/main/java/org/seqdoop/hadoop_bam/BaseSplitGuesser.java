@@ -34,8 +34,8 @@ class BaseSplitGuesser {
     // anything.
     protected PosSize guessNextBGZFPos(int p, final int end) {
         try {
-            for (; ; ) {
-                for (; ; ) {
+            for (;;) {
+                for (;;) {
                     in.seek(p);
                     IOUtils.readFully(in, buf.array(), 0, 4);
                     int n = buf.getInt(0);

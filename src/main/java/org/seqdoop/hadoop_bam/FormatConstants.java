@@ -53,8 +53,6 @@ public class FormatConstants {
         Illumina, Sanger
     }
 
-    ;
-
     private FormatConstants() {
     } // no instantiation
 

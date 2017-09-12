@@ -190,8 +190,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
             CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
             CompressionCodec codec = codecFactory.getCodec(file);
 
-            if (codec == null) // no codec.  Uncompressed file.
-            {
+            if (codec == null) { // no codec.  Uncompressed file.
                 positionAtFirstRecord(fileIn);
                 inputStream = fileIn;
             }

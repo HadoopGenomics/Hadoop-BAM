@@ -143,7 +143,6 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment> 
                 }
             }
             sBuilder.append(delim);
-            /////////
             sBuilder.append((seq.getFilterPassed() == null || seq.getFilterPassed()) ? 1 : 0);
 
             try {

@@ -114,8 +114,8 @@ public class BGZFSplitGuesser {
     // Returns a negative number if it doesn't find anything.
     private int guessNextBGZFPos(int p, final int end)
             throws IOException {
-        for (; ; ) {
-            for (; ; ) {
+        for (;;) {
+            for (;;) {
                 in.seek(p);
                 in.read(buf.array(), 0, 4);
                 int n = buf.getInt(0);

@@ -91,9 +91,9 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
             throws IOException {
         inFile = ss;
 
-        referenceSequenceCount =
-                SAMHeaderReader.readSAMHeaderFrom(headerStream, conf)
-                        .getSequenceDictionary().size();
+        referenceSequenceCount = SAMHeaderReader
+                .readSAMHeaderFrom(headerStream, conf)
+                .getSequenceDictionary().size();
 
         bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());
     }
@@ -110,7 +110,9 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
         // on subsequent calls to this method.
         if (beg == 0) {
             this.inFile.seek(beg);
-            SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
+            SamReader open = SamReaderFactory
+                    .makeDefault()
+                    .setUseAsyncIo(false)
                     .open(SamInputResource.of(inFile));
             SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
             if (span instanceof BAMFileSpan) {

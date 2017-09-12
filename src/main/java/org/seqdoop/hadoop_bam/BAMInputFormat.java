@@ -432,7 +432,9 @@ public class BAMInputFormat
                 if (fSplit.getStart() == 0) {
                     final SeekableStream inFile =
                             WrapSeekable.openPath(path.getFileSystem(conf), path);
-                    SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
+                    SamReader open = SamReaderFactory
+                            .makeDefault()
+                            .setUseAsyncIo(false)
                             .open(SamInputResource.of(inFile));
                     SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
                     long bamStart = ((BAMFileSpan) span).getFirstOffset();
@@ -576,7 +578,8 @@ public class BAMInputFormat
             bamFiles.add(((FileVirtualSplit) split).getPath());
         }
         Map<Path, BAMFileSpan> fileToSpan = new LinkedHashMap<>();
-        SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
+        SamReaderFactory readerFactory = SamReaderFactory
+                .makeDefault()
                 .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
                 .setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
                 .setUseAsyncIo(false);

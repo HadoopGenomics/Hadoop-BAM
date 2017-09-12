@@ -22,8 +22,6 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
         HOLD, ADVERTISE
     }
 
-    ;
-
     POS_ADVERTISEMENT_STATE_MACHINE posSM = POS_ADVERTISEMENT_STATE_MACHINE.HOLD;
     long compressedStreamPosition = 0;
 
