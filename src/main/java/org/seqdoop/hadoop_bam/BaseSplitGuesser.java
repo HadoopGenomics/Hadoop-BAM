@@ -24,7 +24,7 @@ class BaseSplitGuesser {
         public int pos;
         public int size;
 
-        public PosSize(int p, int s) {
+        public PosSize(final int p, final int s) {
             pos = p;
             size = s;
         }
@@ -32,7 +32,7 @@ class BaseSplitGuesser {
 
     // Gives the compressed size on the side. Returns null if it doesn't find
     // anything.
-    protected PosSize guessNextBGZFPos(int p, int end) {
+    protected PosSize guessNextBGZFPos(int p, final int end) {
         try {
             for (; ; ) {
                 for (; ; ) {

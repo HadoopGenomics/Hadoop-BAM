@@ -31,7 +31,7 @@ import htsjdk.samtools.ValidationStringency;
 import org.seqdoop.hadoop_bam.SAMFormat;
 
 public final class GetSortedBAMHeader {
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
         if (args.length < 2) {
             System.err.println(
                     "Usage: GetSortedBAMHeader input output\n\n" +

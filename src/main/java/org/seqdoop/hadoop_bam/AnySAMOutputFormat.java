@@ -45,7 +45,7 @@ public abstract class AnySAMOutputFormat<K>
      * Creates a new output format, reading {@link #OUTPUT_SAM_FORMAT_PROPERTY}
      * from the given <code>Configuration</code>.
      */
-    protected AnySAMOutputFormat(Configuration conf) {
+    protected AnySAMOutputFormat(final Configuration conf) {
         final String fmtStr = conf.get(OUTPUT_SAM_FORMAT_PROPERTY);
 
         format = fmtStr == null ? null : SAMFormat.valueOf(fmtStr);
@@ -54,7 +54,7 @@ public abstract class AnySAMOutputFormat<K>
     /**
      * Creates a new output format for the given SAM format.
      */
-    protected AnySAMOutputFormat(SAMFormat fmt) {
+    protected AnySAMOutputFormat(final SAMFormat fmt) {
         if (fmt == null) {
             throw new IllegalArgumentException("null SAMFormat");
         }

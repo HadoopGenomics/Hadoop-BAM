@@ -280,7 +280,7 @@ public final class VariantContextCodec {
 
         private static final AttrType[] values = values();
 
-        public static AttrType fromByte(byte b) {
+        public static AttrType fromByte(final byte b) {
             return values[b];
         }
     }

@@ -35,27 +35,31 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * VariantContext.</p>
  */
 public class KeyIgnoringBCFRecordWriter<K> extends BCFRecordWriter<K> {
-    public KeyIgnoringBCFRecordWriter(
-            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+    public KeyIgnoringBCFRecordWriter(final Path output,
+                                      final Path input,
+                                      final boolean writeHeader,
+                                      final TaskAttemptContext ctx)
             throws IOException {
         super(output, input, writeHeader, ctx);
     }
 
-    public KeyIgnoringBCFRecordWriter(
-            Path output, VCFHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    public KeyIgnoringBCFRecordWriter(final Path output,
+                                      final VCFHeader header,
+                                      final boolean writeHeader,
+                                      final TaskAttemptContext ctx)
             throws IOException {
         super(output, header, writeHeader, ctx);
     }
 
-    public KeyIgnoringBCFRecordWriter(
-            OutputStream output, VCFHeader header, boolean writeHeader)
+    public KeyIgnoringBCFRecordWriter(final OutputStream output,
+                                      final VCFHeader header,
+                                      final boolean writeHeader)
             throws IOException {
         super(output, header, writeHeader);
     }
 
     @Override
-    public void write(K ignored, VariantContextWritable vc) {
+    public void write(final K ignored, final VariantContextWritable vc) {
         writeRecord(vc.get());
     }
 }

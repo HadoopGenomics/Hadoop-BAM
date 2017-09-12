@@ -44,7 +44,7 @@ public class WrapSeekable<S extends InputStream & Seekable>
     private final long len;
     private final Path path;
 
-    public WrapSeekable(final S s, long length, Path p) {
+    public WrapSeekable(final S s, final long length, final Path p) {
         stm = s;
         len = length;
         path = p;
@@ -54,7 +54,7 @@ public class WrapSeekable<S extends InputStream & Seekable>
      * A helper for the common use case.
      */
     public static WrapSeekable<FSDataInputStream> openPath(
-            FileSystem fs, Path p) throws IOException {
+            final FileSystem fs, final Path p) throws IOException {
         return new WrapSeekable<FSDataInputStream>(
                 fs.open(p), fs.getFileStatus(p).getLen(), p);
     }
@@ -90,7 +90,7 @@ public class WrapSeekable<S extends InputStream & Seekable>
     }
 
     @Override
-    public void seek(long pos) throws IOException {
+    public void seek(final long pos) throws IOException {
         stm.seek(pos);
     }
 
@@ -100,7 +100,7 @@ public class WrapSeekable<S extends InputStream & Seekable>
     }
 
     @Override
-    public int read(byte[] buf, int offset, int len)
+    public int read(final byte[] buf, final int offset, final int len)
             throws IOException {
         return stm.read(buf, offset, len);
     }

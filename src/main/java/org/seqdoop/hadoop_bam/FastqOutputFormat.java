@@ -70,12 +70,12 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
         protected OutputStream out;
         protected BaseQualityEncoding baseQualityFormat;
 
-        public FastqRecordWriter(Configuration conf, OutputStream out) {
+        public FastqRecordWriter(final Configuration conf, final OutputStream out) {
             this.out = out;
             setConf(conf);
         }
 
-        public void setConf(Configuration conf) {
+        public void setConf(final Configuration conf) {
             String setting = conf.get(CONF_BASE_QUALITY_ENCODING, CONF_BASE_QUALITY_ENCODING_DEFAULT);
             if ("illumina".equals(setting)) {
                 baseQualityFormat = BaseQualityEncoding.Illumina;
@@ -88,7 +88,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
             }
         }
 
-        protected String makeId(SequencedFragment seq) throws IOException {
+        protected String makeId(final SequencedFragment seq) throws IOException {
             String delim = ":";
             sBuilder.delete(0, sBuilder.length()); // clear
 
@@ -112,7 +112,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
             return sBuilder.toString();
         }
 
-        public void write(Text key, SequencedFragment seq) throws IOException {
+        public void write(final Text key, final SequencedFragment seq) throws IOException {
             // write the id line
             out.write('@');
             if (key != null) {
@@ -144,12 +144,12 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
             out.write('\n');
         }
 
-        public void close(TaskAttemptContext task) throws IOException {
+        public void close(final TaskAttemptContext task) throws IOException {
             out.close();
         }
     }
 
-    public RecordWriter<Text, SequencedFragment> getRecordWriter(TaskAttemptContext task)
+    public RecordWriter<Text, SequencedFragment> getRecordWriter(final TaskAttemptContext task)
             throws IOException {
         Configuration conf = task.getConfiguration();
         boolean isCompressed = getCompressOutput(task);

@@ -52,11 +52,11 @@ import org.seqdoop.hadoop_bam.util.WrapSeekable;
 public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
     protected VCFHeader header;
 
-    public KeyIgnoringVCFOutputFormat(VCFFormat fmt) {
+    public KeyIgnoringVCFOutputFormat(final VCFFormat fmt) {
         super(fmt);
     }
 
-    public KeyIgnoringVCFOutputFormat(Configuration conf) {
+    public KeyIgnoringVCFOutputFormat(final Configuration conf) {
         super(conf);
         if (format == null) {
             throw new IllegalArgumentException(
@@ -64,7 +64,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
         }
     }
 
-    public KeyIgnoringVCFOutputFormat(Configuration conf, Path path) {
+    public KeyIgnoringVCFOutputFormat(final Configuration conf, final Path path) {
         super(conf);
         if (format == null) {
             format = VCFFormat.inferFromFilePath(path);
@@ -85,17 +85,17 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
         return header;
     }
 
-    public void setHeader(VCFHeader header) {
+    public void setHeader(final VCFHeader header) {
         this.header = header;
     }
 
-    public void readHeaderFrom(Path path, FileSystem fs) throws IOException {
+    public void readHeaderFrom(final Path path, final FileSystem fs) throws IOException {
         SeekableStream i = WrapSeekable.openPath(fs, path);
         readHeaderFrom(i);
         i.close();
     }
 
-    public void readHeaderFrom(SeekableStream in) throws IOException {
+    public void readHeaderFrom(final SeekableStream in) throws IOException {
         this.header = VCFHeaderReader.readHeaderFrom(in);
     }
 
@@ -105,7 +105,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
      */
     @Override
     public RecordWriter<K, VariantContextWritable> getRecordWriter(
-            TaskAttemptContext ctx)
+            final TaskAttemptContext ctx)
             throws IOException {
         Configuration conf = ctx.getConfiguration();
         boolean isCompressed = getCompressOutput(ctx);
@@ -129,7 +129,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 
     // Allows wrappers to provide their own work file.
     public RecordWriter<K, VariantContextWritable> getRecordWriter(
-            TaskAttemptContext ctx, Path out)
+            final TaskAttemptContext ctx, final Path out)
             throws IOException {
         if (this.header == null) {
             throw new IOException(
@@ -151,7 +151,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
     }
 
     private RecordWriter<K, VariantContextWritable> getRecordWriter(
-            TaskAttemptContext ctx, OutputStream outputStream)
+            final TaskAttemptContext ctx, final OutputStream outputStream)
             throws IOException {
         if (this.header == null) {
             throw new IOException(

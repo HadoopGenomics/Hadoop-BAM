@@ -105,8 +105,10 @@ public class SAMFileMerger {
         }
     }
 
-    static void mergeSplittingBaiFiles(OutputStream out, Path directory, long headerLength,
-                                       long fileLength) throws IOException {
+    static void mergeSplittingBaiFiles(final OutputStream out,
+                                       final Path directory,
+                                       final long headerLength,
+                                       final long fileLength) throws IOException {
         final List<Path> parts = getFilesMatching(directory,
                 NIOFileUtil.PARTS_GLOB + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION, null);
         if (parts.isEmpty()) {
@@ -145,7 +147,7 @@ public class SAMFileMerger {
         }
     }
 
-    private static long shiftVirtualFilePointer(long virtualFilePointer, long offset) {
+    private static long shiftVirtualFilePointer(final long virtualFilePointer, final long offset) {
         long blockAddress = BlockCompressedFilePointerUtil.getBlockAddress(virtualFilePointer);
         int blockOffset = BlockCompressedFilePointerUtil.getBlockOffset(virtualFilePointer);
         return (blockAddress + offset) << 16 | (long) blockOffset;

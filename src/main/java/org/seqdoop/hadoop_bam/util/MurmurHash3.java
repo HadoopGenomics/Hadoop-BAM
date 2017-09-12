@@ -30,7 +30,7 @@ import java.nio.LongBuffer;
  */
 @SuppressWarnings("fallthrough")
 public final class MurmurHash3 {
-    public static long murmurhash3(byte[] key, int seed) {
+    public static long murmurhash3(final byte[] key, final int seed) {
 
         final ByteBuffer data =
                 ByteBuffer.wrap(key).order(ByteOrder.LITTLE_ENDIAN);
@@ -140,7 +140,7 @@ public final class MurmurHash3 {
      * hashing chars.toString().getBytes(), as it hashes UTF-16 code units, but
      * it is much faster.
      */
-    public static long murmurhash3(CharSequence chars, int seed) {
+    public static long murmurhash3(final CharSequence chars, final int seed) {
 
         final int len = chars.length();
 

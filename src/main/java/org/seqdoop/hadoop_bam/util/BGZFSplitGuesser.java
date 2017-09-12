@@ -42,7 +42,7 @@ public class BGZFSplitGuesser {
     private final static int BGZF_MAGIC_SUB = 0x00024342;
     private final static int BGZF_SUB_SIZE = 4 + 2;
 
-    public BGZFSplitGuesser(InputStream is) {
+    public BGZFSplitGuesser(final InputStream is) {
         inFile = is;
         seekableInFile = (Seekable) is;
 
@@ -50,7 +50,7 @@ public class BGZFSplitGuesser {
         buf.order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    public BGZFSplitGuesser(FSDataInputStream is) {
+    public BGZFSplitGuesser(final FSDataInputStream is) {
         inFile = is;
         seekableInFile = is;
 
@@ -59,7 +59,7 @@ public class BGZFSplitGuesser {
     }
 
     /// Looks in the range [beg,end). Returns end if no BAM record was found.
-    public long guessNextBGZFBlockStart(long beg, long end)
+    public long guessNextBGZFBlockStart(final long beg, final long end)
             throws IOException {
         // Buffer what we need to go through. Since the max size of a BGZF block
         // is 0xffff (64K), and we might be just one byte off from the start of
@@ -112,7 +112,7 @@ public class BGZFSplitGuesser {
     }
 
     // Returns a negative number if it doesn't find anything.
-    private int guessNextBGZFPos(int p, int end)
+    private int guessNextBGZFPos(int p, final int end)
             throws IOException {
         for (; ; ) {
             for (; ; ) {

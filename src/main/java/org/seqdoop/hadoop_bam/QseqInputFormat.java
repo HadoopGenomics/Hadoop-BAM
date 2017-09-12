@@ -96,7 +96,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         // How long can a qseq line get?
         public static final int MAX_LINE_LENGTH = 20000;
 
-        public QseqRecordReader(Configuration conf, FileSplit split) throws IOException {
+        public QseqRecordReader(final Configuration conf, final FileSplit split) throws IOException {
             setConf(conf);
             file = split.getPath();
             start = split.getStart();
@@ -128,7 +128,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         /*
          * Position the input stream at the start of the first record.
          */
-        private void positionAtFirstRecord(FSDataInputStream stream) throws IOException {
+        private void positionAtFirstRecord(final FSDataInputStream stream) throws IOException {
             if (start > 0) {
                 // Advance to the start of the first line in our slice.
                 // We use a temporary LineReader to read a partial line and find the
@@ -147,7 +147,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             pos = start;
         }
 
-        protected void setConf(Configuration conf) {
+        protected void setConf(final Configuration conf) {
             String encoding =
                     conf.get(QseqInputFormat.CONF_BASE_QUALITY_ENCODING,
                             conf.get(FormatConstants.CONF_INPUT_BASE_QUALITY_ENCODING,
@@ -172,7 +172,8 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         /**
          * Added to use mapreduce API.
          */
-        public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+        public void initialize(final InputSplit split, final TaskAttemptContext context)
+                throws IOException, InterruptedException {
         }
 
         /**
@@ -236,7 +237,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             }
         }
 
-        public String makePositionMessage(long pos) {
+        public String makePositionMessage(final long pos) {
             return file.toString() + ":" + pos;
         }
 
@@ -252,7 +253,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
          *
          * @return The number of bytes read.  If no bytes were read, the EOF was reached.
          */
-        private int lowLevelQseqRead(Text key, SequencedFragment value) throws IOException {
+        private int lowLevelQseqRead(final Text key, final SequencedFragment value) throws IOException {
             int bytesRead = lineReader.readLine(buffer, MAX_LINE_LENGTH);
             pos += bytesRead;
             if (bytesRead >= MAX_LINE_LENGTH) {
@@ -276,7 +277,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         /**
          * Reads the next key/value pair from the input for processing.
          */
-        public boolean next(Text key, SequencedFragment value) throws IOException {
+        public boolean next(final Text key, final SequencedFragment value) throws IOException {
             if (pos >= end) {
                 return false; // past end of slice
             }
@@ -310,7 +311,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
          *
          * @exception FormatException Line doesn't have the expected number of fields.
          */
-        private void setFieldPositionsAndLengths(Text line) {
+        private void setFieldPositionsAndLengths(final Text line) {
             int pos = 0; // the byte position within the record
             int fieldno = 0; // the field index within the record
             while (pos < line.getLength() && fieldno < NUM_QSEQ_COLS) // iterate over each field
@@ -333,7 +334,9 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             }
         }
 
-        private void scanQseqLine(Text line, Text key, SequencedFragment fragment) {
+        private void scanQseqLine(final Text line,
+                                  final Text key,
+                                  final SequencedFragment fragment) {
             setFieldPositionsAndLengths(line);
 
             // Build the key.  We concatenate all fields from 0 to 5 (machine to y-pos)
@@ -395,7 +398,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
          * @exception FormatException Thrown if the record contains base quality scores
          * outside the range allowed by the format.
          */
-        private void postProcessSequencedFragment(SequencedFragment fragment) {
+        private void postProcessSequencedFragment(final SequencedFragment fragment) {
             byte[] bytes = fragment.getSequence().getBytes();
             // replace . with N
             for (int i = 0; i < fieldLengths[8]; ++i) {
@@ -421,14 +424,14 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
     }
 
     @Override
-    public boolean isSplitable(JobContext context, Path path) {
+    public boolean isSplitable(final JobContext context, final Path path) {
         CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
         return codec == null;
     }
 
     public RecordReader<Text, SequencedFragment> createRecordReader(
-            InputSplit genericSplit,
-            TaskAttemptContext context) throws IOException, InterruptedException {
+            final InputSplit genericSplit,
+            final TaskAttemptContext context) throws IOException, InterruptedException {
         context.setStatus(genericSplit.toString());
         return new QseqRecordReader(context.getConfiguration(), (FileSplit) genericSplit); // cast as per example in TextInputFormat
     }

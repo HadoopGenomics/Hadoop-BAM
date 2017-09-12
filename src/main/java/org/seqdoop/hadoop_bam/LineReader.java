@@ -52,7 +52,7 @@ public class LineReader {
      * @param in The input stream
      * @throws IOException
      */
-    public LineReader(InputStream in) {
+    public LineReader(final InputStream in) {
         this(in, DEFAULT_BUFFER_SIZE);
     }
 
@@ -64,7 +64,7 @@ public class LineReader {
      * @param bufferSize Size of the read buffer
      * @throws IOException
      */
-    public LineReader(InputStream in, int bufferSize) {
+    public LineReader(final InputStream in, final int bufferSize) {
         this.in = in;
         this.bufferSize = bufferSize;
         this.buffer = new byte[this.bufferSize];
@@ -79,7 +79,7 @@ public class LineReader {
      * @param conf configuration
      * @throws IOException
      */
-    public LineReader(InputStream in, Configuration conf) throws IOException {
+    public LineReader(final InputStream in, final Configuration conf) throws IOException {
         this(in, conf.getInt("io.file.buffer.size", DEFAULT_BUFFER_SIZE));
     }
 
@@ -109,8 +109,9 @@ public class LineReader {
      * found.
      * @throws IOException if the underlying stream throws
      */
-    public int readLine(Text str, int maxLineLength,
-                        int maxBytesToConsume) throws IOException {
+    public int readLine(final Text str,
+                        final int maxLineLength,
+                        final int maxBytesToConsume) throws IOException {
     /* We're reading data from in, but the head of the stream may be
      * already buffered in buffer, so we have several cases:
      * 1. No newline characters are in the buffer, so we need to copy
@@ -186,7 +187,7 @@ public class LineReader {
      * @return the number of bytes read including the newline
      * @throws IOException if the underlying stream throws
      */
-    public int readLine(Text str, int maxLineLength) throws IOException {
+    public int readLine(final Text str, final int maxLineLength) throws IOException {
         return readLine(str, maxLineLength, Integer.MAX_VALUE);
     }
 
@@ -197,7 +198,7 @@ public class LineReader {
      * @return the number of bytes read including the newline
      * @throws IOException if the underlying stream throws
      */
-    public int readLine(Text str) throws IOException {
+    public int readLine(final Text str) throws IOException {
         return readLine(str, Integer.MAX_VALUE, Integer.MAX_VALUE);
     }
 
@@ -208,7 +209,7 @@ public class LineReader {
      * @return the number of bytes skipped.
      * @throws IOException if the underlying stream throws.
      */
-    public long skip(long n) throws IOException {
+    public long skip(final long n) throws IOException {
         boolean end = false;
         long toskip = n;
         while (toskip > 0 && !end) {

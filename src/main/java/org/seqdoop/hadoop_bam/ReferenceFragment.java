@@ -60,21 +60,21 @@ public class ReferenceFragment implements Writable {
      * Trade encapsulation for efficiency.  Here we expose the internal Text
      * object so that data may be read and written diretly from/to it.
      */
-    public void setPosition(Integer pos) {
+    public void setPosition(final Integer pos) {
         if (pos == null) {
             throw new IllegalArgumentException("can't have null reference position");
         }
         position = pos;
     }
 
-    public void setIndexSequence(String v) {
+    public void setIndexSequence(final String v) {
         if (v == null) {
             throw new IllegalArgumentException("can't have null index sequence");
         }
         indexSequence = v;
     }
 
-    public void setSequence(Text seq) {
+    public void setSequence(final Text seq) {
         if (seq == null) {
             throw new IllegalArgumentException("can't have a null sequence");
         }
@@ -101,7 +101,7 @@ public class ReferenceFragment implements Writable {
         return builder.toString();
     }
 
-    public boolean equals(Object other) {
+    public boolean equals(final Object other) {
         if (other != null && other instanceof ReferenceFragment) {
             ReferenceFragment otherFrag = (ReferenceFragment) other;
 
@@ -131,7 +131,7 @@ public class ReferenceFragment implements Writable {
         return result;
     }
 
-    public void readFields(DataInput in) throws IOException {
+    public void readFields(final DataInput in) throws IOException {
         // serialization order:
         // 1) sequence
         // 2) indexSequence (chromosome/contig name)
@@ -145,7 +145,7 @@ public class ReferenceFragment implements Writable {
         position = WritableUtils.readVInt(in);
     }
 
-    public void write(DataOutput out) throws IOException {
+    public void write(final DataOutput out) throws IOException {
         sequence.write(out);
 
         WritableUtils.writeString(out, indexSequence);

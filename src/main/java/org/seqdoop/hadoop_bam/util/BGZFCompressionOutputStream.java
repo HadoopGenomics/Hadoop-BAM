@@ -17,17 +17,17 @@ class BGZFCompressionOutputStream extends CompressionOutputStream {
 
     private BlockCompressedOutputStream output;
 
-    public BGZFCompressionOutputStream(OutputStream out)
+    public BGZFCompressionOutputStream(final OutputStream out)
             throws IOException {
         super(out);
         this.output = new BlockCompressedOutputStream(out, null);
     }
 
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         output.write(b);
     }
 
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
         output.write(b, off, len);
     }
 

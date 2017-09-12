@@ -58,7 +58,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
     public static final Charset UTF8 = Charset.forName("UTF8");
 
     @Override
-    public List<InputSplit> getSplits(JobContext job) throws IOException {
+    public List<InputSplit> getSplits(final JobContext job) throws IOException {
 
         // Note: We generate splits that correspond to different sections in the FASTA
         // input (which here are called "chromosomes", delimited by '>' and
@@ -177,7 +177,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
         // How long can a FASTA line get?
         public static final int MAX_LINE_LENGTH = 20000;
 
-        public FastaRecordReader(Configuration conf, FileSplit split) throws IOException {
+        public FastaRecordReader(final Configuration conf, final FileSplit split) throws IOException {
             setConf(conf);
             file = split.getPath();
             start = split.getStart();
@@ -210,7 +210,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
         /*
          * Position the input stream at the start of the first record.
          */
-        private void positionAtFirstRecord(FSDataInputStream stream) throws IOException {
+        private void positionAtFirstRecord(final FSDataInputStream stream) throws IOException {
             if (start > 0) {
                 stream.seek(start);
             }
@@ -237,13 +237,14 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
             pos = start;
         }
 
-        protected void setConf(Configuration conf) {
+        protected void setConf(final Configuration conf) {
         }
 
         /**
          * Added to use mapreduce API.
          */
-        public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+        public void initialize(final InputSplit split, final TaskAttemptContext context)
+                throws IOException, InterruptedException {
         }
 
         /**
@@ -307,7 +308,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
             }
         }
 
-        public String makePositionMessage(long pos) {
+        public String makePositionMessage(final long pos) {
             return file.toString() + ":" + pos;
         }
 
@@ -318,7 +319,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
         /**
          * Reads the next key/value pair from the input for processing.
          */
-        public boolean next(Text key, ReferenceFragment value) throws IOException {
+        public boolean next(final Text key, final ReferenceFragment value) throws IOException {
             if (pos >= end) {
                 return false; // past end of slice
             }
@@ -338,7 +339,7 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
             }
         }
 
-        private void scanFastaLine(Text line, Text key, ReferenceFragment fragment) {
+        private void scanFastaLine(final Text line, final Text key, final ReferenceFragment fragment) {
             // Build the key.  We concatenate the chromosome/fragment descripion and
             // the start position of the FASTA sequence line, replacing the tabs with colons.
             key.clear();
@@ -362,14 +363,14 @@ public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
     }
 
     @Override
-    public boolean isSplitable(JobContext context, Path path) {
+    public boolean isSplitable(final JobContext context, final Path path) {
         CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
         return codec == null;
     }
 
     public RecordReader<Text, ReferenceFragment> createRecordReader(
-            InputSplit genericSplit,
-            TaskAttemptContext context) throws IOException, InterruptedException {
+            final InputSplit genericSplit,
+            final TaskAttemptContext context) throws IOException, InterruptedException {
         context.setStatus(genericSplit.toString());
         return new FastaRecordReader(context.getConfiguration(), (FileSplit) genericSplit); // cast as per example in TextInputFormat
     }

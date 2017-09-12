@@ -66,7 +66,7 @@ public class BCFRecordReader
     private long fileStart, length;
 
     @Override
-    public void initialize(InputSplit spl, TaskAttemptContext ctx)
+    public void initialize(final InputSplit spl, final TaskAttemptContext ctx)
             throws IOException {
         isBGZF = spl instanceof FileVirtualSplit;
         if (isBGZF) {
@@ -199,8 +199,8 @@ class BGZFLimitingStream extends InputStream {
     private final BlockCompressedInputStream bgzf;
     private final long virtEnd;
 
-    public BGZFLimitingStream(
-            BlockCompressedInputStream stream, long virtualEnd) {
+    public BGZFLimitingStream(final BlockCompressedInputStream stream,
+                              final long virtualEnd) {
         bgzf = stream;
         virtEnd = virtualEnd;
     }
@@ -226,7 +226,7 @@ class BGZFLimitingStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] buf, int off, int len) throws IOException {
+    public int read(final byte[] buf, int off, int len) throws IOException {
 
         int totalRead = 0;
         long virt;

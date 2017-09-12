@@ -106,7 +106,7 @@ public final class SplittingBAMIndex {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -135,7 +135,7 @@ public final class SplittingBAMIndex {
      * Writes some statistics about each splitting BAM index file given as an
      * argument.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args.length == 0) {
             System.out.println(
                     "Usage: SplittingBAMIndex [splitting BAM indices...]\n\n" +

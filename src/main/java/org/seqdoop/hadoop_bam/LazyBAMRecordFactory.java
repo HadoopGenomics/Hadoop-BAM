@@ -32,19 +32,19 @@ import htsjdk.samtools.SAMRecordFactory;
  */
 public class LazyBAMRecordFactory implements SAMRecordFactory {
     @Override
-    public SAMRecord createSAMRecord(SAMFileHeader hdr) {
+    public SAMRecord createSAMRecord(final SAMFileHeader hdr) {
         throw new UnsupportedOperationException(
                 "LazyBAMRecordFactory can only create BAM records");
     }
 
     @Override
     public BAMRecord createBAMRecord(
-            SAMFileHeader hdr,
-            int referenceSequenceIndex, int alignmentStart,
-            short readNameLength, short mappingQuality,
-            int indexingBin, int cigarLen, int flags, int readLen,
-            int mateReferenceSequenceIndex, int mateAlignmentStart,
-            int insertSize, byte[] variableLengthBlock) {
+            final SAMFileHeader hdr,
+            final int referenceSequenceIndex, final int alignmentStart,
+            final short readNameLength, final short mappingQuality,
+            final int indexingBin, final int cigarLen, final int flags, final int readLen,
+            final int mateReferenceSequenceIndex, final int mateAlignmentStart,
+            final int insertSize, final byte[] variableLengthBlock) {
         return new LazyBAMRecord(
                 hdr, referenceSequenceIndex, alignmentStart, readNameLength,
                 mappingQuality, indexingBin, cigarLen, flags, readLen,
@@ -58,10 +58,11 @@ class LazyBAMRecord extends BAMRecord {
     private boolean decodedMateRefIdx = false;
 
     public LazyBAMRecord(
-            SAMFileHeader hdr, int referenceID, int coordinate, short readNameLength,
-            short mappingQuality, int indexingBin, int cigarLen, int flags,
-            int readLen, int mateReferenceID, int mateCoordinate, int insertSize,
-            byte[] restOfData) {
+            final SAMFileHeader hdr, final int referenceID, final int coordinate,
+            final short readNameLength, final short mappingQuality, final int indexingBin,
+            final int cigarLen, final int flags, final int readLen,
+            final int mateReferenceID, final int mateCoordinate, final int insertSize,
+            final byte[] restOfData) {
         super(
                 hdr, referenceID, coordinate, readNameLength, mappingQuality,
                 indexingBin, cigarLen, flags, readLen, mateReferenceID,
@@ -106,7 +107,7 @@ class LazyBAMRecord extends BAMRecord {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         // don't use decoded flags for equality check
         return super.equals(o);
     }

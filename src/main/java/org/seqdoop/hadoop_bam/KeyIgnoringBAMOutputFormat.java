@@ -60,7 +60,7 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
     /**
      * Set whether the header will be written or not.
      */
-    public void setWriteHeader(boolean b) {
+    public void setWriteHeader(final boolean b) {
         writeHeader = b;
     }
 
@@ -68,16 +68,16 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
         return header;
     }
 
-    public void setSAMHeader(SAMFileHeader header) {
+    public void setSAMHeader(final SAMFileHeader header) {
         this.header = header;
     }
 
-    public void readSAMHeaderFrom(Path path, Configuration conf)
+    public void readSAMHeaderFrom(final Path path, final Configuration conf)
             throws IOException {
         this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
     }
 
-    public void readSAMHeaderFrom(InputStream in, Configuration conf) {
+    public void readSAMHeaderFrom(final InputStream in, final Configuration conf) {
         this.header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
     }
 
@@ -87,14 +87,14 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
      */
     @Override
     public RecordWriter<K, SAMRecordWritable> getRecordWriter(
-            TaskAttemptContext ctx)
+            final TaskAttemptContext ctx)
             throws IOException {
         return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
     }
 
     // Allows wrappers to provide their own work file.
     public RecordWriter<K, SAMRecordWritable> getRecordWriter(
-            TaskAttemptContext ctx, Path out)
+            final TaskAttemptContext ctx, final Path out)
             throws IOException {
         if (this.header == null) {
             throw new IOException(

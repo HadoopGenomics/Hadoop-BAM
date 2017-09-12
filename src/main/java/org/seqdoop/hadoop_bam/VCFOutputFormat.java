@@ -45,7 +45,7 @@ public abstract class VCFOutputFormat<K>
      * Creates a new output format, reading {@link #OUTPUT_VCF_FORMAT_PROPERTY}
      * from the given <code>Configuration</code>.
      */
-    protected VCFOutputFormat(Configuration conf) {
+    protected VCFOutputFormat(final Configuration conf) {
         final String fmtStr = conf.get(OUTPUT_VCF_FORMAT_PROPERTY);
 
         format = fmtStr == null ? null : VCFFormat.valueOf(fmtStr);
@@ -54,7 +54,7 @@ public abstract class VCFOutputFormat<K>
     /**
      * Creates a new output format for the given VCF format.
      */
-    protected VCFOutputFormat(VCFFormat fmt) {
+    protected VCFOutputFormat(final VCFFormat fmt) {
         if (fmt == null) {
             throw new IllegalArgumentException("null VCFFormat");
         }

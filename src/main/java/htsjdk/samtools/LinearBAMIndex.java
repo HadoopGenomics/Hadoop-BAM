@@ -26,11 +26,11 @@ import htsjdk.samtools.seekablestream.SeekableStream;
  */
 public class LinearBAMIndex extends CachingBAMFileIndex {
 
-    public LinearBAMIndex(SeekableStream stream, SAMSequenceDictionary dict) {
+    public LinearBAMIndex(final SeekableStream stream, final SAMSequenceDictionary dict) {
         super(stream, dict);
     }
 
-    public LinearIndex getLinearIndex(int idx) {
+    public LinearIndex getLinearIndex(final int idx) {
         return getQueryResults(idx).getLinearIndex();
     }
 }

@@ -40,7 +40,7 @@ import java.util.Arrays;
  * BGZFBlockIndex}.
  */
 public final class BGZFBlockIndexer {
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args.length <= 0) {
             System.out.println(
                     "Usage: BGZFBlockIndexer GRANULARITY [BGZF files...]\n\n" +
@@ -94,7 +94,7 @@ public final class BGZFBlockIndexer {
 
     private static final int PRINT_EVERY = 500 * 1024 * 1024;
 
-    public BGZFBlockIndexer(int g) {
+    public BGZFBlockIndexer(final int g) {
         granularity = g;
         byteBuffer = ByteBuffer.allocate(8); // Enough to fit a long
     }
@@ -231,7 +231,7 @@ public final class BGZFBlockIndexer {
         return readBytes(in, n) == n;
     }
 
-    private void ioError(String s, Object... va) throws IOException {
+    private void ioError(final String s, final Object... va) throws IOException {
         throw new IOException(String.format(s, va));
     }
 }

@@ -57,8 +57,10 @@ public abstract class BAMRecordWriter<K>
     /**
      * A SAMFileHeader is read from the input Path.
      */
-    public BAMRecordWriter(
-            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+    public BAMRecordWriter(final Path output,
+                           final Path input,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output,
@@ -72,9 +74,10 @@ public abstract class BAMRecordWriter<K>
         }
     }
 
-    public BAMRecordWriter(
-            Path output, SAMFileHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    public BAMRecordWriter(final Path output,
+                           final SAMFileHeader header,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
@@ -87,25 +90,28 @@ public abstract class BAMRecordWriter<K>
         }
     }
 
-    public BAMRecordWriter(
-            OutputStream output, SAMFileHeader header, boolean writeHeader)
+    public BAMRecordWriter(final OutputStream output,
+                           final SAMFileHeader header,
+                           final boolean writeHeader)
             throws IOException {
         init(output, header, writeHeader);
     }
 
     // Working around not being able to call a constructor other than as the
     // first statement...
-    private void init(
-            Path output, SAMFileHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    private void init(final Path output,
+                      final SAMFileHeader header,
+                      final boolean writeHeader,
+                      final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader);
     }
 
-    private void init(
-            OutputStream output, SAMFileHeader header, boolean writeHeader)
+    private void init(final OutputStream output,
+                      final SAMFileHeader header,
+                      final boolean writeHeader)
             throws IOException {
         origOutput = output;
 
@@ -121,7 +127,7 @@ public abstract class BAMRecordWriter<K>
     }
 
     @Override
-    public void close(TaskAttemptContext ctx) throws IOException {
+    public void close(final TaskAttemptContext ctx) throws IOException {
         // Don't close the codec, we don't want BlockCompressedOutputStream's
         // file terminator to be output. But do flush the stream.
         binaryCodec.getOutputStream().flush();

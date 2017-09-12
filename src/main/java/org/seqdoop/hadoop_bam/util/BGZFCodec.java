@@ -32,15 +32,15 @@ public class BGZFCodec extends GzipCodec implements SplittableCompressionCodec {
     public static final String DEFAULT_EXTENSION = ".bgz";
 
     @Override
-    public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
+    public CompressionOutputStream createOutputStream(final OutputStream out) throws IOException {
         return new BGZFCompressionOutputStream(out);
     }
 
     // compressors are not used, so ignore/return null
 
     @Override
-    public CompressionOutputStream createOutputStream(OutputStream out,
-                                                      Compressor compressor) throws IOException {
+    public CompressionOutputStream createOutputStream(final OutputStream out,
+                                                      final Compressor compressor) throws IOException {
         return createOutputStream(out); // compressors are not used, so ignore
     }
 
@@ -55,8 +55,11 @@ public class BGZFCodec extends GzipCodec implements SplittableCompressionCodec {
     }
 
     @Override
-    public SplitCompressionInputStream createInputStream(InputStream seekableIn,
-                                                         Decompressor decompressor, long start, long end, READ_MODE readMode) throws IOException {
+    public SplitCompressionInputStream createInputStream(final InputStream seekableIn,
+                                                         final Decompressor decompressor,
+                                                         final long start,
+                                                         final long end,
+                                                         final READ_MODE readMode) throws IOException {
         BGZFSplitGuesser splitGuesser = new BGZFSplitGuesser(seekableIn);
         long adjustedStart = splitGuesser.guessNextBGZFBlockStart(start, end);
         ((Seekable) seekableIn).seek(adjustedStart);

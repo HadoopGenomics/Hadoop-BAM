@@ -41,11 +41,11 @@ public class VariantContextWritable implements Writable {
         return vc;
     }
 
-    public void set(VariantContext vc) {
+    public void set(final VariantContext vc) {
         this.vc = vc;
     }
 
-    public void set(VariantContext vc, VCFHeader header) {
+    public void set(final VariantContext vc, final VCFHeader header) {
         this.vc = new VariantContextWithHeader(vc, header);
     }
 

@@ -38,9 +38,11 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
     /**
      * Takes ownership of the given byte[]: don't modify its contents.
      */
-    public LazyVCFGenotypesContext(
-            List<Allele> alleles, String chrom, int start,
-            byte[] utf8Unparsed, int count) {
+    public LazyVCFGenotypesContext(final List<Allele> alleles,
+                                   final String chrom,
+                                   final int start,
+                                   final byte[] utf8Unparsed,
+                                   final int count) {
         super(new Parser(alleles, chrom, start), utf8Unparsed, count);
     }
 
@@ -49,7 +51,7 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
         private HeaderSettableVCFCodec codec = new HeaderSettableVCFCodec();
 
         @Override
-        public void setHeader(VCFHeader header) {
+        public void setHeader(final VCFHeader header) {
             VCFHeaderVersion version = null;
 
             // Normally AbstractVCFCodec parses the header and thereby sets the
@@ -75,7 +77,9 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
         private final String chrom;
         private final int start;
 
-        public Parser(List<Allele> alleles, String chrom, int start) {
+        public Parser(final List<Allele> alleles,
+                      final String chrom,
+                      final int start) {
             this.alleles = alleles;
             this.chrom = chrom;
             this.start = start;
@@ -116,25 +120,25 @@ class HeaderSettableVCFCodec extends AbstractVCFCodec {
         return header != null;
     }
 
-    public void setHeaderAndVersion(VCFHeader header, VCFHeaderVersion ver) {
+    public void setHeaderAndVersion(final VCFHeader header, final VCFHeaderVersion ver) {
         this.header = header;
         this.version = ver;
     }
 
     @Override
-    public Object readActualHeader(LineIterator reader) {
+    public Object readActualHeader(final LineIterator reader) {
         throw new UnsupportedOperationException(
                 "Internal error: this shouldn't be called");
     }
 
     @Override
-    public List<String> parseFilters(String filterString) {
+    public List<String> parseFilters(final String filterString) {
         throw new UnsupportedOperationException(
                 "Internal error: this shouldn't be called");
     }
 
     @Override
-    public boolean canDecode(String s) {
+    public boolean canDecode(final String s) {
         return true;
     }
 }

@@ -34,27 +34,31 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * <p>The write function ignores the key, just outputting the SAMRecord.</p>
  */
 public class KeyIgnoringBAMRecordWriter<K> extends BAMRecordWriter<K> {
-    public KeyIgnoringBAMRecordWriter(
-            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+    public KeyIgnoringBAMRecordWriter(final Path output,
+                                      final Path input,
+                                      final boolean writeHeader,
+                                      final TaskAttemptContext ctx)
             throws IOException {
         super(output, input, writeHeader, ctx);
     }
 
-    public KeyIgnoringBAMRecordWriter(
-            Path output, SAMFileHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    public KeyIgnoringBAMRecordWriter(final Path output,
+                                      final SAMFileHeader header,
+                                      final boolean writeHeader,
+                                      final TaskAttemptContext ctx)
             throws IOException {
         super(output, header, writeHeader, ctx);
     }
 
-    public KeyIgnoringBAMRecordWriter(
-            OutputStream output, SAMFileHeader header, boolean writeHeader)
+    public KeyIgnoringBAMRecordWriter(final OutputStream output,
+                                      final SAMFileHeader header,
+                                      final boolean writeHeader)
             throws IOException {
         super(output, header, writeHeader);
     }
 
     @Override
-    public void write(K ignored, SAMRecordWritable rec) throws IOException {
+    public void write(final K ignored, final SAMRecordWritable rec) throws IOException {
         writeAlignment(rec.get());
     }
 }

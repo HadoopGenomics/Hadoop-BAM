@@ -42,7 +42,11 @@ import org.apache.hadoop.io.compress.SplittableCompressionCodec;
 public class BGZFEnhancedGzipCodec extends GzipCodec implements SplittableCompressionCodec {
 
     @Override
-    public SplitCompressionInputStream createInputStream(InputStream seekableIn, Decompressor decompressor, long start, long end, READ_MODE readMode) throws IOException {
+    public SplitCompressionInputStream createInputStream(final InputStream seekableIn,
+                                                         final Decompressor decompressor,
+                                                         final long start,
+                                                         final long end,
+                                                         final READ_MODE readMode) throws IOException {
         if (!(seekableIn instanceof Seekable)) {
             throw new IOException("seekableIn must be an instance of " +
                     Seekable.class.getName());

@@ -46,8 +46,10 @@ public abstract class SAMRecordWriter<K>
     /**
      * A SAMFileHeader is read from the input Path.
      */
-    public SAMRecordWriter(
-            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+    public SAMRecordWriter(final Path output,
+                           final Path input,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output,
@@ -55,32 +57,36 @@ public abstract class SAMRecordWriter<K>
                 writeHeader, ctx);
     }
 
-    public SAMRecordWriter(
-            Path output, SAMFileHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    public SAMRecordWriter(final Path output,
+                           final SAMFileHeader header,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader);
     }
 
-    public SAMRecordWriter(
-            OutputStream output, SAMFileHeader header, boolean writeHeader)
+    public SAMRecordWriter(final OutputStream output,
+                           final SAMFileHeader header,
+                           final boolean writeHeader)
             throws IOException {
         init(output, header, writeHeader);
     }
 
-    private void init(
-            Path output, SAMFileHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    private void init(final Path output,
+                      final SAMFileHeader header,
+                      final boolean writeHeader,
+                      final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader);
     }
 
-    private void init(
-            OutputStream output, SAMFileHeader header, boolean writeHeader)
+    private void init(final OutputStream output,
+                      final SAMFileHeader header,
+                      final boolean writeHeader)
             throws IOException {
         this.header = header;
         writer = new SAMTextWriter(output);
@@ -92,7 +98,7 @@ public abstract class SAMRecordWriter<K>
     }
 
     @Override
-    public void close(TaskAttemptContext ctx) {
+    public void close(final TaskAttemptContext ctx) {
         writer.close();
     }
 

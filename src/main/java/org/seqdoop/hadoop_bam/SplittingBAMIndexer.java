@@ -67,7 +67,7 @@ public final class SplittingBAMIndexer {
     // gigabyte range.
     public static final int DEFAULT_GRANULARITY = 4096;
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args.length <= 1) {
             System.out.println(
                     "Usage: SplittingBAMIndexer GRANULARITY [BAM files...]\n\n" +
@@ -154,7 +154,7 @@ public final class SplittingBAMIndexer {
      * file.
      */
     @Deprecated
-    public SplittingBAMIndexer(int g) {
+    public SplittingBAMIndexer(final int g) {
         granularity = g;
         out = null;
         lb = null;
@@ -205,7 +205,7 @@ public final class SplittingBAMIndexer {
         count++;
     }
 
-    private long getPos(SAMFileSpan filePointer) {
+    private long getPos(final SAMFileSpan filePointer) {
         // Use reflection since BAMFileSpan is package private in htsjdk 1.141. Note that
         // Hadoop-BAM cannot use a later version of htsjdk since it requires Java 8.
         if (getFirstOffset == null) {
@@ -234,7 +234,7 @@ public final class SplittingBAMIndexer {
      * @param virtualOffset virtual file pointer
      * @throws IOException
      */
-    public void writeVirtualOffset(long virtualOffset) throws IOException {
+    public void writeVirtualOffset(final long virtualOffset) throws IOException {
         lb.put(0, virtualOffset);
         out.write(byteBuffer.array());
     }
@@ -246,7 +246,7 @@ public final class SplittingBAMIndexer {
      * @param inputSize the size of the input BAM file
      * @throws IOException
      */
-    public void finish(long inputSize) throws IOException {
+    public void finish(final long inputSize) throws IOException {
         writeVirtualOffset(inputSize << 16);
         out.close();
     }
@@ -346,7 +346,7 @@ public final class SplittingBAMIndexer {
         public long ptr;
         public int skip;
 
-        public PtrSkipPair(long p, int s) {
+        public PtrSkipPair(final long p, final int s) {
             ptr = p;
             skip = s;
         }
@@ -402,7 +402,7 @@ public final class SplittingBAMIndexer {
         return readBytes(byteBuffer, in, n) == n;
     }
 
-    private static void ioError(String s, Object... va) throws IOException {
+    private static void ioError(final String s, final Object... va) throws IOException {
         throw new IOException(String.format(s, va));
     }
 }

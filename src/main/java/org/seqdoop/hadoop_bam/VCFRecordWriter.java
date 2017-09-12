@@ -58,8 +58,10 @@ public abstract class VCFRecordWriter<K>
     /**
      * A VCFHeader is read from the input Path.
      */
-    public VCFRecordWriter(
-            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+    public VCFRecordWriter(final Path output,
+                           final Path input,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         final AsciiLineReader r = new AsciiLineReader(
                 input.getFileSystem(ctx.getConfiguration()).open(input));
@@ -74,35 +76,39 @@ public abstract class VCFRecordWriter<K>
         init(output, (VCFHeader) h.getHeaderValue(), writeHeader, ctx);
     }
 
-    public VCFRecordWriter(
-            Path output, VCFHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    public VCFRecordWriter(final Path output,
+                           final VCFHeader header,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader, ctx);
     }
 
-    public VCFRecordWriter(
-            OutputStream output, VCFHeader header, boolean writeHeader)
+    public VCFRecordWriter(final OutputStream output,
+                           final VCFHeader header,
+                           final boolean writeHeader)
             throws IOException {
         init(output, header, writeHeader, null);
     }
 
     // Working around not being able to call a constructor other than as the
     // first statement...
-    private void init(
-            Path output, VCFHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    private void init(final Path output,
+                      final VCFHeader header,
+                      final boolean writeHeader,
+                      final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader, ctx);
     }
 
-    private void init(
-            OutputStream output, VCFHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    private void init(final OutputStream output,
+                      final VCFHeader header,
+                      final boolean writeHeader,
+                      final TaskAttemptContext ctx)
             throws IOException {
         final StoppableOutputStream stopOut =
                 new StoppableOutputStream(!writeHeader, output);
@@ -116,14 +122,14 @@ public abstract class VCFRecordWriter<K>
         setInputHeader(header);
     }
 
-    protected VariantContextWriter createVariantContextWriter(Configuration conf,
-                                                              OutputStream out) {
+    protected VariantContextWriter createVariantContextWriter(final Configuration conf,
+                                                              final OutputStream out) {
         return new VariantContextWriterBuilder().clearOptions()
                 .setOutputStream(out).build();
     }
 
     @Override
-    public void close(TaskAttemptContext ctx) throws IOException {
+    public void close(final TaskAttemptContext ctx) throws IOException {
         writer.close();
     }
 
@@ -133,12 +139,12 @@ public abstract class VCFRecordWriter<K>
      * here... This is in part due to the fact that it's not clear what the best
      * solution is.
      */
-    public void setInputHeader(VCFHeader header) {
+    public void setInputHeader(final VCFHeader header) {
         vcfHeaderDataCache.setHeader(header);
         bcfHeaderDataCache.setHeader(header);
     }
 
-    protected void writeRecord(VariantContext vc) {
+    protected void writeRecord(final VariantContext vc) {
         final GenotypesContext gc = vc.getGenotypes();
         if (gc instanceof LazyParsingGenotypesContext) {
             ((LazyParsingGenotypesContext) gc).getParser().setHeaderDataCache(
@@ -161,27 +167,27 @@ public abstract class VCFRecordWriter<K>
 final class StoppableOutputStream extends FilterOutputStream {
     public boolean stopped;
 
-    public StoppableOutputStream(boolean startStopped, OutputStream out) {
+    public StoppableOutputStream(final boolean startStopped, final OutputStream out) {
         super(out);
         stopped = startStopped;
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         if (!stopped) {
             super.write(b);
         }
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
+    public void write(final byte[] b) throws IOException {
         if (!stopped) {
             super.write(b);
         }
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
         if (!stopped) {
             super.write(b, off, len);
         }

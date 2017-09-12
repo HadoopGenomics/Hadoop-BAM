@@ -24,11 +24,11 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
             "hadoopbam.cram.reference-source-path";
 
     @Override
-    public List<InputSplit> getSplits(JobContext job) throws IOException {
+    public List<InputSplit> getSplits(final JobContext job) throws IOException {
         return getSplits(super.getSplits(job), job.getConfiguration());
     }
 
-    public List<InputSplit> getSplits(List<InputSplit> splits, Configuration conf)
+    public List<InputSplit> getSplits(final List<InputSplit> splits, final Configuration conf)
             throws IOException {
         // update splits to align with CRAM container boundaries
         List<InputSplit> newSplits = new ArrayList<InputSplit>();
@@ -55,7 +55,8 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
         return newSplits;
     }
 
-    private static List<Long> getContainerOffsets(Configuration conf, Path cramFile)
+    private static List<Long> getContainerOffsets(final Configuration conf,
+                                                  final Path cramFile)
             throws IOException {
         SeekableStream seekableStream = WrapSeekable.openPath(conf, cramFile);
         CramContainerIterator cci = new CramContainerIterator(seekableStream);
@@ -69,7 +70,8 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
         return containerOffsets;
     }
 
-    private static long nextContainerOffset(List<Long> containerOffsets, long position) {
+    private static long nextContainerOffset(final List<Long> containerOffsets,
+                                            final long position) {
         for (long offset : containerOffsets) {
             if (offset >= position) {
                 return offset;
@@ -80,14 +82,16 @@ public class CRAMInputFormat extends FileInputFormat<LongWritable, SAMRecordWrit
     }
 
     @Override
-    public RecordReader<LongWritable, SAMRecordWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public RecordReader<LongWritable, SAMRecordWritable> createRecordReader(final InputSplit split,
+                                                                            final TaskAttemptContext context)
+            throws IOException, InterruptedException {
         RecordReader<LongWritable, SAMRecordWritable> rr = new CRAMRecordReader();
         rr.initialize(split, context);
         return rr;
     }
 
     @Override
-    public boolean isSplitable(JobContext job, Path path) {
+    public boolean isSplitable(final JobContext job, final Path path) {
         return true;
     }
 }

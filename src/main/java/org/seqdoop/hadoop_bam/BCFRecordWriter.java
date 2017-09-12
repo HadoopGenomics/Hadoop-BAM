@@ -56,8 +56,10 @@ public abstract class BCFRecordWriter<K>
      * A VCF header is read from the input Path, which should refer to a VCF or
      * BCF file.
      */
-    public BCFRecordWriter(
-            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+    public BCFRecordWriter(final Path output,
+                           final Path input,
+                           final boolean writeHeader,
+                           final TaskAttemptContext ctx)
             throws IOException {
         final WrapSeekable in =
                 WrapSeekable.openPath(ctx.getConfiguration(), input);
@@ -67,8 +69,9 @@ public abstract class BCFRecordWriter<K>
         init(output, header, writeHeader, ctx);
     }
 
-    public BCFRecordWriter(
-            Path output, VCFHeader header, boolean writeHeader,
+    public BCFRecordWriter(final Path output,
+                           final VCFHeader header,
+                           final boolean writeHeader,
             TaskAttemptContext ctx)
             throws IOException {
         init(
@@ -76,25 +79,28 @@ public abstract class BCFRecordWriter<K>
                 header, writeHeader);
     }
 
-    public BCFRecordWriter(
-            OutputStream output, VCFHeader header, boolean writeHeader)
+    public BCFRecordWriter(final OutputStream output,
+                           final VCFHeader header,
+                           final boolean writeHeader)
             throws IOException {
         init(output, header, writeHeader);
     }
 
     // Working around not being able to call a constructor other than as the
     // first statement...
-    private void init(
-            Path output, VCFHeader header, boolean writeHeader,
-            TaskAttemptContext ctx)
+    private void init(final Path output,
+                      final VCFHeader header,
+                      final boolean writeHeader,
+                      final TaskAttemptContext ctx)
             throws IOException {
         init(
                 output.getFileSystem(ctx.getConfiguration()).create(output),
                 header, writeHeader);
     }
 
-    private void init(
-            OutputStream output, VCFHeader header, final boolean writeHeader)
+    private void init(final OutputStream output,
+                      final VCFHeader header,
+                      final boolean writeHeader)
             throws IOException {
         final BCFStoppableOutputStream stopOut =
                 new BCFStoppableOutputStream(!writeHeader, output);
@@ -110,7 +116,7 @@ public abstract class BCFRecordWriter<K>
     }
 
     @Override
-    public void close(TaskAttemptContext ctx) throws IOException {
+    public void close(final TaskAttemptContext ctx) throws IOException {
         writer.close();
     }
 
@@ -120,12 +126,12 @@ public abstract class BCFRecordWriter<K>
      * here... This is in part due to the fact that it's not clear what the best
      * solution is.
      */
-    public void setInputHeader(VCFHeader header) {
+    public void setInputHeader(final VCFHeader header) {
         vcfHeaderDataCache.setHeader(header);
         bcfHeaderDataCache.setHeader(header);
     }
 
-    protected void writeRecord(VariantContext vc) {
+    protected void writeRecord(final VariantContext vc) {
         final GenotypesContext gc = vc.getGenotypes();
         if (gc instanceof LazyParsingGenotypesContext) {
             ((LazyParsingGenotypesContext) gc).getParser().setHeaderDataCache(
@@ -151,28 +157,29 @@ final class BCFStoppableOutputStream extends FilterOutputStream {
     public boolean stopped;
     private final OutputStream origOut;
 
-    public BCFStoppableOutputStream(boolean startStopped, OutputStream out) {
+    public BCFStoppableOutputStream(final boolean startStopped,
+                                    final OutputStream out) {
         super(new BlockCompressedOutputStream(out, null));
         origOut = out;
         stopped = startStopped;
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         if (!stopped) {
             super.write(b);
         }
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
+    public void write(final byte[] b) throws IOException {
         if (!stopped) {
             super.write(b);
         }
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
         if (!stopped) {
             super.write(b, off, len);
         }

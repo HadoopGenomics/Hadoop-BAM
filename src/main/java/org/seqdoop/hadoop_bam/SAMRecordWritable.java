@@ -51,12 +51,12 @@ public class SAMRecordWritable implements Writable {
         return record;
     }
 
-    public void set(SAMRecord r) {
+    public void set(final SAMRecord r) {
         record = r;
     }
 
     @Override
-    public void write(DataOutput out) throws IOException {
+    public void write(final DataOutput out) throws IOException {
         // In theory, it shouldn't matter whether we give a header to
         // BAMRecordCodec or not, since the representation of an alignment in BAM
         // doesn't depend on the header data at all. Only its interpretation
@@ -69,7 +69,7 @@ public class SAMRecordWritable implements Writable {
     }
 
     @Override
-    public void readFields(DataInput in) throws IOException {
+    public void readFields(final DataInput in) throws IOException {
         lazyCodec.setInputStream(new DataInputWrapper(in));
         record = lazyCodec.decode();
     }

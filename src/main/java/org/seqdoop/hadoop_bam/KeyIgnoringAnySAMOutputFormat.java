@@ -55,11 +55,11 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
     public static final String WRITE_HEADER_PROPERTY =
             "hadoopbam.anysam.write-header";
 
-    public KeyIgnoringAnySAMOutputFormat(SAMFormat fmt) {
+    public KeyIgnoringAnySAMOutputFormat(final SAMFormat fmt) {
         super(fmt);
     }
 
-    public KeyIgnoringAnySAMOutputFormat(Configuration conf) {
+    public KeyIgnoringAnySAMOutputFormat(final Configuration conf) {
         super(conf);
 
         if (format == null) {
@@ -68,7 +68,7 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
         }
     }
 
-    public KeyIgnoringAnySAMOutputFormat(Configuration conf, Path path) {
+    public KeyIgnoringAnySAMOutputFormat(final Configuration conf, final Path path) {
         super(conf);
 
         if (format == null) {
@@ -102,11 +102,11 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
         return header;
     }
 
-    public void setSAMHeader(SAMFileHeader header) {
+    public void setSAMHeader(final SAMFileHeader header) {
         this.header = header;
     }
 
-    public void readSAMHeaderFrom(Path path, Configuration conf)
+    public void readSAMHeaderFrom(final Path path, final Configuration conf)
             throws IOException {
         this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
     }
@@ -121,14 +121,14 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
      */
     @Override
     public RecordWriter<K, SAMRecordWritable> getRecordWriter(
-            TaskAttemptContext ctx)
+            final TaskAttemptContext ctx)
             throws IOException {
         return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
     }
 
     // Allows wrappers to provide their own work file.
     public RecordWriter<K, SAMRecordWritable> getRecordWriter(
-            TaskAttemptContext ctx, Path out)
+            final TaskAttemptContext ctx, final Path out)
             throws IOException {
         if (this.header == null) {
             throw new IOException(

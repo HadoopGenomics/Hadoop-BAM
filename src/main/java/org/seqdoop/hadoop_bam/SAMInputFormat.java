@@ -43,7 +43,7 @@ public class SAMInputFormat
      */
     @Override
     public RecordReader<LongWritable, SAMRecordWritable>
-    createRecordReader(InputSplit split, TaskAttemptContext ctx)
+    createRecordReader(final InputSplit split, final TaskAttemptContext ctx)
             throws InterruptedException, IOException {
         final RecordReader<LongWritable, SAMRecordWritable> rr =
                 new SAMRecordReader();
@@ -52,7 +52,7 @@ public class SAMInputFormat
     }
 
     @Override
-    public boolean isSplitable(JobContext job, Path path) {
+    public boolean isSplitable(final JobContext job, final Path path) {
         return super.isSplitable(job, path);
     }
 }

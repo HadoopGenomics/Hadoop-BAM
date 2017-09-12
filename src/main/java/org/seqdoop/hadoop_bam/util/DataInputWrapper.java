@@ -29,7 +29,7 @@ import java.io.InputStream;
 public class DataInputWrapper extends InputStream {
     private final DataInput in;
 
-    public DataInputWrapper(DataInput i) {
+    public DataInputWrapper(final DataInput i) {
         in = i;
     }
 
@@ -45,7 +45,7 @@ public class DataInputWrapper extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         in.readFully(b, off, len);
         return len;
     }

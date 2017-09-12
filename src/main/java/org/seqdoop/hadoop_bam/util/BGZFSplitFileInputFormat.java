@@ -43,7 +43,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  */
 public abstract class BGZFSplitFileInputFormat<K, V>
         extends FileInputFormat<K, V> {
-    private Path getIdxPath(Path path) {
+    private Path getIdxPath(final Path path) {
         return path.suffix(".bgzfi");
     }
 
@@ -51,7 +51,7 @@ public abstract class BGZFSplitFileInputFormat<K, V>
      * The splits returned are FileSplits.
      */
     @Override
-    public List<InputSplit> getSplits(JobContext job)
+    public List<InputSplit> getSplits(final JobContext job)
             throws IOException {
         final List<InputSplit> splits = super.getSplits(job);
 
@@ -85,9 +85,10 @@ public abstract class BGZFSplitFileInputFormat<K, V>
 
     // Handles all the splits that share the Path of the one at index i,
     // returning the next index to be used.
-    private int addIndexedSplits(
-            List<InputSplit> splits, int i, List<InputSplit> newSplits,
-            Configuration cfg)
+    private int addIndexedSplits(final List<InputSplit> splits,
+                                 final int i,
+                                 final List<InputSplit> newSplits,
+                                 final Configuration cfg)
             throws IOException {
         final Path file = ((FileSplit) splits.get(i)).getPath();
 
@@ -130,9 +131,10 @@ public abstract class BGZFSplitFileInputFormat<K, V>
 
     // Works the same way as addIndexedSplits, to avoid having to reopen the
     // file repeatedly and checking addIndexedSplits for an index repeatedly.
-    private int addProbabilisticSplits(
-            List<InputSplit> splits, int i, List<InputSplit> newSplits,
-            Configuration cfg)
+    private int addProbabilisticSplits(final List<InputSplit> splits,
+                                       int i,
+                                       final List<InputSplit> newSplits,
+                                       final Configuration cfg)
             throws IOException {
         final Path path = ((FileSplit) splits.get(i)).getPath();
         final FSDataInputStream in = path.getFileSystem(cfg).open(path);
@@ -160,7 +162,7 @@ public abstract class BGZFSplitFileInputFormat<K, V>
     }
 
     @Override
-    public boolean isSplitable(JobContext job, Path path) {
+    public boolean isSplitable(final JobContext job, final Path path) {
         return true;
     }
 }

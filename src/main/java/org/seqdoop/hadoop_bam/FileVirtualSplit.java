@@ -48,14 +48,14 @@ public class FileVirtualSplit extends InputSplit implements Writable {
         locations = NO_LOCATIONS;
     }
 
-    public FileVirtualSplit(Path f, long vs, long ve, String[] locs) {
+    public FileVirtualSplit(final Path f, final long vs, final long ve, final String[] locs) {
         file = f;
         vStart = vs;
         vEnd = ve;
         locations = locs;
     }
 
-    public FileVirtualSplit(Path f, long vs, long ve, String[] locs, long[] intervalFilePointers) {
+    public FileVirtualSplit(final Path f, final long vs, final long ve, final String[] locs, final long[] intervalFilePointers) {
         file = f;
         vStart = vs;
         vEnd = ve;
@@ -102,11 +102,11 @@ public class FileVirtualSplit extends InputSplit implements Writable {
         return vEnd;
     }
 
-    public void setStartVirtualOffset(long vo) {
+    public void setStartVirtualOffset(final long vo) {
         vStart = vo;
     }
 
-    public void setEndVirtualOffset(long vo) {
+    public void setEndVirtualOffset(final long vo) {
         vEnd = vo;
     }
 
@@ -120,7 +120,7 @@ public class FileVirtualSplit extends InputSplit implements Writable {
     }
 
     @Override
-    public void write(DataOutput out) throws IOException {
+    public void write(final DataOutput out) throws IOException {
         Text.writeString(out, file.toString());
         out.writeLong(vStart);
         out.writeLong(vEnd);
@@ -134,7 +134,7 @@ public class FileVirtualSplit extends InputSplit implements Writable {
     }
 
     @Override
-    public void readFields(DataInput in) throws IOException {
+    public void readFields(final DataInput in) throws IOException {
         file = new Path(Text.readString(in));
         vStart = in.readLong();
         vEnd = in.readLong();

@@ -73,8 +73,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
      * The stream must point to a valid BAM file, because the header is read
      * from it.
      */
-    public BAMSplitGuesser(
-            SeekableStream ss, Configuration conf)
+    public BAMSplitGuesser(final SeekableStream ss, final Configuration conf)
             throws IOException {
         this(ss, ss, conf);
 
@@ -86,8 +85,9 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
         }
     }
 
-    public BAMSplitGuesser(
-            SeekableStream ss, InputStream headerStream, Configuration conf)
+    public BAMSplitGuesser(final SeekableStream ss,
+                           final InputStream headerStream,
+                           final Configuration conf)
             throws IOException {
         inFile = ss;
 
@@ -102,7 +102,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
      * Finds a virtual BAM record position in the physical position range
      * [beg,end). Returns end if no BAM record was found.
      */
-    public long guessNextBAMRecordStart(long beg, long end)
+    public long guessNextBAMRecordStart(final long beg, final long end)
             throws IOException {
         // Use a reader to skip through the headers at the beginning of a BAM file, since
         // the headers may exceed MAX_BYTES_READ in length. Don't close the reader
@@ -241,7 +241,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
         }
     }
 
-    private int guessNextBAMPos(long cpVirt, int up, int cSize) {
+    private int guessNextBAMPos(final long cpVirt, int up, final int cSize) {
         // What we're actually searching for is what's at offset [4], not [0]. So
         // skip ahead by 4, thus ensuring that whenever we find a valid [0] it's
         // at position up or greater.

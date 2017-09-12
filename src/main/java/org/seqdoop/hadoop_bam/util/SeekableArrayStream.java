@@ -34,7 +34,7 @@ public class SeekableArrayStream extends SeekableStream {
     private final byte[] arr;
     private int pos;
 
-    public SeekableArrayStream(byte[] a) {
+    public SeekableArrayStream(final byte[] a) {
         this.arr = a;
         this.pos = 0;
     }
@@ -59,7 +59,7 @@ public class SeekableArrayStream extends SeekableStream {
     }
 
     @Override
-    public void seek(long lp) throws IOException {
+    public void seek(final long lp) throws IOException {
         final int p = (int) lp;
         if (p < 0 || p > arr.length) {
             throw new IOException("position " + p + " is out of bounds");
@@ -68,7 +68,7 @@ public class SeekableArrayStream extends SeekableStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) {
+    public int read(final byte[] b, final int off, int len) {
         if (eof()) {
             return -1;
         }

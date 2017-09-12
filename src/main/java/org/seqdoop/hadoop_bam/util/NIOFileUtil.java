@@ -29,7 +29,7 @@ public class NIOFileUtil {
      * @param uri the path to convert
      * @return a {@link Path} object
      */
-    public static Path asPath(URI uri) {
+    public static Path asPath(final URI uri) {
         try {
             return Paths.get(uri);
         }
@@ -53,7 +53,7 @@ public class NIOFileUtil {
      * @param path the path to convert
      * @return a {@link Path} object
      */
-    public static Path asPath(String path) {
+    public static Path asPath(final String path) {
         URI uri = URI.create(path);
         return uri.getScheme() == null ? Paths.get(path) : asPath(uri);
     }
@@ -64,7 +64,7 @@ public class NIOFileUtil {
      * @param directory the directory to delete
      * @throws IOException
      */
-    static void deleteRecursive(Path directory) throws IOException {
+    static void deleteRecursive(final Path directory) throws IOException {
         Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -92,8 +92,9 @@ public class NIOFileUtil {
      * @return a list of files, sorted by name
      * @throws IOException
      */
-    static List<Path> getFilesMatching(Path directory,
-                                       String syntaxAndPattern, String excludesExt) throws IOException {
+    static List<Path> getFilesMatching(final Path directory,
+                                       final String syntaxAndPattern,
+                                       final String excludesExt) throws IOException {
         PathMatcher matcher = directory.getFileSystem().getPathMatcher(syntaxAndPattern);
         List<Path> parts = Files.walk(directory)
                 .filter(matcher::matches)
@@ -110,7 +111,7 @@ public class NIOFileUtil {
      * @param out the stream to write each file into, in order
      * @throws IOException
      */
-    static void mergeInto(List<Path> parts, OutputStream out)
+    static void mergeInto(final List<Path> parts, final OutputStream out)
             throws IOException {
         for (final Path part : parts) {
             Files.copy(part, out);

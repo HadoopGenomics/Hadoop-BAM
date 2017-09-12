@@ -115,16 +115,16 @@ public class BAMInputFormat
      * @param intervals the intervals to filter by
      * @param <T> the {@link Locatable} type
      */
-    public static <T extends Locatable> void setIntervals(Configuration conf,
-                                                          List<T> intervals) {
+    public static <T extends Locatable> void setIntervals(final Configuration conf,
+                                                          final List<T> intervals) {
         setTraversalParameters(conf, intervals, false);
     }
 
     /**
      * Enables or disables the split calculator that uses the BAM index to calculate splits.
      */
-    public static void setEnableBAISplitCalculator(Configuration conf,
-                                                   boolean setEnabled) {
+    public static void setEnableBAISplitCalculator(final Configuration conf,
+                                                   final boolean setEnabled) {
         conf.setBoolean(ENABLE_BAI_SPLIT_CALCULATOR, setEnabled);
     }
 
@@ -139,8 +139,9 @@ public class BAMInputFormat
      * @param traverseUnplacedUnmapped whether to included unplaced unampped reads
      * @param <T> the {@link Locatable} type
      */
-    public static <T extends Locatable> void setTraversalParameters(Configuration conf,
-                                                                    List<T> intervals, boolean traverseUnplacedUnmapped) {
+    public static <T extends Locatable> void setTraversalParameters(final Configuration conf,
+                                                                    final List<T> intervals,
+                                                                    final boolean traverseUnplacedUnmapped) {
         if (intervals == null && !traverseUnplacedUnmapped) {
             throw new IllegalArgumentException("Traversing mapped reads only is not supported.");
         }
@@ -164,22 +165,22 @@ public class BAMInputFormat
      *
      * @param conf the Hadoop configuration to set properties on
      */
-    public static void unsetTraversalParameters(Configuration conf) {
+    public static void unsetTraversalParameters(final Configuration conf) {
         conf.unset(BOUNDED_TRAVERSAL_PROPERTY);
         conf.unset(INTERVALS_PROPERTY);
         conf.unset(TRAVERSE_UNPLACED_UNMAPPED_PROPERTY);
     }
 
-    static boolean isBoundedTraversal(Configuration conf) {
+    static boolean isBoundedTraversal(final Configuration conf) {
         return conf.getBoolean(BOUNDED_TRAVERSAL_PROPERTY, false) ||
                 conf.get(INTERVALS_PROPERTY) != null; // backwards compatibility
     }
 
-    static boolean traverseUnplacedUnmapped(Configuration conf) {
+    static boolean traverseUnplacedUnmapped(final Configuration conf) {
         return conf.getBoolean(TRAVERSE_UNPLACED_UNMAPPED_PROPERTY, false);
     }
 
-    static List<Interval> getIntervals(Configuration conf) {
+    static List<Interval> getIntervals(final Configuration conf) {
         String intervalsProperty = conf.get(INTERVALS_PROPERTY);
         if (intervalsProperty == null) {
             return null;
@@ -197,11 +198,11 @@ public class BAMInputFormat
         return intervals;
     }
 
-    static Path getIdxPath(Path path) {
+    static Path getIdxPath(final Path path) {
         return path.suffix(SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
     }
 
-    static List<InputSplit> removeIndexFiles(List<InputSplit> splits) {
+    static List<InputSplit> removeIndexFiles(final List<InputSplit> splits) {
         // Remove any splitting bai files
         return splits.stream()
                 .filter(split -> !((FileSplit) split).getPath().getName().endsWith(
@@ -211,7 +212,7 @@ public class BAMInputFormat
                 .collect(Collectors.toList());
     }
 
-    static Path getBAIPath(Path path) {
+    static Path getBAIPath(final Path path) {
         return path.suffix(BAMIndex.BAMIndexSuffix);
     }
 
@@ -220,7 +221,7 @@ public class BAMInputFormat
      */
     @Override
     public RecordReader<LongWritable, SAMRecordWritable>
-    createRecordReader(InputSplit split, TaskAttemptContext ctx)
+    createRecordReader(final InputSplit split, final TaskAttemptContext ctx)
             throws InterruptedException, IOException {
         final RecordReader<LongWritable, SAMRecordWritable> rr =
                 new BAMRecordReader();
@@ -232,7 +233,7 @@ public class BAMInputFormat
      * The splits returned are {@link FileVirtualSplit FileVirtualSplits}.
      */
     @Override
-    public List<InputSplit> getSplits(JobContext job)
+    public List<InputSplit> getSplits(final JobContext job)
             throws IOException {
         return getSplits(super.getSplits(job), job.getConfiguration());
     }
@@ -281,9 +282,10 @@ public class BAMInputFormat
 
     // Handles all the splits that share the Path of the one at index i,
     // returning the next index to be used.
-    private int addIndexedSplits(
-            List<InputSplit> splits, int i, List<InputSplit> newSplits,
-            Configuration cfg)
+    private int addIndexedSplits(final List<InputSplit> splits,
+                                 final int i,
+                                 final List<InputSplit> newSplits,
+                                 final Configuration cfg)
             throws IOException {
         final Path file = ((FileSplit) splits.get(i)).getPath();
         List<InputSplit> potentialSplits = new ArrayList<InputSplit>();
@@ -341,10 +343,10 @@ public class BAMInputFormat
 
     // Handles all the splits that share the Path of the one at index i,
     // returning the next index to be used.
-    private int addBAISplits(List<InputSplit> splits,
-                             int i,
-                             List<InputSplit> newSplits,
-                             Configuration conf) throws IOException {
+    private int addBAISplits(final List<InputSplit> splits,
+                             final int i,
+                             final List<InputSplit> newSplits,
+                             final Configuration conf) throws IOException {
         final Path path = ((FileSplit) splits.get(i)).getPath();
         FileSystem fs = path.getFileSystem(conf);
         int splitsEnd = i;
@@ -493,9 +495,10 @@ public class BAMInputFormat
 
     // Works the same way as addIndexedSplits, to avoid having to reopen the
     // file repeatedly and checking addIndexedSplits for an index repeatedly.
-    private int addProbabilisticSplits(
-            List<InputSplit> splits, int i, List<InputSplit> newSplits,
-            Configuration cfg)
+    private int addProbabilisticSplits(final List<InputSplit> splits,
+                                       int i,
+                                       final List<InputSplit> newSplits,
+                                       final Configuration cfg)
             throws IOException {
         final Path path = ((FileSplit) splits.get(i)).getPath();
         final SeekableStream sin =
@@ -558,7 +561,8 @@ public class BAMInputFormat
         return i;
     }
 
-    private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
+    private List<InputSplit> filterByInterval(final List<InputSplit> splits,
+                                              final Configuration conf)
             throws IOException {
         if (!isBoundedTraversal(conf)) {
             return splits;
@@ -669,8 +673,8 @@ public class BAMInputFormat
      * @param rawIntervals SimpleIntervals to be converted
      * @return A sorted, merged list of QueryIntervals suitable for passing to the SamReader query API
      */
-    static QueryInterval[] prepareQueryIntervals(final List<Interval>
-                                                         rawIntervals, final SAMSequenceDictionary sequenceDictionary) {
+    static QueryInterval[] prepareQueryIntervals(final List<Interval> rawIntervals,
+                                                 final SAMSequenceDictionary sequenceDictionary) {
         if (rawIntervals == null || rawIntervals.isEmpty()) {
             return null;
         }
@@ -694,7 +698,8 @@ public class BAMInputFormat
      * @param sequenceDictionary sequence dictionary used to perform the conversion
      * @return an equivalent interval in QueryInterval format
      */
-    private static QueryInterval convertSimpleIntervalToQueryInterval(final Interval interval, final SAMSequenceDictionary sequenceDictionary) {
+    private static QueryInterval convertSimpleIntervalToQueryInterval(final Interval interval,
+                                                                      final SAMSequenceDictionary sequenceDictionary) {
         if (interval == null) {
             throw new IllegalArgumentException("interval may not be null");
         }
@@ -712,7 +717,7 @@ public class BAMInputFormat
     }
 
     @Override
-    public boolean isSplitable(JobContext job, Path path) {
+    public boolean isSplitable(final JobContext job, final Path path) {
         return true;
     }
 }

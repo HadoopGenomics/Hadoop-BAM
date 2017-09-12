@@ -37,7 +37,7 @@ public class ConfHelper {
      * @throws IllegalArgumentException Thrown if value is not
      * null and doesn't match any of the accepted strings.
      */
-    public static boolean parseBoolean(String value, boolean defaultValue) {
+    public static boolean parseBoolean(String value, final boolean defaultValue) {
         if (value == null) {
             return defaultValue;
         }
@@ -62,7 +62,9 @@ public class ConfHelper {
         throw new IllegalArgumentException("Unrecognized boolean value '" + value + "'");
     }
 
-    public static boolean parseBoolean(Configuration conf, String propertyName, boolean defaultValue) {
+    public static boolean parseBoolean(final Configuration conf,
+                                       final String propertyName,
+                                       final boolean defaultValue) {
         return parseBoolean(conf.get(propertyName), defaultValue);
     }
 }

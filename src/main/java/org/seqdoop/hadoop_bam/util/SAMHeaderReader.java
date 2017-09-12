@@ -42,7 +42,7 @@ public final class SAMHeaderReader {
     public static final String VALIDATION_STRINGENCY_PROPERTY =
             "hadoopbam.samheaderreader.validation-stringency";
 
-    public static SAMFileHeader readSAMHeaderFrom(Path path, Configuration conf)
+    public static SAMFileHeader readSAMHeaderFrom(final Path path, final Configuration conf)
             throws IOException {
         InputStream i = path.getFileSystem(conf).open(path);
         final SAMFileHeader h = readSAMHeaderFrom(i, conf);

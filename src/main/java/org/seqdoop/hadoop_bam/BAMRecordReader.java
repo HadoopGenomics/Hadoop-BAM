@@ -111,19 +111,19 @@ public class BAMRecordReader
     /**
      * @param alignmentStart 1-based leftmost coordinate.
      */
-    public static long getKey(int refIdx, int alignmentStart) {
+    public static long getKey(final int refIdx, final int alignmentStart) {
         return getKey0(refIdx, alignmentStart - 1);
     }
 
     /**
      * @param alignmentStart0 0-based leftmost coordinate.
      */
-    public static long getKey0(int refIdx, int alignmentStart0) {
+    public static long getKey0(final int refIdx, final int alignmentStart0) {
         return (long) refIdx << 32 | alignmentStart0;
     }
 
     @Override
-    public void initialize(InputSplit spl, TaskAttemptContext ctx)
+    public void initialize(final InputSplit spl, final TaskAttemptContext ctx)
             throws IOException {
         // This method should only be called once (see Hadoop API). However,
         // there seems to be disagreement between implementations that call
@@ -188,8 +188,9 @@ public class BAMRecordReader
         }
     }
 
-    private SamReader createSamReader(SeekableStream in, SeekableStream inIndex,
-                                      ValidationStringency stringency) {
+    private SamReader createSamReader(final SeekableStream in,
+                                      final SeekableStream inIndex,
+                                      final ValidationStringency stringency) {
         SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
                 .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
                 .setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)

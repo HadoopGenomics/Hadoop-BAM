@@ -98,51 +98,51 @@ public class SequencedFragment implements Writable {
         return quality;
     }
 
-    public void setInstrument(String v) {
+    public void setInstrument(final String v) {
         instrument = v;
     }
 
-    public void setRunNumber(Integer v) {
+    public void setRunNumber(final Integer v) {
         runNumber = v;
     }
 
-    public void setFlowcellId(String v) {
+    public void setFlowcellId(final String v) {
         flowcellId = v;
     }
 
-    public void setLane(Integer v) {
+    public void setLane(final Integer v) {
         lane = v;
     }
 
-    public void setTile(Integer v) {
+    public void setTile(final Integer v) {
         tile = v;
     }
 
-    public void setXpos(Integer v) {
+    public void setXpos(final Integer v) {
         xpos = v;
     }
 
-    public void setYpos(Integer v) {
+    public void setYpos(final Integer v) {
         ypos = v;
     }
 
-    public void setRead(Integer v) {
+    public void setRead(final Integer v) {
         read = v;
     }
 
-    public void setFilterPassed(Boolean v) {
+    public void setFilterPassed(final Boolean v) {
         filterPassed = v;
     }
 
-    public void setControlNumber(Integer v) {
+    public void setControlNumber(final Integer v) {
         controlNumber = v;
     }
 
-    public void setIndexSequence(String v) {
+    public void setIndexSequence(final String v) {
         indexSequence = v;
     }
 
-    public void setSequence(Text seq) {
+    public void setSequence(final Text seq) {
         if (seq == null) {
             throw new IllegalArgumentException("can't have a null sequence");
         }
@@ -152,7 +152,7 @@ public class SequencedFragment implements Writable {
     /**
      * Set quality.  Quality should be encoded in Sanger Phred+33 format.
      */
-    public void setQuality(Text qual) {
+    public void setQuality(final Text qual) {
         if (qual == null) {
             throw new IllegalArgumentException("can't have a null quality");
         }
@@ -224,7 +224,7 @@ public class SequencedFragment implements Writable {
         return builder.toString();
     }
 
-    public boolean equals(Object other) {
+    public boolean equals(final Object other) {
         if (other != null && other instanceof SequencedFragment) {
             SequencedFragment otherFrag = (SequencedFragment) other;
 
@@ -301,7 +301,9 @@ public class SequencedFragment implements Writable {
      * allowed by the current encoding.
      * @throws IllegalArgumentException if current and  target quality encodings are the same.
      */
-    public static void convertQuality(Text quality, BaseQualityEncoding current, BaseQualityEncoding target) {
+    public static void convertQuality(final Text quality,
+                                      final BaseQualityEncoding current,
+                                      final BaseQualityEncoding target) {
         if (current == target) {
             throw new IllegalArgumentException("current and target quality encodinds are the same (" + current + ")");
         }
@@ -347,7 +349,8 @@ public class SequencedFragment implements Writable {
      *
      * @return If an out-of-range value is found the index of the value is returned.
      */
-    public static int verifyQuality(Text quality, BaseQualityEncoding encoding) {
+    public static int verifyQuality(final Text quality,
+                                    final BaseQualityEncoding encoding) {
         // set allowed quality range
         int max, min;
 
@@ -375,7 +378,7 @@ public class SequencedFragment implements Writable {
         return -1;
     }
 
-    public void readFields(DataInput in) throws IOException {
+    public void readFields(final DataInput in) throws IOException {
         // TODO:  reimplement with a serialization system (e.g. Avro)
 
         // serialization order:
@@ -425,7 +428,7 @@ public class SequencedFragment implements Writable {
         }
     }
 
-    public void write(DataOutput out) throws IOException {
+    public void write(final DataOutput out) throws IOException {
         // TODO:  reimplement with a serialization system (e.g. Avro)
 
         sequence.write(out);

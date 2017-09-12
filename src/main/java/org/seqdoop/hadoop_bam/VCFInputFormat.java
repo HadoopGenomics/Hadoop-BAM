@@ -87,8 +87,8 @@ public class VCFInputFormat
      */
     public static final String INTERVALS_PROPERTY = "hadoopbam.vcf.intervals";
 
-    public static <T extends Locatable> void setIntervals(Configuration conf,
-                                                          List<T> intervals) {
+    public static <T extends Locatable> void setIntervals(final Configuration conf,
+                                                          final List<T> intervals) {
         StringBuilder sb = new StringBuilder();
         for (Iterator<T> it = intervals.iterator(); it.hasNext(); ) {
             Locatable l = it.next();
@@ -100,7 +100,7 @@ public class VCFInputFormat
         conf.set(INTERVALS_PROPERTY, sb.toString());
     }
 
-    static List<Interval> getIntervals(Configuration conf) {
+    static List<Interval> getIntervals(final Configuration conf) {
         String intervalsProperty = conf.get(INTERVALS_PROPERTY);
         if (intervalsProperty == null) {
             return null;
@@ -145,7 +145,7 @@ public class VCFInputFormat
      * Creates a new input format, reading {@link #TRUST_EXTS_PROPERTY} from
      * the given <code>Configuration</code>.
      */
-    public VCFInputFormat(Configuration conf) {
+    public VCFInputFormat(final Configuration conf) {
         this.formatMap = new HashMap<Path, VCFFormat>();
         this.conf = conf;
         this.trustExts = conf.getBoolean(TRUST_EXTS_PROPERTY, true);
@@ -160,7 +160,7 @@ public class VCFInputFormat
      * <p>The <code>Map</code> is not copied, so it should not be modified while
      * this input format is in use!</p>
      */
-    public VCFInputFormat(Map<Path, VCFFormat> formatMap) {
+    public VCFInputFormat(final Map<Path, VCFFormat> formatMap) {
         this.formatMap = formatMap;
         this.givenMap = true;
 
@@ -213,7 +213,7 @@ public class VCFInputFormat
     }
 
     @Override
-    protected boolean isSplitable(JobContext context, Path filename) {
+    protected boolean isSplitable(final JobContext context, final Path filename) {
         Configuration conf = context.getConfiguration();
         final CompressionCodec codec =
                 new CompressionCodecFactory(context.getConfiguration()).getCodec(filename);
@@ -253,7 +253,7 @@ public class VCFInputFormat
      */
     @Override
     public RecordReader<LongWritable, VariantContextWritable>
-    createRecordReader(InputSplit split, TaskAttemptContext ctx)
+    createRecordReader(final InputSplit split, final TaskAttemptContext ctx)
             throws InterruptedException, IOException {
         final Path path;
         if (split instanceof FileSplit) {
@@ -301,7 +301,7 @@ public class VCFInputFormat
      * unchanged.
      */
     @Override
-    public List<InputSplit> getSplits(JobContext job)
+    public List<InputSplit> getSplits(final JobContext job)
             throws IOException {
         if (this.conf == null) {
             this.conf = job.getConfiguration();
@@ -335,7 +335,7 @@ public class VCFInputFormat
     // aligned to record boundaries. Compressed BCF results in
     // FileVirtualSplits, uncompressed in FileSplits.
     private void fixBCFSplits(
-            List<FileSplit> splits, List<InputSplit> newSplits)
+            final List<FileSplit> splits, final List<InputSplit> newSplits)
             throws IOException {
         // addGuessedSplits() requires the given splits to be sorted by file
         // path, so do so. Although FileInputFormat.getSplits() does, at the time
@@ -354,7 +354,7 @@ public class VCFInputFormat
     // Handles all the splits that share the Path of the one at index i,
     // returning the next index to be used.
     private int addGuessedSplits(
-            List<FileSplit> splits, int i, List<InputSplit> newSplits)
+            final List<FileSplit> splits, int i, final List<InputSplit> newSplits)
             throws IOException {
         final Path path = splits.get(i).getPath();
         final SeekableStream sin = WrapSeekable.openPath(conf, path);
@@ -421,7 +421,8 @@ public class VCFInputFormat
         return i;
     }
 
-    private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
+    private List<InputSplit> filterByInterval(final List<InputSplit> splits,
+                                              final Configuration conf)
             throws IOException {
         List<Interval> intervals = getIntervals(conf);
         if (intervals == null) {
@@ -510,7 +511,10 @@ public class VCFInputFormat
         return filteredSplits;
     }
 
-    private static boolean overlaps(long start, long end, long start2, long end2) {
+    private static boolean overlaps(final long start,
+                                    final long end,
+                                    final long start2,
+                                    final long end2) {
         return (start2 >= start && start2 <= end) || (end2 >= start && end2 <= end) ||
                 (start >= start2 && end <= end2);
     }

@@ -63,7 +63,7 @@ public class SAMRecordReader
     private WorkaroundingStream waInput;
 
     @Override
-    public void initialize(InputSplit spl, TaskAttemptContext ctx)
+    public void initialize(final InputSplit spl, final TaskAttemptContext ctx)
             throws IOException {
         // This method should only be called once (see Hadoop API). However,
         // there seems to be disagreement between implementations that call
@@ -150,7 +150,7 @@ public class SAMRecordReader
         }
     }
 
-    private SamReader createSamReader(InputStream in, ValidationStringency stringency) {
+    private SamReader createSamReader(final InputStream in, final ValidationStringency stringency) {
         SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
                 .setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
                 .setUseAsyncIo(false);
@@ -210,7 +210,7 @@ class WorkaroundingStream extends InputStream {
             foundEOL = false,
             strippingAts = false; // HACK, see read(byte[], int, int).
 
-    public WorkaroundingStream(InputStream stream, SAMFileHeader header) {
+    public WorkaroundingStream(final InputStream stream, final SAMFileHeader header) {
         this.stream = stream;
 
         String text = header.getTextHeader();
@@ -234,7 +234,7 @@ class WorkaroundingStream extends InputStream {
         this.length = Long.MAX_VALUE;
     }
 
-    public void setLength(long length) {
+    public void setLength(final long length) {
         this.length = length;
     }
 
@@ -259,7 +259,7 @@ class WorkaroundingStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] buf, int off, int len) throws IOException {
+    public int read(final byte[] buf, final int off, final int len) throws IOException {
         if (!headerRemaining) {
             return streamRead(buf, off, len);
         }
@@ -324,7 +324,7 @@ class WorkaroundingStream extends InputStream {
         return h + s;
     }
 
-    private int streamRead(byte[] buf, int off, int len) throws IOException {
+    private int streamRead(final byte[] buf, final int off, final int len) throws IOException {
         if (len > length) {
             if (foundEOL) {
                 return 0;
@@ -339,7 +339,7 @@ class WorkaroundingStream extends InputStream {
         return n;
     }
 
-    private int tryFindEOL(byte[] buf, int off, int len) {
+    private int tryFindEOL(final byte[] buf, final int off, final int len) {
         assert !foundEOL;
 
         if (!lookingForEOL || len < length) {

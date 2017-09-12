@@ -76,11 +76,11 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
      * The stream must point to a valid BCF file, because the header is read
      * from it.
      */
-    public BCFSplitGuesser(SeekableStream ss) throws IOException {
+    public BCFSplitGuesser(final SeekableStream ss) throws IOException {
         this(ss, ss);
     }
 
-    public BCFSplitGuesser(SeekableStream ss, InputStream headerStream)
+    public BCFSplitGuesser(final SeekableStream ss, final InputStream headerStream)
             throws IOException {
         inFile = ss;
 
@@ -105,7 +105,7 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
         return bgzf;
     }
 
-    private void cinSeek(long virt) throws IOException {
+    private void cinSeek(final long virt) throws IOException {
         if (bgzf) {
             ((BlockCompressedInputStream) cin).seek(virt);
         }
@@ -119,7 +119,7 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
      * physical position range [beg,end). Returns end if no BCF record was
      * found.
      */
-    public long guessNextBCFRecordStart(long beg, long end)
+    public long guessNextBCFRecordStart(final long beg, final long end)
             throws IOException {
         // Buffer what we need to go through.
 
@@ -288,7 +288,7 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
         return end;
     }
 
-    private int guessNextBCFPos(long cpVirt, int up, int cSize) {
+    private int guessNextBCFPos(final long cpVirt, int up, final int cSize) {
         try {
             for (; up + SHORTEST_POSSIBLE_BCF_RECORD < cSize; ++up) {
                 // Note! The BCF2 spec has a table listing the fields and their

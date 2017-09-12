@@ -83,8 +83,10 @@ public class VCFFileMerger {
     /**
      * @return whether the output is block compressed
      */
-    private static boolean writeHeader(OutputStream out, Path outputPath, List<Path> parts,
-                                       VCFHeader header) throws IOException {
+    private static boolean writeHeader(final OutputStream out,
+                                       final Path outputPath,
+                                       final List<Path> parts,
+                                       final VCFHeader header) throws IOException {
         if (header == null) {
             return false;
         }
@@ -117,19 +119,19 @@ public class VCFFileMerger {
         return blockCompressed;
     }
 
-    private static boolean isBCF(List<Path> parts) throws IOException {
+    private static boolean isBCF(final List<Path> parts) throws IOException {
         try (InputStream in = new BufferedInputStream(Files.newInputStream(parts.get(0)))) {
             return VCFFormat.BCF.equals(VCFFormat.inferFromData(in));
         }
     }
 
-    private static boolean isBlockCompressed(List<Path> parts) throws IOException {
+    private static boolean isBlockCompressed(final List<Path> parts) throws IOException {
         try (InputStream in = new BufferedInputStream(Files.newInputStream(parts.get(0)))) {
             return BlockCompressedInputStream.isValidFile(in);
         }
     }
 
-    private static boolean isGzipCompressed(List<Path> parts) throws IOException {
+    private static boolean isGzipCompressed(final List<Path> parts) throws IOException {
         try (InputStream in = new BufferedInputStream(Files.newInputStream(parts.get(0)))) {
             return VCFFormat.isGzip(in);
         }

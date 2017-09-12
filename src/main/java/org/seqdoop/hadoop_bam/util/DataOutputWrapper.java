@@ -29,17 +29,17 @@ import java.io.OutputStream;
 public class DataOutputWrapper extends OutputStream {
     private final DataOutput out;
 
-    public DataOutputWrapper(DataOutput o) {
+    public DataOutputWrapper(final DataOutput o) {
         out = o;
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         out.writeByte(b);
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
         out.write(b, off, len);
     }
 }

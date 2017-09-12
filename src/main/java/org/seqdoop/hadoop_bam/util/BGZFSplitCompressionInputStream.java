@@ -27,7 +27,7 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
     POS_ADVERTISEMENT_STATE_MACHINE posSM = POS_ADVERTISEMENT_STATE_MACHINE.HOLD;
     long compressedStreamPosition = 0;
 
-    public BGZFSplitCompressionInputStream(InputStream in, long start, long end)
+    public BGZFSplitCompressionInputStream(final InputStream in, final long start, final long end)
             throws IOException {
         super(in, start, end);
         bufferedIn = new BufferedInputStream(super.in);
@@ -44,7 +44,7 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         // See BZip2CompressionInputStream#read for implementation notes.
         int result;
         result = readWithinBlock(b, off, len);
@@ -70,7 +70,7 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
      * @return int The return value greater than 0 are the bytes read.  A value
      * of -1 means end of stream while -2 represents end of block.
      */
-    private int readWithinBlock(byte[] b, int off, int len) throws IOException {
+    private int readWithinBlock(final byte[] b, final int off, final int len) throws IOException {
         if (input.endOfBlock()) {
             final int available = input.available(); // this will read the next block, if there is one
             processedPosition = input.getPosition() >> 16;
@@ -96,7 +96,7 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
     }
 
     // See comment in BZip2CompressionInputStream#updatePos
-    private void updatePos(boolean shouldAddOn) {
+    private void updatePos(final boolean shouldAddOn) {
         int addOn = shouldAddOn ? 1 : 0;
         this.compressedStreamPosition = this.startingPos + processedPosition + addOn;
     }

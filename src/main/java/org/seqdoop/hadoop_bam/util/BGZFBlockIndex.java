@@ -104,7 +104,7 @@ public final class BGZFBlockIndex {
      * Writes some statistics about each BGZF block index file given as an
      * argument.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args.length == 0) {
             System.out.println(
                     "Usage: BGZFBlockIndex [BGZF block indices...]\n\n" +

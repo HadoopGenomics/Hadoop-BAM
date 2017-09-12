@@ -26,7 +26,8 @@ import htsjdk.variant.vcf.VCFHeader;
 public class VariantContextWithHeader extends VariantContext {
     private final VCFHeader header;
 
-    public VariantContextWithHeader(VariantContext context, VCFHeader header) {
+    public VariantContextWithHeader(final VariantContext context,
+                                    final VCFHeader header) {
         super(context);
         this.header = header;
     }

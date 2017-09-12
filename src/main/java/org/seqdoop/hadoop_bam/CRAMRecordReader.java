@@ -28,7 +28,7 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
     private CRAMIterator cramIterator;
 
     @Override
-    public void initialize(InputSplit split, TaskAttemptContext context) throws IOException {
+    public void initialize(final InputSplit split, final TaskAttemptContext context) throws IOException {
         if (isInitialized) {
             close();
         }

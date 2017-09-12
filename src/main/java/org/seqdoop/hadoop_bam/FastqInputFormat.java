@@ -97,7 +97,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         // How long can a read get?
         private static final int MAX_LINE_LENGTH = 10000;
 
-        public FastqRecordReader(Configuration conf, FileSplit split) throws IOException {
+        public FastqRecordReader(final Configuration conf, final FileSplit split) throws IOException {
             setConf(conf);
             file = split.getPath();
             start = split.getStart();
@@ -126,7 +126,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             lineReader = new LineReader(inputStream);
         }
 
-        protected void setConf(Configuration conf) {
+        protected void setConf(final Configuration conf) {
             String encoding =
                     conf.get(FastqInputFormat.CONF_BASE_QUALITY_ENCODING,
                             conf.get(FormatConstants.CONF_INPUT_BASE_QUALITY_ENCODING,
@@ -151,7 +151,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         /*
          * Position the input stream at the start of the first record.
          */
-        private void positionAtFirstRecord(FSDataInputStream stream) throws IOException {
+        private void positionAtFirstRecord(final FSDataInputStream stream) throws IOException {
             if (start > 0) {
                 // Advance to the start of the first record
                 // We use a temporary LineReader to read lines until we find the
@@ -196,7 +196,8 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         /**
          * Added to use mapreduce API.
          */
-        public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+        public void initialize(final InputSplit split, final TaskAttemptContext context)
+                throws IOException, InterruptedException {
         }
 
         /**
@@ -264,7 +265,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             return file.toString() + ":" + pos;
         }
 
-        protected boolean lowLevelFastqRead(Text key, SequencedFragment value) throws IOException {
+        protected boolean lowLevelFastqRead(final Text key, final SequencedFragment value) throws IOException {
             // ID line
             long skipped = lineReader.skip(1); // skip @
             pos += skipped;
@@ -295,7 +296,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
         /**
          * Reads the next key/value pair from the input for processing.
          */
-        public boolean next(Text key, SequencedFragment value) throws IOException {
+        public boolean next(final Text key, final SequencedFragment value) throws IOException {
             if (pos >= end) {
                 return false; // past end of slice
             }
@@ -337,7 +338,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             }
         }
 
-        private void scanNameForReadNumber(Text name, SequencedFragment fragment) {
+        private void scanNameForReadNumber(final Text name, final SequencedFragment fragment) {
             // look for a /[0-9] at the end of the name
             if (name.getLength() >= 2) {
                 byte[] bytes = name.getBytes();
@@ -349,7 +350,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             }
         }
 
-        private boolean scanIlluminaId(Text name, SequencedFragment fragment) {
+        private boolean scanIlluminaId(final Text name, final SequencedFragment fragment) {
             Matcher m = ILLUMINA_PATTERN.matcher(name.toString());
             boolean matches = m.matches();
             if (matches) {
@@ -368,7 +369,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
             return matches;
         }
 
-        private int readLineInto(Text dest) throws EOFException, IOException {
+        private int readLineInto(final Text dest) throws EOFException, IOException {
             int bytesRead = lineReader.readLine(dest, MAX_LINE_LENGTH);
             if (bytesRead <= 0) {
                 throw new EOFException();
@@ -379,14 +380,14 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
     }
 
     @Override
-    public boolean isSplitable(JobContext context, Path path) {
+    public boolean isSplitable(final JobContext context, final Path path) {
         CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
         return codec == null;
     }
 
     public RecordReader<Text, SequencedFragment> createRecordReader(
-            InputSplit genericSplit,
-            TaskAttemptContext context) throws IOException, InterruptedException {
+            final InputSplit genericSplit,
+            final TaskAttemptContext context) throws IOException, InterruptedException {
         context.setStatus(genericSplit.toString());
         return new FastqRecordReader(context.getConfiguration(), (FileSplit) genericSplit); // cast as per example in TextInputFormat
     }

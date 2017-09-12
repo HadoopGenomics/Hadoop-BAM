@@ -91,11 +91,11 @@ public class AnySAMInputFormat
      * Creates a new input format, reading {@link #TRUST_EXTS_PROPERTY} from
      * the given <code>Configuration</code>.
      */
-    public AnySAMInputFormat(Configuration conf) {
+    public AnySAMInputFormat(final Configuration conf) {
         this(conf, new HashMap<>(), false);
     }
 
-    private static boolean trustExtensions(Configuration conf) {
+    private static boolean trustExtensions(final Configuration conf) {
         return conf.getBoolean(TRUST_EXTS_PROPERTY, true);
     }
 
@@ -107,11 +107,11 @@ public class AnySAMInputFormat
      * <p>The <code>Map</code> is not copied, so it should not be modified while
      * this input format is in use!</p>
      */
-    public AnySAMInputFormat(Map<Path, SAMFormat> formatMap) {
+    public AnySAMInputFormat(final Map<Path, SAMFormat> formatMap) {
         this(null, formatMap, true);
     }
 
-    private AnySAMInputFormat(Configuration conf, Map<Path, SAMFormat> formatMap, boolean givenMap) {
+    private AnySAMInputFormat(final Configuration conf, final Map<Path, SAMFormat> formatMap, final boolean givenMap) {
         this.formatMap = formatMap;
         this.givenMap = givenMap;
         this.conf = conf;
@@ -176,7 +176,7 @@ public class AnySAMInputFormat
      */
     @Override
     public RecordReader<LongWritable, SAMRecordWritable>
-    createRecordReader(InputSplit split, TaskAttemptContext ctx)
+    createRecordReader(final InputSplit split, final TaskAttemptContext ctx)
             throws InterruptedException, IOException {
         final Path path;
         if (split instanceof FileSplit) {
@@ -218,7 +218,7 @@ public class AnySAMInputFormat
      * {@link SAMInputFormat} as appropriate for the given path.
      */
     @Override
-    public boolean isSplitable(JobContext job, Path path) {
+    public boolean isSplitable(final JobContext job, final Path path) {
         if (this.conf == null) {
             this.conf = job.getConfiguration();
         }
@@ -252,7 +252,7 @@ public class AnySAMInputFormat
      * unchanged.
      */
     @Override
-    public List<InputSplit> getSplits(JobContext job)
+    public List<InputSplit> getSplits(final JobContext job)
             throws IOException {
         if (this.conf == null) {
             this.conf = job.getConfiguration();

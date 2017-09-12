@@ -88,7 +88,7 @@ public abstract class CRAMRecordWriter<K>
     }
 
     @Override
-    public void close(TaskAttemptContext ctx) throws IOException {
+    public void close(final TaskAttemptContext ctx) throws IOException {
         cramContainerStream.finish(false); // Close, but suppress CRAM EOF container
         origOutput.close(); // And close the original output.
     }

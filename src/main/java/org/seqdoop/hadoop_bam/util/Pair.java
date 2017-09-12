@@ -30,7 +30,7 @@ public class Pair<A, B> {
     public A fst;
     public B snd;
 
-    public Pair(A a, B b) {
+    public Pair(final A a, final B b) {
         fst = a;
         snd = b;
     }

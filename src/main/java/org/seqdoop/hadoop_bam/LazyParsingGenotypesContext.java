@@ -44,7 +44,9 @@ public abstract class LazyParsingGenotypesContext
     // super.parser is inaccessible to us so we keep a copy that we can access.
     private final Parser parserCopy;
 
-    protected LazyParsingGenotypesContext(Parser p, byte[] data, int count) {
+    protected LazyParsingGenotypesContext(final Parser p,
+                                          final byte[] data,
+                                          final int count) {
         super(p, data, count);
         parserCopy = p;
     }

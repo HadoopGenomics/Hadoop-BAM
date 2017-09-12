@@ -76,7 +76,7 @@ public class VCFRecordReader
     private OverlapDetector<Interval> overlapDetector;
 
     @Override
-    public void initialize(InputSplit spl, TaskAttemptContext ctx)
+    public void initialize(final InputSplit spl, final TaskAttemptContext ctx)
             throws IOException {
         final FileSplit split = (FileSplit) spl;
 
@@ -173,7 +173,7 @@ public class VCFRecordReader
         }
     }
 
-    private boolean overlaps(VariantContext v) {
+    private boolean overlaps(final VariantContext v) {
         if (intervals == null) {
             return true;
         }

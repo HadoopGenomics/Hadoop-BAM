@@ -84,7 +84,7 @@ public class SAMOutputPreparer {
     }
 
     private OutputStream prepareCRAMStream(
-            OutputStream out, final SAMFormat format,
+            final OutputStream out, final SAMFormat format,
             final SAMFileHeader header) throws IOException {
         CramIO.writeHeader(CramVersions.DEFAULT_CRAM_VERSION, out, header, null);
         return out;
@@ -137,7 +137,7 @@ public class SAMOutputPreparer {
         w.flush();
     }
 
-    private void writeInt32(final OutputStream out, int n) throws IOException {
+    private void writeInt32(final OutputStream out, final int n) throws IOException {
         buf.putInt(0, n);
         out.write(buf.array());
     }

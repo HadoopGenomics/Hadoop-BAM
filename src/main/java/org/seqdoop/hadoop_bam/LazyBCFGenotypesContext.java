@@ -43,8 +43,10 @@ public class LazyBCFGenotypesContext extends LazyParsingGenotypesContext {
     /**
      * Takes ownership of the given byte[]: don't modify its contents.
      */
-    public LazyBCFGenotypesContext(
-            List<Allele> alleles, int fields, byte[] unparsed, int count) {
+    public LazyBCFGenotypesContext(final List<Allele> alleles,
+                                   final int fields,
+                                   final byte[] unparsed,
+                                   final int count) {
         super(new Parser(alleles, fields), unparsed, count);
     }
 
@@ -60,7 +62,7 @@ public class LazyBCFGenotypesContext extends LazyParsingGenotypesContext {
         private HashMap<String, Integer> sampleNameToOffset;
 
         @Override
-        public void setHeader(VCFHeader header) {
+        public void setHeader(final VCFHeader header) {
             genoFieldDecoders = new BCF2GenotypeFieldDecoders(header);
             fieldDict = BCF2Utils.makeDictionary(header);
 
@@ -101,14 +103,14 @@ public class LazyBCFGenotypesContext extends LazyParsingGenotypesContext {
 
         private HeaderDataCache hd = null;
 
-        public Parser(List<Allele> alleles, int fields) {
+        public Parser(final List<Allele> alleles, final int fields) {
             this.alleles = alleles;
             this.fields = fields;
         }
 
         @Override
         public void setHeaderDataCache(
-                LazyParsingGenotypesContext.HeaderDataCache data) {
+                final LazyParsingGenotypesContext.HeaderDataCache data) {
             this.hd = (HeaderDataCache) data;
         }
 

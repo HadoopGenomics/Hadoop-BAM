@@ -75,13 +75,13 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment> 
         protected OutputStream out;
         BaseQualityEncoding baseQualityFormat;
 
-        public QseqRecordWriter(Configuration conf, OutputStream out) {
+        public QseqRecordWriter(final Configuration conf, final OutputStream out) {
             baseQualityFormat = BaseQualityEncoding.Illumina;
             this.out = out;
             setConf(conf);
         }
 
-        public void setConf(Configuration conf) {
+        public void setConf(final Configuration conf) {
             String setting = conf.get(CONF_BASE_QUALITY_ENCODING, CONF_BASE_QUALITY_ENCODING_DEFAULT);
             if ("illumina".equals(setting)) {
                 baseQualityFormat = BaseQualityEncoding.Illumina;
@@ -94,7 +94,7 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment> 
             }
         }
 
-        public void write(Text ignored_key, SequencedFragment seq) throws IOException {
+        public void write(final Text ignored_key, final SequencedFragment seq) throws IOException {
             sBuilder.delete(0, sBuilder.length()); // clear
 
             sBuilder.append(seq.getInstrument() == null ? "" : seq.getInstrument()).append(delim);
@@ -156,12 +156,12 @@ public class QseqOutputFormat extends TextOutputFormat<Text, SequencedFragment> 
             out.write(newLine, 0, newLine.length);
         }
 
-        public void close(TaskAttemptContext context) throws IOException {
+        public void close(final TaskAttemptContext context) throws IOException {
             out.close();
         }
     }
 
-    public RecordWriter<Text, SequencedFragment> getRecordWriter(TaskAttemptContext task)
+    public RecordWriter<Text, SequencedFragment> getRecordWriter(final TaskAttemptContext task)
             throws IOException {
         Configuration conf = task.getConfiguration();
         boolean isCompressed = getCompressOutput(task);
