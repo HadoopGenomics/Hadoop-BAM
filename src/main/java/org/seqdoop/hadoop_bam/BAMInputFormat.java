@@ -22,7 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import com.google.common.collect.ImmutableList;
 import htsjdk.samtools.AbstractBAMFileIndex;
 import htsjdk.samtools.BAMFileReader;
 import htsjdk.samtools.BAMFileSpan;
@@ -47,6 +46,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.seqdoop.hadoop_bam.util.FileFormatUtils;
 import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
@@ -60,7 +60,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.seekablestream.SeekableStream;
 
 import org.apache.hadoop.conf.Configuration;
@@ -181,21 +180,7 @@ public class BAMInputFormat
 	}
 
 	static List<Interval> getIntervals(Configuration conf) {
-		String intervalsProperty = conf.get(INTERVALS_PROPERTY);
-		if (intervalsProperty == null) {
-			return null;
-		}
-		if (intervalsProperty.isEmpty()) {
-			return ImmutableList.of();
-		}
-		List<Interval> intervals = new ArrayList<Interval>();
-		for (String s : intervalsProperty.split(",")) {
-			String[] parts = s.split(":|-");
-			Interval interval =
-					new Interval(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
-			intervals.add(interval);
-		}
-		return intervals;
+		return FileFormatUtils.getIntervals(conf, INTERVALS_PROPERTY);
 	}
 
 	static Path getIdxPath(Path path) {
