@@ -6,6 +6,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.seqdoop.hadoop_bam.util.FileFormatUtils;
 
+import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -14,6 +15,32 @@ import java.util.stream.Stream;
  * Unit tests for {@link FileFormatUtils}.
  */
 public class FileFormatUtilsTest {
+
+        @Test
+        public void testBadInterval() {
+            final String[] INVALID_INTERVALS = {
+                    "chr1", // full sequence interval are not allowed.
+                    "chr1:12", // single position omitting stop is not allowed.
+                    "chr1,chr2:121-123", // , are not allowed anywhere
+                    "chr20:1,100-3,400", // ,   "             "
+                    "MT:35+", // , until end of contig + is not allowed.
+                    "MT:13-31-1112", // too many positions.
+                    "MT:-2112", // forgot the start position!
+                    " MT : 113 - 1245" // blanks are not allowed either.
+            };
+            for (final String interval : INVALID_INTERVALS) {
+                final Configuration conf = new Configuration();
+                conf.set("prop-name", interval);
+                try {
+                    FileFormatUtils.getIntervals(conf, "prop-name");
+                    Assert.fail("expected an exception when dealing with '" + interval + "'");
+                } catch (final FormatException ex) {
+                // fine.
+            } catch (final RuntimeException ex) {
+                Assert.fail("wrong exception type " + ex.getClass() + " when dealing with '" + interval + "'");
+            }
+        }
+    }
 
     @Test
     public void testCommonAndFunklyIntervals() {

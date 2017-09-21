@@ -7,9 +7,10 @@ import org.seqdoop.hadoop_bam.FormatException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
- * Created by valentin on 9/20/17.
+ * Common utilities across different file formats.
  */
 public abstract class FileFormatUtils {
 
@@ -28,7 +29,7 @@ public abstract class FileFormatUtils {
         if (intervalsProperty.isEmpty()) {
             return ImmutableList.of();
         }
-        final List<Interval> intervals = new ArrayList<Interval>();
+        final List<Interval> intervals = new ArrayList<>();
         for (String s : intervalsProperty.split(",")) {
             final int lastColonIdx = s.lastIndexOf(':');
             if (lastColonIdx < 0) {
@@ -38,11 +39,21 @@ public abstract class FileFormatUtils {
             if (hyphenIdx < 0) {
                 throw new FormatException("no hyphen found after colon interval string: " + s);
             }
-            intervals.add(
-                    new Interval(s.substring(0, lastColonIdx),
-                            Integer.parseInt(s.substring(lastColonIdx + 1, hyphenIdx)),
-                            Integer.parseInt(s.substring(hyphenIdx + 1))));
+            final String sequence = s.substring(0, lastColonIdx);
+            final int start = parseIntOrThrowFormatException(s.substring(lastColonIdx + 1, hyphenIdx),
+                    () -> "invalid start position in '" + s + "'");
+            final int stop = parseIntOrThrowFormatException(s.substring(hyphenIdx + 1),
+                    () -> "invalid stop position in '" + s + "'");
+            intervals.add(new Interval(sequence, start, stop));
         }
         return intervals;
+    }
+
+    private static int parseIntOrThrowFormatException(final String str, final Supplier<String> exceptionMessage) {
+        try {
+            return Integer.parseInt(str);
+        } catch (final NumberFormatException ex) {
+            throw new FormatException(exceptionMessage.get());
+        }
     }
 }
