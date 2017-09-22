@@ -22,9 +22,11 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.OverlapDetector;
 import htsjdk.tribble.FeatureCodecHeader;
+import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.readers.AsciiLineReader;
 import htsjdk.tribble.readers.AsciiLineReaderIterator;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -36,6 +38,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -51,6 +54,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.seqdoop.hadoop_bam.util.MurmurHash3;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** The key is the bitwise OR of the chromosome index in the upper 32 bits
  * and the 0-based leftmost coordinate in the lower.
@@ -62,6 +67,31 @@ import org.seqdoop.hadoop_bam.util.MurmurHash3;
 public class VCFRecordReader
 	extends RecordReader<LongWritable,VariantContextWritable>
 {
+
+	private static final Logger logger = LoggerFactory.getLogger(VCFRecordReader.class);
+    
+	/** A String property corresponding to a ValidationStringency
+	 * value. If set, the given stringency is used when any part of the
+	 * Hadoop-BAM library reads VCF.
+	 */
+	public static final String VALIDATION_STRINGENCY_PROPERTY =
+		"hadoopbam.vcfrecordreader.validation-stringency";
+
+	static ValidationStringency getValidationStringency(
+		final Configuration conf)
+	{
+		final String p = conf.get(VALIDATION_STRINGENCY_PROPERTY);
+		return p == null ? ValidationStringency.STRICT : ValidationStringency.valueOf(p);
+	}
+
+	public static void setValidationStringency(
+		final Configuration conf,
+		final ValidationStringency stringency)
+	{
+		conf.set(VALIDATION_STRINGENCY_PROPERTY, stringency.toString());
+	}
+
+    
 	private final LongWritable          key = new LongWritable();
 	private final VariantContextWritable vc = new VariantContextWritable();
 
@@ -76,6 +106,8 @@ public class VCFRecordReader
 	private List<Interval> intervals;
 	private OverlapDetector<Interval> overlapDetector;
 
+	private ValidationStringency stringency;
+    
 	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
 		throws IOException
 	{
@@ -117,6 +149,8 @@ public class VCFRecordReader
 		if (intervals != null) {
 			overlapDetector = OverlapDetector.create(intervals);
 		}
+
+                stringency = VCFRecordReader.getValidationStringency(ctx.getConfiguration());
 	}
 	@Override public void close() throws IOException { lineRecordReader.close(); }
 
@@ -140,7 +174,24 @@ public class VCFRecordReader
 				}
 			}
 
-			final VariantContext v = codec.decode(line);
+                        final VariantContext v;
+                        try {
+				v = codec.decode(line);
+			} catch (TribbleException e) {
+				if (stringency == ValidationStringency.STRICT) {
+					if (logger.isErrorEnabled()) {
+						logger.error("Parsing line {} failed with {}.", line, e);
+					}
+					throw e;
+				} else {
+					if (stringency == ValidationStringency.LENIENT &&
+                                            logger.isWarnEnabled()) {
+						logger.warn("Parsing line {} failed with {}. Skipping...",
+                                                            line, e);
+					}
+					continue;
+				}
+			}
 
 			if (!overlaps(v)) {
 				continue;
