@@ -46,7 +46,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.seqdoop.hadoop_bam.util.FileFormatUtils;
+import org.seqdoop.hadoop_bam.util.IntervalUtil;
 import org.seqdoop.hadoop_bam.util.NIOFileUtil;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
@@ -180,7 +180,7 @@ public class BAMInputFormat
 	}
 
 	static List<Interval> getIntervals(Configuration conf) {
-		return FileFormatUtils.getIntervals(conf, INTERVALS_PROPERTY);
+		return IntervalUtil.getIntervals(conf, INTERVALS_PROPERTY);
 	}
 
 	static Path getIdxPath(Path path) {
