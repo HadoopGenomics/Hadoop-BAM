@@ -66,7 +66,8 @@ public class BAMRecordReader
 	private static final Logger logger = LoggerFactory.getLogger(BAMRecordReader.class);
 	private final LongWritable key = new LongWritable();
 	private final SAMRecordWritable record = new SAMRecordWritable();
-
+	private BAMFileReader bamFileReader;
+    
 	private CloseableIterator<SAMRecord> iterator;
 	private boolean reachedEnd;
 	private WrapSeekable<FSDataInputStream> in;
@@ -154,7 +155,7 @@ public class BAMRecordReader
 
 		SamReader.PrimitiveSamReader primitiveSamReader =
 				((SamReader.PrimitiveSamReaderToSamReaderAdapter) samReader).underlyingReader();
-		BAMFileReader bamFileReader = (BAMFileReader) primitiveSamReader;
+		bamFileReader = (BAMFileReader) primitiveSamReader;
 
 		if (logger.isDebugEnabled()) {
 			final long recordStart = virtualStart & 0xffff;
@@ -198,7 +199,9 @@ public class BAMRecordReader
 		return readerFactory.open(resource);
 	}
 
-	@Override public void close() throws IOException { iterator.close(); }
+	@Override public void close() throws IOException {
+		bamFileReader.close();
+        }
 
 	/** Unless the end has been reached, this only takes file position into
 	 * account, not the position within the block.
