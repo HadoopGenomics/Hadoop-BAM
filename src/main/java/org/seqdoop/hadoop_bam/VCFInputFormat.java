@@ -61,6 +61,7 @@ import htsjdk.samtools.seekablestream.SeekableStream;
 
 import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec;
 import org.seqdoop.hadoop_bam.util.BGZFCodec;
+import org.seqdoop.hadoop_bam.util.IntervalUtil;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,18 +104,7 @@ public class VCFInputFormat
 	}
 
 	static List<Interval> getIntervals(Configuration conf) {
-		String intervalsProperty = conf.get(INTERVALS_PROPERTY);
-		if (intervalsProperty == null) {
-			return null;
-		}
-		List<Interval> intervals = new ArrayList<Interval>();
-		for (String s : intervalsProperty.split(",")) {
-			String[] parts = s.split(":|-");
-			Interval interval =
-					new Interval(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
-			intervals.add(interval);
-		}
-		return intervals;
+		return IntervalUtil.getIntervals(conf, INTERVALS_PROPERTY);
 	}
 
 	private final Map<Path,VCFFormat> formatMap;
