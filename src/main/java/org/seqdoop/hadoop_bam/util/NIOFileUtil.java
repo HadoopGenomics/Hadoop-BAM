@@ -68,7 +68,7 @@ public class NIOFileUtil {
       }
       @Override
       public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-        Files.delete(dir);
+        Files.deleteIfExists(dir);
         return FileVisitResult.CONTINUE;
       }
     });
