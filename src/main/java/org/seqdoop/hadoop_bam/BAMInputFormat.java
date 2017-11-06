@@ -111,6 +111,13 @@ public class BAMInputFormat
 	public static final String TRAVERSE_UNPLACED_UNMAPPED_PROPERTY = "hadoopbam.bam.traverse-unplaced-unmapped";
 
 	/**
+	 * If set to true, use the Intel inflater for decompressing DEFLATE compressed streams.
+	 * If set, the <a href="https://github.com/Intel-HLS/GKL">GKL library</a> must be
+	 * provided on the classpath.
+	 */
+	public static final String USE_INTEL_INFLATER_PROPERTY = "hadoopbam.bam.use-intel-inflater";
+
+	/**
 	 * Only include reads that overlap the given intervals. Unplaced unmapped reads are not
 	 * included.
 	 * @param conf the Hadoop configuration to set properties on
@@ -181,6 +188,10 @@ public class BAMInputFormat
 
 	static List<Interval> getIntervals(Configuration conf) {
 		return IntervalUtil.getIntervals(conf, INTERVALS_PROPERTY);
+	}
+
+	static boolean useIntelInflater(Configuration conf) {
+		return conf.getBoolean(USE_INTEL_INFLATER_PROPERTY, false);
 	}
 
 	static Path getIdxPath(Path path) {

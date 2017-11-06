@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
@@ -80,7 +81,7 @@ public abstract class BAMRecordWriter<K>
 	{
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
+			header, writeHeader, BAMOutputFormat.useIntelDeflater(ctx.getConfiguration()));
 		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
 			Path splittingIndex = BAMInputFormat.getIdxPath(output);
 			OutputStream splittingIndexOutput =
@@ -110,15 +111,22 @@ public abstract class BAMRecordWriter<K>
 	{
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
+			header, writeHeader, BAMOutputFormat.useIntelDeflater(ctx.getConfiguration()));
 	}
 	private void init(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
+			OutputStream output, SAMFileHeader header, boolean writeHeader,
+			boolean useIntelDeflater)
 		throws IOException
 	{
 		origOutput = output;
 
-		compressedOut = new BlockCompressedOutputStream(origOutput, null);
+		if (useIntelDeflater) {
+			compressedOut = new BlockCompressedOutputStream(origOutput, null,
+					BlockCompressedStreamConstants.DEFAULT_COMPRESSION_LEVEL,
+					IntelGKLAccessor.newDeflaterFactory());
+		} else {
+			compressedOut = new BlockCompressedOutputStream(origOutput, null);
+		}
 
 		binaryCodec = new BinaryCodec(compressedOut);
 		recordCodec = new BAMRecordCodec(header);
