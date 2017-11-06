@@ -34,7 +34,6 @@ import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.Interval;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -140,12 +139,13 @@ public class BAMRecordReader
 		final FileSystem       fs    = file.getFileSystem(conf);
 
 		ValidationStringency stringency = SAMHeaderReader.getValidationStringency(conf);
+		boolean useIntelInflater = BAMInputFormat.useIntelInflater(conf);
 
 		java.nio.file.Path index = SamFiles.findIndex(NIOFileUtil.asPath(fs.makeQualified(file).toUri()));
 		Path fileIndex = index == null ? null : new Path(index.toUri());
 		SeekableStream indexStream = fileIndex == null ? null : WrapSeekable.openPath(fs, fileIndex);
 		in = WrapSeekable.openPath(fs, file);
-		SamReader samReader = createSamReader(in, indexStream, stringency);
+		SamReader samReader = createSamReader(in, indexStream, stringency, useIntelInflater);
 		final SAMFileHeader header = samReader.getFileHeader();
 
 		long virtualStart = split.getStartVirtualOffset();
@@ -184,7 +184,7 @@ public class BAMRecordReader
 	}
 
 	private SamReader createSamReader(SeekableStream in, SeekableStream inIndex,
-			ValidationStringency stringency) {
+			ValidationStringency stringency, boolean useIntelInflater) {
 		SamReaderFactory readerFactory = SamReaderFactory.makeDefault()
 				.setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
 				.setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
@@ -195,6 +195,9 @@ public class BAMRecordReader
 		SamInputResource resource = SamInputResource.of(in);
 		if (inIndex != null) {
 			resource.index(inIndex);
+		}
+		if (useIntelInflater) {
+			readerFactory.inflaterFactory(IntelGKLAccessor.newInflatorFactor());
 		}
 		return readerFactory.open(resource);
 	}
