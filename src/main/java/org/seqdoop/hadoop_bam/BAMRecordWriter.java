@@ -88,6 +88,12 @@ public abstract class BAMRecordWriter<K>
 			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
 		}
 	}
+
+	/**
+	 * @deprecated This constructor has no {@link TaskAttemptContext} so it is not
+	 * possible to pass configuration properties to the writer.
+	 */
+	@Deprecated
 	public BAMRecordWriter(
 			OutputStream output, SAMFileHeader header, boolean writeHeader)
 		throws IOException
