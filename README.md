@@ -9,7 +9,8 @@ Build status
 ------------
 [![Build Status](https://travis-ci.org/HadoopGenomics/Hadoop-BAM.svg?branch=master)](https://travis-ci.org/HadoopGenomics/Hadoop-BAM)
 [![Coverage Status](https://coveralls.io/repos/github/HadoopGenomics/Hadoop-BAM/badge.svg?branch=master)](https://coveralls.io/github/HadoopGenomics/Hadoop-BAM?branch=master)
-
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.seqdoop/hadoop-bam/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.seqdoop/hadoop-bam)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The [file formats](http://samtools.github.io/hts-specs/) currently supported are:
 
