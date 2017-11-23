@@ -23,9 +23,10 @@
 package org.seqdoop.hadoop_bam;
 
 import htsjdk.samtools.BAMFileSpan;
+import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileSpan;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMUtils;
+import htsjdk.samtools.SAMRecordHelper;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -58,6 +59,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
 	private       BlockCompressedInputStream bgzf;
 	private final BAMRecordCodec             bamCodec;
 	private final int                        referenceSequenceCount;
+	private final SAMFileHeader              header;
 
 	// We want to go through this many BGZF blocks fully, checking that they
 	// contain valid BAM records, when guessing a BAM record position.
@@ -94,9 +96,8 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
 	{
 		inFile = ss;
 
-		referenceSequenceCount =
-			SAMHeaderReader.readSAMHeaderFrom(headerStream, conf)
-			.getSequenceDictionary().size();
+		header = SAMHeaderReader.readSAMHeaderFrom(headerStream, conf);
+		referenceSequenceCount = header.getSequenceDictionary().size();
 
 		bamCodec = new BAMRecordCodec(null, new LazyBAMRecordFactory());
 	}
@@ -186,7 +187,8 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
 						if (record == null) {
 							break;
 						}
-						record.getCigar(); // force decoding of CIGAR
+						record.setHeaderStrict(header);
+						SAMRecordHelper.eagerDecode(record); // force decoding of fields
 						decodedAny = true;
 
 						final int cp2 = (int)(bgzf.getFilePointer() >>> 16);
@@ -211,6 +213,7 @@ public class BAMSplitGuesser extends BaseSplitGuesser {
                                   catch (SAMFormatException     e) { continue; }
 				  catch (OutOfMemoryError       e) { continue; }
 				  catch (IllegalArgumentException e) { continue; }
+				  catch (IndexOutOfBoundsException e) { continue; }
 				  catch (RuntimeIOException     e) { continue; }
 				  // EOF can happen legitimately if the [beg,end) range is too
 				  // small to accommodate BLOCKS_NEEDED_FOR_GUESS and we get cut
