@@ -22,7 +22,6 @@ package org.seqdoop.hadoop_bam;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.util.Interval;
 import htsjdk.variant.vcf.VCFFileReader;
 import java.io.File;
@@ -87,9 +86,8 @@ public class TestVCFInputFormat {
                 new Interval("chr1", 2700000, 2800000)}, // chosen to fall in one split
             {"HiSeq.10000.vcf.bgz", NUM_SPLITS.MORE_THAN_ONE, null},
             {"HiSeq.10000.vcf.bgz", NUM_SPLITS.EXACTLY_ONE,
-             new Interval("chr1", 2700000, 2800000)}, // chosen to fall in one split
-            {"small_snpeff.vcf", NUM_SPLITS.ANY, null}
-          });
+                new Interval("chr1", 2700000, 2800000)} // chosen to fall in one split
+        });
     }
 
     @Before
@@ -102,10 +100,6 @@ public class TestVCFInputFormat {
             BGZFCodec.class.getCanonicalName());
         conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
 
-        if (filename == "small_snpeff.vcf") {
-            VCFRecordReader.setValidationStringency(conf, ValidationStringency.SILENT);
-        }
-        
         if (interval != null) {
             VCFInputFormat.setIntervals(conf, ImmutableList.of(interval));
         }
@@ -136,21 +130,16 @@ public class TestVCFInputFormat {
 
     @Test
     public void countEntries() throws Exception {
-        int expectedCount;
-        if (filename != "small_snpeff.vcf") {
-            VCFFileReader vcfFileReader =
-                new VCFFileReader(new File("src/test/resources/" + filename), false);
-            Iterator<VariantContext> variantIterator;
-            if (interval == null) {
-                variantIterator = vcfFileReader.iterator();
-            } else {
-                variantIterator = vcfFileReader.query(interval.getContig(),
-                                                      interval.getStart(), interval.getEnd());
-            }
-            expectedCount = Iterators.size(variantIterator);
+        VCFFileReader vcfFileReader =
+            new VCFFileReader(new File("src/test/resources/" + filename), false);
+        Iterator<VariantContext> variantIterator;
+        if (interval == null) {
+            variantIterator = vcfFileReader.iterator();
         } else {
-            expectedCount = 4;
+            variantIterator = vcfFileReader.query(interval.getContig(),
+                interval.getStart(), interval.getEnd());
         }
+        int expectedCount = Iterators.size(variantIterator);
 
         int counter = 0;
         for (RecordReader<LongWritable, VariantContextWritable> reader : readers) {
