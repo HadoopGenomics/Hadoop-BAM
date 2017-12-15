@@ -157,7 +157,7 @@ public class FastqOutputFormat extends TextOutputFormat<Text, SequencedFragment>
 		boolean isCompressed = getCompressOutput(task);
 
 		CompressionCodec codec = null;
-		String extension = "";
+		String extension = ".fastq";
 
 		if (isCompressed)
 		{
