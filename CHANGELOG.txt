@@ -1,3 +1,12 @@
+2017-12-18 --- 7.9.1
+   - Upgrade to htsjdk 2.13.2.
+   - Require at least mvn 3.3.9.
+   - Support specifying validation stringency in VCFRecordReader. (Thanks Frank Nothaft)
+   - Improve BAM split guessing by decoding all fields of three next records.
+   - Handle hg38 contig names. (Thanks Valentin Ruano Rubio)
+   - Close all BAM-related I/O resources in BAMRecordReader. (Thanks Frank Nothaft)
+   - Fix NIOFileUtil.deleteRecursive to only delete directory if it exists.
+
 2017-09-06 --- 7.9.0
    - Upgrade to htsjdk 2.11.0.
    - Fix FastaInputFormat infinite loop. (Thanks Ryan Williams)
