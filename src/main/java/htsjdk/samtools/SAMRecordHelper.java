@@ -5,7 +5,7 @@ package htsjdk.samtools;
  * {@link SAMRecord#eagerDecode()} method in HTSJDK.
  */
 public class SAMRecordHelper {
-  public static void eagerDecode(SAMRecord record) {
-    record.eagerDecode();
-  }
+    public static void eagerDecode(SAMRecord record) {
+        record.eagerDecode();
+    }
 }

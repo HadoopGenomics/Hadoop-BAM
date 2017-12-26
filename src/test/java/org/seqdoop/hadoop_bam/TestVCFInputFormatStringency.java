@@ -35,6 +35,7 @@ import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Test;
 
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
@@ -58,7 +59,7 @@ public class TestVCFInputFormatStringency {
         List<InputSplit> splits = inputFormat.getSplits(ctx);
         assertEquals(1, splits.size());
         RecordReader<LongWritable, VariantContextWritable> reader =
-            inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
+                inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
         int counter = 0;
         while (reader.nextKeyValue()) {
             VariantContextWritable writable = reader.getCurrentValue();

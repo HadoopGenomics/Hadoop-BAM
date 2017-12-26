@@ -41,76 +41,75 @@ import org.seqdoop.hadoop_bam.SAMRecordWritable;
 /**
  * Simple example that reads a BAM (or SAM) file, groups reads by their name and writes the
  * output again as BAM file. Note that both the file and its index must be present.
- *
+ * <p>
  * Usage: hadoop jar target/*-jar-with-dependencies.jar org.seqdoop.hadoop_bam.examples.TestBAM \
- *     <input.bam> <output_directory>
+ * <input.bam> <output_directory>
  */
 public class TestBAM extends Configured implements Tool {
 
-  static class MyOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
-      public final static String HEADER_FROM_FILE = "TestBAM.header";
+    static class MyOutputFormat extends KeyIgnoringBAMOutputFormat<NullWritable> {
+        public final static String HEADER_FROM_FILE = "TestBAM.header";
 
-      @Override
-      public RecordWriter<NullWritable, SAMRecordWritable> getRecordWriter(TaskAttemptContext ctx) throws IOException {
-          final Configuration conf = ctx.getConfiguration();
-          readSAMHeaderFrom(new Path(conf.get(HEADER_FROM_FILE)), conf);
-          return super.getRecordWriter(ctx);
-      }
-  }
-
-  public int run(String[] args) throws Exception {
-      final Configuration conf = getConf();
-
-      conf.set(MyOutputFormat.HEADER_FROM_FILE, args[0]);
-
-      final Job job = new Job(conf);
-
-      job.setJarByClass(TestBAM.class);
-      job.setMapperClass (TestBAMMapper.class);
-      job.setReducerClass(TestBAMReducer.class);
-
-      job.setMapOutputKeyClass(Text.class);
-      job.setMapOutputValueClass(SAMRecordWritable.class);
-      job.setOutputKeyClass(Text.class);
-      job.setOutputValueClass (SAMRecordWritable.class);
-
-      job.setInputFormatClass(AnySAMInputFormat.class);
-      job.setOutputFormatClass(TestBAM.MyOutputFormat.class);
-
-      org.apache.hadoop.mapreduce.lib.input.FileInputFormat.addInputPath(job, new Path(args[0]));
-
-      org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.setOutputPath(job, new Path(args[1]));
-      job.submit();
-
-      if (!job.waitForCompletion(true)) {
-          System.err.println("sort :: Job failed.");
-          return 1;
-      }
-
-    return 0;
-  }
-  
-  
-  public static void main(String[] args) throws Exception {
-    if (args.length != 2) {
-        System.out.printf("Usage: hadoop jar <name.jar> %s <input.bam> <output_directory>\n", TestBAM.class.getCanonicalName());
-        System.exit(0);
+        @Override
+        public RecordWriter<NullWritable, SAMRecordWritable> getRecordWriter(TaskAttemptContext ctx) throws IOException {
+            final Configuration conf = ctx.getConfiguration();
+            readSAMHeaderFrom(new Path(conf.get(HEADER_FROM_FILE)), conf);
+            return super.getRecordWriter(ctx);
+        }
     }
 
-    int res = ToolRunner.run(new Configuration(), new TestBAM(), args);
-    System.exit(res);
-  }
+    public int run(String[] args) throws Exception {
+        final Configuration conf = getConf();
+
+        conf.set(MyOutputFormat.HEADER_FROM_FILE, args[0]);
+
+        final Job job = new Job(conf);
+
+        job.setJarByClass(TestBAM.class);
+        job.setMapperClass(TestBAMMapper.class);
+        job.setReducerClass(TestBAMReducer.class);
+
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(SAMRecordWritable.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(SAMRecordWritable.class);
+
+        job.setInputFormatClass(AnySAMInputFormat.class);
+        job.setOutputFormatClass(TestBAM.MyOutputFormat.class);
+
+        org.apache.hadoop.mapreduce.lib.input.FileInputFormat.addInputPath(job, new Path(args[0]));
+
+        org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        job.submit();
+
+        if (!job.waitForCompletion(true)) {
+            System.err.println("sort :: Job failed.");
+            return 1;
+        }
+
+        return 0;
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.out.printf("Usage: hadoop jar <name.jar> %s <input.bam> <output_directory>\n", TestBAM.class.getCanonicalName());
+            System.exit(0);
+        }
+
+        int res = ToolRunner.run(new Configuration(), new TestBAM(), args);
+        System.exit(res);
+    }
 }
 
 final class TestBAMMapper
-        extends org.apache.hadoop.mapreduce.Mapper<LongWritable,SAMRecordWritable, Text,SAMRecordWritable>
-{
-    @Override protected void map(
+        extends org.apache.hadoop.mapreduce.Mapper<LongWritable, SAMRecordWritable, Text, SAMRecordWritable> {
+    @Override
+    protected void map(
             LongWritable ignored, SAMRecordWritable wrec,
-            org.apache.hadoop.mapreduce.Mapper<LongWritable,SAMRecordWritable, Text,SAMRecordWritable>.Context
+            org.apache.hadoop.mapreduce.Mapper<LongWritable, SAMRecordWritable, Text, SAMRecordWritable>.Context
                     ctx)
-            throws InterruptedException, IOException
-    {
+            throws InterruptedException, IOException {
         final SAMRecord record = wrec.get();
         System.out.println(record.toString());
         ctx.write(new Text(wrec.get().getReadName()), wrec);
@@ -118,7 +117,7 @@ final class TestBAMMapper
 }
 
 final class TestBAMReducer
-        extends org.apache.hadoop.mapreduce.Reducer<Text,SAMRecordWritable, Text,SAMRecordWritable> {
+        extends org.apache.hadoop.mapreduce.Reducer<Text, SAMRecordWritable, Text, SAMRecordWritable> {
 
     @Override
     protected void reduce(

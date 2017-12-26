@@ -131,7 +131,7 @@ public class TestCRAMOutputFormat {
 
         // now verify the container stream
         final int actualCount = getCRAMRecordCount(outFile, samFileHeader,
-            testReferenceSource);
+                testReferenceSource);
         assertEquals(expectedRecordCount, actualCount);
     }
 
@@ -170,7 +170,7 @@ public class TestCRAMOutputFormat {
         final File outFile = File.createTempFile("testCRAMWriter", ".cram");
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
-            SAMFormat.CRAM, samFileHeader);
+                SAMFormat.CRAM, samFileHeader);
         final File containerStreamFile =
                 new File(new File(outputPath.toUri()), "part-m-00000");
         final int actualCount = getCRAMRecordCount(outFile);
@@ -186,14 +186,14 @@ public class TestCRAMOutputFormat {
         final File outFile = File.createTempFile("testCRAMWriter", ".cram");
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
-            SAMFormat.CRAM, samFileHeader);
+                SAMFormat.CRAM, samFileHeader);
 
         // now use the assembled output as m/r input
         outputPath = doMapReduce(outFile.getAbsolutePath());
 
         // merge the parts again
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
-            SAMFormat.CRAM, samFileHeader);
+                SAMFormat.CRAM, samFileHeader);
 
         // verify the final output
         final int actualCount = getCRAMRecordCount(outFile);
@@ -229,9 +229,9 @@ public class TestCRAMOutputFormat {
 
     private int getCRAMRecordCount(final File cramFile) {
         final CRAMFileReader cramReader =
-            new CRAMFileReader(cramFile,
-                (File)null,
-                testReferenceSource);
+                new CRAMFileReader(cramFile,
+                        (File) null,
+                        testReferenceSource);
         final Iterator<SAMRecord> it = cramReader.getIterator();
         int recCount = 0;
         while (it.hasNext()) {
@@ -243,24 +243,23 @@ public class TestCRAMOutputFormat {
     }
 
     private int getCRAMRecordCount(
-        final File containerStreamFile,
-        final SAMFileHeader header,
-        final ReferenceSource refSource) throws IOException
-    {
+            final File containerStreamFile,
+            final SAMFileHeader header,
+            final ReferenceSource refSource) throws IOException {
         // assemble a proper CRAM file from the container stream shard(s) in
         // order to verify the contents
-        final ByteArrayInputStream mergedStream = mergeCRAMContainerStream (
-            containerStreamFile,
-            header,
-            refSource
+        final ByteArrayInputStream mergedStream = mergeCRAMContainerStream(
+                containerStreamFile,
+                header,
+                refSource
         );
 
         // now we can verify that we can read everything back in
         final CRAMFileReader resultCRAMReader = new CRAMFileReader(
-            mergedStream,
-            (SeekableStream) null,
-            refSource,
-            ValidationStringency.DEFAULT_STRINGENCY);
+                mergedStream,
+                (SeekableStream) null,
+                refSource,
+                ValidationStringency.DEFAULT_STRINGENCY);
         final Iterator<SAMRecord> it = resultCRAMReader.getIterator();
         int actualCount = 0;
         while (it.hasNext()) {
@@ -278,18 +277,17 @@ public class TestCRAMOutputFormat {
     // for each output type in one place in a separate PR
     // https://github.com/HadoopGenomics/Hadoop-BAM/issues/61
     private ByteArrayInputStream mergeCRAMContainerStream(
-        final File containerStreamFile,
-        final SAMFileHeader header,
-        final ReferenceSource refSource) throws IOException
-    {
+            final File containerStreamFile,
+            final SAMFileHeader header,
+            final ReferenceSource refSource) throws IOException {
         // assemble a proper CRAM file from the container stream shard(s) in
         // order to verify the contents
         final ByteArrayOutputStream cramOutputStream = new ByteArrayOutputStream();
         // write out the cram file header
         new SAMOutputPreparer().prepareForRecords(
-            cramOutputStream,
-            SAMFormat.CRAM,
-            header);
+                cramOutputStream,
+                SAMFormat.CRAM,
+                header);
         // now copy the contents of the container stream shard(s) written out by
         // the M/R job
         final ByteArrayOutputStream containerOutputStream = new ByteArrayOutputStream();
@@ -299,12 +297,12 @@ public class TestCRAMOutputFormat {
         // use containerStreamWriter directly to properly terminate the output
         // stream with an EOF container
         final CRAMContainerStreamWriter containerStreamWriter =
-            new CRAMContainerStreamWriter(
-                cramOutputStream,
-                null,
-                refSource,
-                header,
-                "CRAMTest");
+                new CRAMContainerStreamWriter(
+                        cramOutputStream,
+                        null,
+                        refSource,
+                        header,
+                        "CRAMTest");
         containerStreamWriter.finish(true); // close and write an EOF container
         cramOutputStream.close();
 

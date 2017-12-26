@@ -66,7 +66,7 @@ public class TestVCFRoundTrip {
 
     // VCF output format that writes a header before records
     static class VCFTestWithHeaderOutputFormat
-        extends KeyIgnoringVCFOutputFormat<NullWritable> {
+            extends KeyIgnoringVCFOutputFormat<NullWritable> {
         public final static String READ_HEADER_FROM_FILE = "TestVCF.header";
 
         public VCFTestWithHeaderOutputFormat() {
@@ -75,7 +75,7 @@ public class TestVCFRoundTrip {
 
         @Override
         public RecordWriter<NullWritable, VariantContextWritable> getRecordWriter(
-            TaskAttemptContext ctx) throws IOException {
+                TaskAttemptContext ctx) throws IOException {
             Path vcfPath = new Path(conf.get(READ_HEADER_FROM_FILE));
             readHeaderFrom(vcfPath, vcfPath.getFileSystem(conf));
             return super.getRecordWriter(ctx);
@@ -84,7 +84,7 @@ public class TestVCFRoundTrip {
 
     // VCF output format that doesn't write a header before records
     static class VCFTestNoHeaderOutputFormat
-        extends KeyIgnoringVCFOutputFormat<NullWritable> {
+            extends KeyIgnoringVCFOutputFormat<NullWritable> {
         public final static String READ_HEADER_FROM_FILE = "TestVCF.header";
 
         public VCFTestNoHeaderOutputFormat() {
@@ -93,7 +93,7 @@ public class TestVCFRoundTrip {
 
         @Override
         public RecordWriter<NullWritable, VariantContextWritable> getRecordWriter(
-            TaskAttemptContext ctx) throws IOException {
+                TaskAttemptContext ctx) throws IOException {
             Path vcfPath = new Path(conf.get(READ_HEADER_FROM_FILE));
             readHeaderFrom(vcfPath, vcfPath.getFileSystem(conf));
             ctx.getConfiguration().setBoolean(WRITE_HEADER_PROPERTY, false);
@@ -104,14 +104,14 @@ public class TestVCFRoundTrip {
     @Parameterized.Parameters
     public static Collection<Object> data() {
         return Arrays.asList(new Object[][] {
-            {"test.vcf", null, NUM_SPLITS.ANY},
-            {"test.vcf.gz", BGZFEnhancedGzipCodec.class, NUM_SPLITS.EXACTLY_ONE},
-            {"test.vcf.bgzf.gz", BGZFCodec.class, NUM_SPLITS.ANY},
-            {"test.vcf.bgz", BGZFCodec.class, NUM_SPLITS.ANY},
-            {"HiSeq.10000.vcf", null, NUM_SPLITS.MORE_THAN_ONE},
-            {"HiSeq.10000.vcf.gz", BGZFEnhancedGzipCodec.class, NUM_SPLITS.EXACTLY_ONE},
-            {"HiSeq.10000.vcf.bgzf.gz", BGZFCodec.class, NUM_SPLITS.MORE_THAN_ONE},
-            {"HiSeq.10000.vcf.bgz", BGZFCodec.class, NUM_SPLITS.MORE_THAN_ONE}
+                { "test.vcf", null, NUM_SPLITS.ANY },
+                { "test.vcf.gz", BGZFEnhancedGzipCodec.class, NUM_SPLITS.EXACTLY_ONE },
+                { "test.vcf.bgzf.gz", BGZFCodec.class, NUM_SPLITS.ANY },
+                { "test.vcf.bgz", BGZFCodec.class, NUM_SPLITS.ANY },
+                { "HiSeq.10000.vcf", null, NUM_SPLITS.MORE_THAN_ONE },
+                { "HiSeq.10000.vcf.gz", BGZFEnhancedGzipCodec.class, NUM_SPLITS.EXACTLY_ONE },
+                { "HiSeq.10000.vcf.bgzf.gz", BGZFCodec.class, NUM_SPLITS.MORE_THAN_ONE },
+                { "HiSeq.10000.vcf.bgz", BGZFCodec.class, NUM_SPLITS.MORE_THAN_ONE }
         });
     }
 
@@ -122,7 +122,7 @@ public class TestVCFRoundTrip {
     private NUM_SPLITS expectedSplits;
 
     public TestVCFRoundTrip(String filename, Class<? extends CompressionCodec> codecClass,
-        NUM_SPLITS expectedSplits) {
+                            NUM_SPLITS expectedSplits) {
         testVCFFileName = ClassLoader.getSystemClassLoader().getResource(filename).getFile();
         this.codecClass = codecClass;
         this.expectedSplits = expectedSplits;
@@ -133,7 +133,7 @@ public class TestVCFRoundTrip {
         conf = new Configuration();
         conf.set(VCFTestWithHeaderOutputFormat.READ_HEADER_FROM_FILE, testVCFFileName);
         conf.setStrings("io.compression.codecs", BGZFCodec.class.getCanonicalName(),
-            BGZFEnhancedGzipCodec.class.getCanonicalName());
+                BGZFEnhancedGzipCodec.class.getCanonicalName());
         conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
     }
 
@@ -152,18 +152,19 @@ public class TestVCFRoundTrip {
         int splits = 0;
         List<VariantContext> actualVariants = new ArrayList<>();
         File[] vcfFiles = new File(outputPath.toUri()).listFiles(
-            pathname -> (!pathname.getName().startsWith(".") &&
-                !pathname.getName().startsWith("_")));
+                pathname -> (!pathname.getName().startsWith(".") &&
+                        !pathname.getName().startsWith("_")));
         Arrays.sort(vcfFiles); // ensure files are sorted by name
         for (File vcf : vcfFiles) {
             splits++;
             Iterators.addAll(actualVariants, parseVcf(vcf).iterator());
             if (BGZFCodec.class.equals(codecClass)) {
                 assertTrue(BlockCompressedInputStream.isValidFile(
-                    new BufferedInputStream(new FileInputStream(vcf))));
-            } else if (BGZFEnhancedGzipCodec.class.equals(codecClass)) {
+                        new BufferedInputStream(new FileInputStream(vcf))));
+            }
+            else if (BGZFEnhancedGzipCodec.class.equals(codecClass)) {
                 assertTrue(VCFFormat.isGzip(
-                    new BufferedInputStream(new FileInputStream(vcf))));
+                        new BufferedInputStream(new FileInputStream(vcf))));
             }
         }
 
@@ -181,12 +182,12 @@ public class TestVCFRoundTrip {
 
         // use a VariantContextComparator to check variants are equal
         VCFHeader vcfHeader = VCFHeaderReader.readHeaderFrom(new SeekableFileStream(new
-            File(testVCFFileName)));
+                File(testVCFFileName)));
         VariantContextComparator vcfRecordComparator = vcfHeader.getVCFRecordComparator();
         assertEquals(expectedVariants.size(), actualVariants.size());
         for (int i = 0; i < expectedVariants.size(); i++) {
             assertEquals(0, vcfRecordComparator.compare(expectedVariants.get(i),
-                actualVariants.get(i)));
+                    actualVariants.get(i)));
         }
     }
 
@@ -199,12 +200,12 @@ public class TestVCFRoundTrip {
 
         // merge the output
         VCFHeader vcfHeader = VCFHeaderReader.readHeaderFrom(new SeekableFileStream(new
-            File(testVCFFileName)));
+                File(testVCFFileName)));
         final File outFile = File.createTempFile("testVCFWriter",
-            testVCFFileName.substring(testVCFFileName.lastIndexOf(".")));
+                testVCFFileName.substring(testVCFFileName.lastIndexOf(".")));
         outFile.deleteOnExit();
         VCFFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
-            vcfHeader);
+                vcfHeader);
         List<VariantContext> actualVariants = new ArrayList<>();
         VCFFileReader vcfFileReaderActual = parseVcf(outFile);
         Iterators.addAll(actualVariants, vcfFileReaderActual.iterator());
@@ -219,12 +220,12 @@ public class TestVCFRoundTrip {
         assertEquals(expectedVariants.size(), actualVariants.size());
         for (int i = 0; i < expectedVariants.size(); i++) {
             assertEquals(0, vcfRecordComparator.compare(expectedVariants.get(i),
-                actualVariants.get(i)));
+                    actualVariants.get(i)));
         }
     }
 
     private Path doMapReduce(final Path inputPath, final boolean writeHeader)
-        throws Exception {
+            throws Exception {
         final FileSystem fileSystem = FileSystem.get(conf);
         final Path outputPath = fileSystem.makeQualified(new Path("target/out"));
         fileSystem.delete(outputPath, true);
@@ -237,7 +238,7 @@ public class TestVCFRoundTrip {
         job.setMapOutputValueClass(VariantContextWritable.class);
 
         job.setOutputFormatClass(writeHeader ? VCFTestWithHeaderOutputFormat.class :
-            VCFTestNoHeaderOutputFormat.class);
+                VCFTestNoHeaderOutputFormat.class);
         job.setOutputKeyClass(LongWritable.class);
         job.setOutputValueClass(VariantContextWritable.class);
 
@@ -260,7 +261,8 @@ public class TestVCFRoundTrip {
             actualVcf = File.createTempFile(vcf.getName(), ".gz");
             actualVcf.deleteOnExit();
             Files.copy(vcf, actualVcf);
-        } else {
+        }
+        else {
             actualVcf = vcf;
         }
         return new VCFFileReader(actualVcf, false);

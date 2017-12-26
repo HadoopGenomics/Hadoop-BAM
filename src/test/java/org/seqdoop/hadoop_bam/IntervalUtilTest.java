@@ -33,7 +33,8 @@ public class IntervalUtilTest {
             try {
                 IntervalUtil.getIntervals(conf, "prop-name");
                 Assert.fail("expected an exception when dealing with '" + interval + "'");
-            } catch (final FormatException ex) {
+            }
+            catch (final FormatException ex) {
                 // fine.
             }
         }
@@ -42,12 +43,11 @@ public class IntervalUtilTest {
     @Test
     public void testValidIntervals() {
         final Object[][] validIntervals = {
-                {"chr1:1-343", "chr1", 1, 343}, // standard 'chr' starting contig interval.
-                {"chr20_Un:31-145", "chr20_Un", 31, 145}, // standard chromosome name containing underscore.
-                {"X:31-145", "X", 31, 145}, // standard 'X' chromosome interval.
-                {"10:45000012-678901123", "10", 45000012, 678901123},  // standard number starting chromosome name interval.
-                {"HLA-DQA1*01:01:02:134-14151", "HLA-DQA1*01:01:02", 134, 14151}}; // example of a Hg38 assembly
-                                                                                   // HLA contigs including - and : in their names.
+                { "chr1:1-343", "chr1", 1, 343 }, // standard 'chr' starting contig interval.
+                { "chr20_Un:31-145", "chr20_Un", 31, 145 }, // standard chromosome name containing underscore.
+                { "X:31-145", "X", 31, 145 }, // standard 'X' chromosome interval.
+                { "10:45000012-678901123", "10", 45000012, 678901123 },  // standard number starting chromosome name interval.
+                { "HLA-DQA1*01:01:02:134-14151", "HLA-DQA1*01:01:02", 134, 14151 } }; // example of a Hg38 assembly, HLA contigs include - and : in their names.
 
         final Configuration conf = new Configuration();
 

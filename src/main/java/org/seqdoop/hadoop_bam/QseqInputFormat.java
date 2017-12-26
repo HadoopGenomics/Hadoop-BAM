@@ -143,7 +143,7 @@ public class QseqInputFormat extends FileInputFormat<Text, SequencedFragment> {
                 stream.seek(start);
             }
             // else
-            //	if start == 0 we're starting at the beginning of a line
+            // if start == 0 we're starting at the beginning of a line
             pos = start;
         }
 

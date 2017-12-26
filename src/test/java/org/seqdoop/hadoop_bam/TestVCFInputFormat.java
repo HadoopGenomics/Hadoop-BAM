@@ -61,6 +61,7 @@ public class TestVCFInputFormat {
     enum NUM_SPLITS {
         ANY, EXACTLY_ONE, MORE_THAN_ONE
     }
+
     private String filename;
     private NUM_SPLITS expectedSplits;
     private Interval interval;
@@ -77,20 +78,20 @@ public class TestVCFInputFormat {
     @Parameterized.Parameters
     public static Collection<Object> data() {
         return Arrays.asList(new Object[][] {
-            {"test.vcf", NUM_SPLITS.ANY, null},
-            {"test.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
-            {"test.vcf.bgzf.gz", NUM_SPLITS.ANY, null},
-            // BCF tests currently fail due to https://github.com/samtools/htsjdk/issues/507
+                { "test.vcf", NUM_SPLITS.ANY, null },
+                { "test.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null },
+                { "test.vcf.bgzf.gz", NUM_SPLITS.ANY, null },
+                // BCF tests currently fail due to https://github.com/samtools/htsjdk/issues/507
 //            {"test.uncompressed.bcf", NUM_SPLITS.ANY, null},
 //            {"test.bgzf.bcf", NUM_SPLITS.ANY, null},
-            {"HiSeq.10000.vcf", NUM_SPLITS.MORE_THAN_ONE, null},
-            {"HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null},
-            {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE, null},
-            {"HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.EXACTLY_ONE,
-                new Interval("chr1", 2700000, 2800000)}, // chosen to fall in one split
-            {"HiSeq.10000.vcf.bgz", NUM_SPLITS.MORE_THAN_ONE, null},
-            {"HiSeq.10000.vcf.bgz", NUM_SPLITS.EXACTLY_ONE,
-                new Interval("chr1", 2700000, 2800000)} // chosen to fall in one split
+                { "HiSeq.10000.vcf", NUM_SPLITS.MORE_THAN_ONE, null },
+                { "HiSeq.10000.vcf.gz", NUM_SPLITS.EXACTLY_ONE, null },
+                { "HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.MORE_THAN_ONE, null },
+                { "HiSeq.10000.vcf.bgzf.gz", NUM_SPLITS.EXACTLY_ONE,
+                        new Interval("chr1", 2700000, 2800000) }, // chosen to fall in one split
+                { "HiSeq.10000.vcf.bgz", NUM_SPLITS.MORE_THAN_ONE, null },
+                { "HiSeq.10000.vcf.bgz", NUM_SPLITS.EXACTLY_ONE,
+                        new Interval("chr1", 2700000, 2800000) } // chosen to fall in one split
         });
     }
 
@@ -101,7 +102,7 @@ public class TestVCFInputFormat {
         conf.set("hadoopbam.vcf.trust-exts", "true");
         conf.set("mapred.input.dir", "file://" + input_file);
         conf.setStrings("io.compression.codecs", BGZFEnhancedGzipCodec.class.getCanonicalName(),
-            BGZFCodec.class.getCanonicalName());
+                BGZFCodec.class.getCanonicalName());
         conf.setInt(FileInputFormat.SPLIT_MAXSIZE, 100 * 1024); // 100K
 
         if (interval != null) {
@@ -135,13 +136,14 @@ public class TestVCFInputFormat {
     @Test
     public void countEntries() throws Exception {
         VCFFileReader vcfFileReader =
-            new VCFFileReader(new File("src/test/resources/" + filename), false);
+                new VCFFileReader(new File("src/test/resources/" + filename), false);
         Iterator<VariantContext> variantIterator;
         if (interval == null) {
             variantIterator = vcfFileReader.iterator();
-        } else {
+        }
+        else {
             variantIterator = vcfFileReader.query(interval.getContig(),
-                interval.getStart(), interval.getEnd());
+                    interval.getStart(), interval.getEnd());
         }
         int expectedCount = Iterators.size(variantIterator);
 
@@ -166,8 +168,9 @@ public class TestVCFInputFormat {
             return;
         }
         RecordReader<LongWritable, VariantContextWritable> reader = readers.get(0);
-        if (!reader.nextKeyValue())
+        if (!reader.nextKeyValue()) {
             throw new Exception("could not read first VariantContext");
+        }
 
         writable = reader.getCurrentValue();
         assertNotNull(writable);

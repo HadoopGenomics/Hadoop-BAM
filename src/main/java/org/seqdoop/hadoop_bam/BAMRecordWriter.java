@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.io.Writer;
-
+import java.nio.charset.Charset;
 import htsjdk.samtools.BAMRecordCodec;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
@@ -35,134 +35,132 @@ import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SAMTextHeaderCodec;
 import htsjdk.samtools.util.BinaryCodec;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
-
-import java.nio.charset.Charset;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-/** A base {@link RecordWriter} for BAM records.
- *
+/**
+ * A base {@link RecordWriter} for BAM records.
+ * <p>
  * <p>Handles the output stream, writing the header if requested, and provides
  * the {@link #writeAlignment} function for subclasses.</p>
  */
 public abstract class BAMRecordWriter<K>
-	extends RecordWriter<K,SAMRecordWritable>
-{
-	private OutputStream   origOutput;
-	private BinaryCodec    binaryCodec;
-	private BAMRecordCodec recordCodec;
-	private BlockCompressedOutputStream compressedOut;
-	private SplittingBAMIndexer splittingBAMIndexer;
+        extends RecordWriter<K, SAMRecordWritable> {
+    private OutputStream origOutput;
+    private BinaryCodec binaryCodec;
+    private BAMRecordCodec recordCodec;
+    private BlockCompressedOutputStream compressedOut;
+    private SplittingBAMIndexer splittingBAMIndexer;
 
-	/** A SAMFileHeader is read from the input Path. */
-	public BAMRecordWriter(
-			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output,
-			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
-			writeHeader, ctx);
-		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
-			Path splittingIndex = BAMInputFormat.getIdxPath(output);
-			OutputStream splittingIndexOutput =
-					output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
-			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
-		}
-	}
-	public BAMRecordWriter(
-			Path output, SAMFileHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
-			Path splittingIndex = BAMInputFormat.getIdxPath(output);
-			OutputStream splittingIndexOutput =
-					output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
-			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
-		}
-	}
+    /**
+     * A SAMFileHeader is read from the input Path.
+     */
+    public BAMRecordWriter(
+            Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output,
+                SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
+                writeHeader, ctx);
+        if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
+            Path splittingIndex = BAMInputFormat.getIdxPath(output);
+            OutputStream splittingIndexOutput =
+                    output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
+            splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
+        }
+    }
 
-	/**
-	 * @deprecated This constructor has no {@link TaskAttemptContext} so it is not
-	 * possible to pass configuration properties to the writer.
-	 */
-	@Deprecated
-	public BAMRecordWriter(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
-		throws IOException
-	{
-		init(output, header, writeHeader);
-	}
+    public BAMRecordWriter(
+            Path output, SAMFileHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output.getFileSystem(ctx.getConfiguration()).create(output),
+                header, writeHeader);
+        if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
+            Path splittingIndex = BAMInputFormat.getIdxPath(output);
+            OutputStream splittingIndexOutput =
+                    output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
+            splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
+        }
+    }
 
-	// Working around not being able to call a constructor other than as the
-	// first statement...
-	private void init(
-			Path output, SAMFileHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-	}
-	private void init(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
-		throws IOException
-	{
-		origOutput = output;
+    /**
+     * @deprecated This constructor has no {@link TaskAttemptContext} so it is not
+     * possible to pass configuration properties to the writer.
+     */
+    @Deprecated
+    public BAMRecordWriter(
+            OutputStream output, SAMFileHeader header, boolean writeHeader)
+            throws IOException {
+        init(output, header, writeHeader);
+    }
 
-		compressedOut = new BlockCompressedOutputStream(origOutput, null);
+    // Working around not being able to call a constructor other than as the
+    // first statement...
+    private void init(
+            Path output, SAMFileHeader header, boolean writeHeader,
+            TaskAttemptContext ctx)
+            throws IOException {
+        init(
+                output.getFileSystem(ctx.getConfiguration()).create(output),
+                header, writeHeader);
+    }
 
-		binaryCodec = new BinaryCodec(compressedOut);
-		recordCodec = new BAMRecordCodec(header);
-		recordCodec.setOutputStream(compressedOut);
+    private void init(
+            OutputStream output, SAMFileHeader header, boolean writeHeader)
+            throws IOException {
+        origOutput = output;
 
-		if (writeHeader)
-			this.writeHeader(header);
-	}
+        compressedOut = new BlockCompressedOutputStream(origOutput, null);
 
-	@Override public void close(TaskAttemptContext ctx) throws IOException {
-		// Don't close the codec, we don't want BlockCompressedOutputStream's
-		// file terminator to be output. But do flush the stream.
-		binaryCodec.getOutputStream().flush();
+        binaryCodec = new BinaryCodec(compressedOut);
+        recordCodec = new BAMRecordCodec(header);
+        recordCodec.setOutputStream(compressedOut);
 
-		// Finish indexer with file length
-		if (splittingBAMIndexer != null) {
-			splittingBAMIndexer.finish(compressedOut.getFilePointer() >> 16);
-		}
+        if (writeHeader) {
+            this.writeHeader(header);
+        }
+    }
 
-		// And close the original output.
-		origOutput.close();
-	}
+    @Override
+    public void close(TaskAttemptContext ctx) throws IOException {
+        // Don't close the codec, we don't want BlockCompressedOutputStream's
+        // file terminator to be output. But do flush the stream.
+        binaryCodec.getOutputStream().flush();
 
-	protected void writeAlignment(final SAMRecord rec) throws IOException {
-		if (splittingBAMIndexer != null) {
-			splittingBAMIndexer.processAlignment(compressedOut.getFilePointer());
-		}
-		recordCodec.encode(rec);
-	}
+        // Finish indexer with file length
+        if (splittingBAMIndexer != null) {
+            splittingBAMIndexer.finish(compressedOut.getFilePointer() >> 16);
+        }
 
-	private void writeHeader(final SAMFileHeader header) {
-		binaryCodec.writeBytes("BAM\001".getBytes(Charset.forName("UTF8")));
+        // And close the original output.
+        origOutput.close();
+    }
 
-		final Writer sw = new StringWriter();
-		new SAMTextHeaderCodec().encode(sw, header);
+    protected void writeAlignment(final SAMRecord rec) throws IOException {
+        if (splittingBAMIndexer != null) {
+            splittingBAMIndexer.processAlignment(compressedOut.getFilePointer());
+        }
+        recordCodec.encode(rec);
+    }
 
-		binaryCodec.writeString(sw.toString(), true, false);
+    private void writeHeader(final SAMFileHeader header) {
+        binaryCodec.writeBytes("BAM\001".getBytes(Charset.forName("UTF8")));
 
-		final SAMSequenceDictionary dict = header.getSequenceDictionary();
+        final Writer sw = new StringWriter();
+        new SAMTextHeaderCodec().encode(sw, header);
 
-		binaryCodec.writeInt(dict.size());
-		for (final SAMSequenceRecord rec : dict.getSequences()) {
-			binaryCodec.writeString(rec.getSequenceName(), true, true);
-			binaryCodec.writeInt   (rec.getSequenceLength());
-		}
-	}
+        binaryCodec.writeString(sw.toString(), true, false);
+
+        final SAMSequenceDictionary dict = header.getSequenceDictionary();
+
+        binaryCodec.writeInt(dict.size());
+        for (final SAMSequenceRecord rec : dict.getSequences()) {
+            binaryCodec.writeString(rec.getSequenceName(), true, true);
+            binaryCodec.writeInt(rec.getSequenceLength());
+        }
+    }
 }

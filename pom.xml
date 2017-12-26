@@ -21,12 +21,13 @@
   ~ IN THE SOFTWARE.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -35,7 +36,9 @@
     <version>7.9.2-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Hadoop-BAM</name>
-    <description>A Java library for the manipulation of files in common bioinformatics formats using the Hadoop MapReduce framework.</description>
+    <description>A Java library for the manipulation of files in common bioinformatics formats using the Hadoop
+        MapReduce framework.
+    </description>
     <url>http://sourceforge.net/projects/hadoop-bam/</url>
 
     <properties>
@@ -215,7 +218,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
-                  <argLine>-Xms1g -Xmx4g</argLine>
+                    <argLine>-Xms1g -Xmx4g</argLine>
                 </configuration>
             </plugin>
             <plugin>

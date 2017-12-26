@@ -50,21 +50,21 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
 
     public static class FastqRecordReader extends RecordReader<Text, SequencedFragment> {
         /*
-		 * fastq format:
-		 * <fastq>	:=	<block>+
-		 * <block>	:=	@<seqname>\n<seq>\n+[<seqname>]\n<qual>\n
-		 * <seqname>	:=	[A-Za-z0-9_.:-]+
-		 * <seq>	:=	[A-Za-z\n\.~]+
-		 * <qual>	:=	[!-~\n]+
-		 *
-		 * LP: this format is broken, no?  You can have multi-line sequence and quality strings,
-		 * and the quality encoding includes '@' in its valid character range.  So how should one
-		 * distinguish between \n@ as a record delimiter and and \n@ as part of a multi-line
-		 * quality string?
-		 *
-		 * For now I'm going to assume single-line sequences.  This works for our sequencing
-		 * application.  We'll see if someone complains in other applications.
-		 */
+         * fastq format:
+         * <fastq> := <block>+
+         * <block> := @<seqname>\n<seq>\n+[<seqname>]\n<qual>\n
+         * <seqname> := [A-Za-z0-9_.:-]+
+         * <seq> := [A-Za-z\n\.~]+
+         * <qual> := [!-~\n]+
+         *
+         * LP: this format is broken, no?  You can have multi-line sequence and quality strings,
+         * and the quality encoding includes '@' in its valid character range.  So how should one
+         * distinguish between \n@ as a record delimiter and and \n@ as part of a multi-line
+         * quality string?
+         *
+         * For now I'm going to assume single-line sequences.  This works for our sequencing
+         * application.  We'll see if someone complains in other applications.
+         */
 
         // start:  first valid data index
         private long start;
@@ -189,7 +189,7 @@ public class FastqInputFormat extends FileInputFormat<Text, SequencedFragment> {
                 stream.seek(start);
             }
             // else
-            //	if start == 0 we presume it starts with a valid fastq record
+            // if start == 0 we presume it starts with a valid fastq record
             pos = start;
         }
 

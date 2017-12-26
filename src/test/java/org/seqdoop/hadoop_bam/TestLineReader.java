@@ -30,59 +30,53 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestLineReader
-{
-	public static final String input10 = "0123456789";
-	public static final String input22 = "0123456789\n0987654321\n";
+public class TestLineReader {
+    public static final String input10 = "0123456789";
+    public static final String input22 = "0123456789\n0987654321\n";
 
-	private LineReader reader;
-	private Text dest = new Text();
+    private LineReader reader;
+    private Text dest = new Text();
 
-	@Test
-	public void testReadBufferedLine() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
-		reader.readLine(dest);
-		assertEquals("0123456789", dest.toString());
-	}
+    @Test
+    public void testReadBufferedLine() throws IOException {
+        reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
+        reader.readLine(dest);
+        assertEquals("0123456789", dest.toString());
+    }
 
-	@Test
-	public void testSkipOnBufferedLine() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
-		long skipped = reader.skip(1);
-		assertEquals(1, skipped);
-		reader.readLine(dest);
-		assertEquals("123456789", dest.toString());
-	}
+    @Test
+    public void testSkipOnBufferedLine() throws IOException {
+        reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
+        long skipped = reader.skip(1);
+        assertEquals(1, skipped);
+        reader.readLine(dest);
+        assertEquals("123456789", dest.toString());
+    }
 
-	@Test
-	public void testReadBeyondBuffer() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
-		reader.readLine(dest);
-		assertEquals("0123456789", dest.toString());
-	}
+    @Test
+    public void testReadBeyondBuffer() throws IOException {
+        reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
+        reader.readLine(dest);
+        assertEquals("0123456789", dest.toString());
+    }
 
-	@Test
-	public void testSkipBeyondBuffer() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
-		long skipped = reader.skip(11);
-		assertEquals(11, skipped);
-		reader.readLine(dest);
-		assertEquals("0987654321", dest.toString());
-	}
+    @Test
+    public void testSkipBeyondBuffer() throws IOException {
+        reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
+        long skipped = reader.skip(11);
+        assertEquals(11, skipped);
+        reader.readLine(dest);
+        assertEquals("0987654321", dest.toString());
+    }
 
-	@Test
-	public void testSkipBeyondInput() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input10.getBytes()), 5);
-		long skipped = reader.skip(11);
-		assertEquals(10, skipped);
+    @Test
+    public void testSkipBeyondInput() throws IOException {
+        reader = new LineReader(new ByteArrayInputStream(input10.getBytes()), 5);
+        long skipped = reader.skip(11);
+        assertEquals(10, skipped);
 
-		skipped = reader.skip(11);
-		assertEquals(0, skipped);
-	}
+        skipped = reader.skip(11);
+        assertEquals(0, skipped);
+    }
 
 }

@@ -42,9 +42,9 @@ import org.seqdoop.hadoop_bam.VariantContextWritable;
 /**
  * Simple example that reads a VCF file, groups variants by their ID and writes the
  * output again as VCF file.
- *
+ * <p>
  * Usage: hadoop jar target/*-jar-with-dependencies.jar org.seqdoop.hadoop_bam.examples.TestVCF \
- *     <input.vcf> <output_directory>
+ * <input.vcf> <output_directory>
  */
 public class TestVCF extends Configured implements Tool {
 
@@ -55,8 +55,9 @@ public class TestVCF extends Configured implements Tool {
         private KeyIgnoringVCFOutputFormat<Text> baseOF;
 
         private void initBaseOF(Configuration conf) {
-            if (baseOF == null)
+            if (baseOF == null) {
                 baseOF = new KeyIgnoringVCFOutputFormat<Text>(conf);
+            }
         }
 
         @Override
@@ -84,7 +85,7 @@ public class TestVCF extends Configured implements Tool {
         final Job job = new Job(conf);
 
         job.setJarByClass(TestVCF.class);
-        job.setMapperClass (TestVCFMapper.class);
+        job.setMapperClass(TestVCFMapper.class);
         job.setReducerClass(TestVCFReducer.class);
 
         job.setMapOutputKeyClass(Text.class);
@@ -120,22 +121,21 @@ public class TestVCF extends Configured implements Tool {
 }
 
 final class TestVCFMapper
-        extends org.apache.hadoop.mapreduce.Mapper<LongWritable,VariantContextWritable, Text, VariantContextWritable>
-{
-    @Override protected void map(
+        extends org.apache.hadoop.mapreduce.Mapper<LongWritable, VariantContextWritable, Text, VariantContextWritable> {
+    @Override
+    protected void map(
             LongWritable ignored, VariantContextWritable wrec,
             org.apache.hadoop.mapreduce.Mapper<LongWritable, VariantContextWritable, Text, VariantContextWritable>.Context
                     ctx)
-            throws InterruptedException, IOException
-    {
+            throws InterruptedException, IOException {
         final VariantContext context = wrec.get();
         System.out.println(context.toString());
-        ctx.write(new Text(context.getChr()+":" + context.getID()), wrec);
+        ctx.write(new Text(context.getChr() + ":" + context.getID()), wrec);
     }
 }
 
 final class TestVCFReducer
-        extends org.apache.hadoop.mapreduce.Reducer<Text,VariantContextWritable, Text, VariantContextWritable> {
+        extends org.apache.hadoop.mapreduce.Reducer<Text, VariantContextWritable, Text, VariantContextWritable> {
 
     @Override
     protected void reduce(

@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 
 public class TestSAMHeaderReader {
     @Rule
-    public ExpectedException thrown= ExpectedException.none();
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testBAMHeaderReaderNoReference() throws Exception {

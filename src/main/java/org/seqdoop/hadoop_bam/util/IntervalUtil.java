@@ -15,10 +15,12 @@ import java.util.function.Supplier;
 public final class IntervalUtil {
 
     // declared to prevent instantiation.
-    private IntervalUtil() {}
+    private IntervalUtil() {
+    }
 
     /**
      * Returns the list of intervals found in a string configuration property separated by colons.
+     *
      * @param conf the source configuration.
      * @param intervalPropertyName the property name holding the intervals.
      * @return {@code null} if there is no such a property in the configuration.
@@ -55,7 +57,8 @@ public final class IntervalUtil {
     private static int parseIntOrThrowFormatException(final String str, final String error, final String input) {
         try {
             return Integer.parseInt(str);
-        } catch (final NumberFormatException ex) {
+        }
+        catch (final NumberFormatException ex) {
             throw new FormatException(error + " in  interval '" + input + "': '" + str + "'");
         }
     }

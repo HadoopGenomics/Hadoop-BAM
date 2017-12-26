@@ -111,7 +111,7 @@ public class TestVCFOutputFormat {
         vctx_builder.loc("20", 2, 2);
         vctx_builder.log10PError(-8.0);
 
-        String[] expected = new String[]{"20", "2", ".", "C", "A", "80", "PASS", "NS=4"};
+        String[] expected = new String[] { "20", "2", ".", "C", "A", "80", "PASS", "NS=4" };
 
         VariantContext ctx = vctx_builder.make();
         writable.set(ctx);
@@ -123,13 +123,12 @@ public class TestVCFOutputFormat {
         String[] fields = Arrays.copyOf(reader.readLine().split("\t"), expected.length);
         Assert.assertArrayEquals("comparing VCF single line", expected, fields);
     }
-    
+
     @Test
-    public void testVariantContextReadWrite() throws IOException, InterruptedException
-    {
+    public void testVariantContextReadWrite() throws IOException, InterruptedException {
         // This is to check whether issue https://github.com/HadoopGenomics/Hadoop-BAM/issues/1 has been
         // resolved
-    	VariantContextBuilder vctx_builder = new VariantContextBuilder();
+        VariantContextBuilder vctx_builder = new VariantContextBuilder();
 
         ArrayList<Allele> alleles = new ArrayList<Allele>();
         alleles.add(Allele.create("C", false));
@@ -159,7 +158,7 @@ public class TestVCFOutputFormat {
 
         DataOutputBuffer out = new DataOutputBuffer(1000);
         writable.write(out);
-        
+
         byte[] data = out.getData();
         ByteArrayInputStream bis = new ByteArrayInputStream(data);
 
@@ -167,14 +166,14 @@ public class TestVCFOutputFormat {
         writable.readFields(new DataInputStream(bis));
 
         VariantContext vc = writable.get();
-        Assert.assertArrayEquals("comparing Alleles",ctx.getAlleles().toArray(),vc.getAlleles().toArray());
-        Assert.assertEquals("comparing Log10PError",ctx.getLog10PError(),vc.getLog10PError(),0.01);
-        Assert.assertArrayEquals("comparing Filters",ctx.getFilters().toArray(),vc.getFilters().toArray());
-        Assert.assertEquals("comparing Attributes",ctx.getAttributes(),vc.getAttributes());
+        Assert.assertArrayEquals("comparing Alleles", ctx.getAlleles().toArray(), vc.getAlleles().toArray());
+        Assert.assertEquals("comparing Log10PError", ctx.getLog10PError(), vc.getLog10PError(), 0.01);
+        Assert.assertArrayEquals("comparing Filters", ctx.getFilters().toArray(), vc.getFilters().toArray());
+        Assert.assertEquals("comparing Attributes", ctx.getAttributes(), vc.getAttributes());
 
         // Now check the genotypes. Note: we need to make the header accessible before decoding the genotypes.
         GenotypesContext gc = vc.getGenotypes();
-        assert(gc instanceof LazyVCFGenotypesContext);
+        assert (gc instanceof LazyVCFGenotypesContext);
         LazyVCFGenotypesContext.HeaderDataCache headerDataCache = new LazyVCFGenotypesContext.HeaderDataCache();
         headerDataCache.setHeader(readHeader());
         ((LazyVCFGenotypesContext) gc).getParser().setHeaderDataCache(headerDataCache);
