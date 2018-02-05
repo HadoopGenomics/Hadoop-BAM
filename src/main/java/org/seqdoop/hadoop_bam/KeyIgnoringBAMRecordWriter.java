@@ -48,17 +48,6 @@ public class KeyIgnoringBAMRecordWriter<K> extends BAMRecordWriter<K> {
 	{
 		super(output, header, writeHeader, ctx);
 	}
-	/**
-	 * @deprecated This constructor has no {@link TaskAttemptContext} so it is not
-	 * possible to pass configuration properties to the writer.
-	 */
-	@Deprecated
-	public KeyIgnoringBAMRecordWriter(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
-		throws IOException
-	{
-		super(output, header, writeHeader);
-	}
 
 	@Override public void write(K ignored, SAMRecordWritable rec) throws IOException {
 		writeAlignment(rec.get());
