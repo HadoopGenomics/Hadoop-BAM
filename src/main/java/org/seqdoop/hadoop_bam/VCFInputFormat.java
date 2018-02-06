@@ -182,13 +182,14 @@ public class VCFInputFormat
 		if (trustExts) {
 			final VCFFormat f = VCFFormat.inferFromFilePath(path);
 			if (f != null) {
-				formatMap.put(path, f);
+
+			    formatMap.put(path, f);
 				return f;
 			}
 		}
 
-		try {
-			fmt = VCFFormat.inferFromData(path.getFileSystem(conf).open(path));
+		try(InputStream is = path.getFileSystem(conf).open(path)) {
+			fmt = VCFFormat.inferFromData(is);
 		} catch (IOException e) {}
 
 		formatMap.put(path, fmt);
