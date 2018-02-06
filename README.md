@@ -45,18 +45,11 @@ in Hadoop see the `examples/` directory.
 Dependencies
 ------------
 
-Hadoop. Tested with 2.2.0 and later. Version 4.2.0 of Cloudera's distribution,
-CDH, has also been tested. Use other versions at your own risk. You
-can change the version of Hadoop linked against by modifying the
-corresponding parameter in the pom.xml build file.
+Hadoop. Any recent version should work. Hadoop is a "provided" dependency in the Maven sense,
+which means that you must have Hadoop installed, or, if using Hadoop-BAM as a library, have the
+Hadoop Maven dependencies in your POM.
 
-HTSJDK (formerly Picard SAM-JDK) Version 2.3.0 is required. Later versions
-may also work but have not been tested.
-
-Availability:
-
-   - Hadoop              http://hadoop.apache.org/
-   - HTSJDK/Picard       https://github.com/samtools/htsjdk
+[HTSJDK](https://github.com/samtools/htsjdk). Hadoop-BAM uses a particular version, but later ones can usually be substituted.
 
 Note that starting from version 7.4.0 Hadoop-BAM requires Java 8.
 
@@ -64,19 +57,9 @@ Note that starting from version 7.4.0 Hadoop-BAM requires Java 8.
 Installation
 ------------
 
-If you're using Hadoop 2.2.0, a precompiled "hadoop-bam-X.Y.Z.jar" is available
-that you can use.  Otherwise, you'll have to build Hadoop-BAM yourself by
-by using Maven (version 3.0.4 at least) and following the instructions below.
-
-### Hadoop version
-
-You must set the <hadoop.version> tag in pom.xml appropriately for the version
-of hadoop you're using.  Run "hadoop version" and copy the string from the output:
-
-    [luca@vm Hadoop-BAM]# hadoop version 2>/dev/null | grep Hadoop
-    Hadoop 2.0.0-cdh4.6.0
-
-In the output above, the version string is "2.0.0-cdh4.6.0".
+A precompiled "hadoop-bam-X.Y.Z.jar" is available that you can use with most recent versions of
+Hadoop.  Otherwise, you'll have to build Hadoop-BAM yourself by using Maven and following the
+instructions below.
 
 ### Build
 
