@@ -144,22 +144,6 @@ public final class SplittingBAMIndexer {
 	private static final int PRINT_EVERY = 500*1024*1024;
 
 	/**
-	 * Constructor that allows immediate specification of the granularity level
-	 * for a new SplittingBAMIndexer.
-	 *
-	 * @param g granularity level
-	 * @deprecated use one of the other constructors to create an index while building a
-	 * BAM file or {@link #index(InputStream, OutputStream, long, int)} for an existing BAM
-	 * file.
-	 */
-	@Deprecated
-	public SplittingBAMIndexer(int g) {
-		granularity = g;
-		out = null;
-		lb = null;
-	}
-
-	/**
 	 * Prepare to index a BAM file.
 	 * @param out the stream to write the index to
 	 */
