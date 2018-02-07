@@ -191,172 +191,172 @@ public class SAMRecordReader extends RecordReader<LongWritable, SAMRecordWritabl
     record.set(r);
     return true;
   }
-}
 
-// See the long comment in SAMRecordReader.initialize() for what this does.
-class WorkaroundingStream extends InputStream {
+  // See the long comment in SAMRecordReader.initialize() for what this does.
+  static class WorkaroundingStream extends InputStream {
 
-  private final InputStream stream, headerStream;
-  private boolean headerRemaining;
-  private long length;
-  private int headerLength;
+    private final InputStream stream, headerStream;
+    private boolean headerRemaining;
+    private long length;
+    private int headerLength;
 
-  private boolean lookingForEOL = false,
-      foundEOL = false,
-      strippingAts = false; // HACK, see read(byte[], int, int).
-  private byte[] readBuf = new byte[1];
+    private boolean lookingForEOL = false,
+        foundEOL = false,
+        strippingAts = false; // HACK, see read(byte[], int, int).
+    private byte[] readBuf = new byte[1];
 
-  public WorkaroundingStream(InputStream stream, SAMFileHeader header) {
-    this.stream = stream;
+    public WorkaroundingStream(InputStream stream, SAMFileHeader header) {
+      this.stream = stream;
 
-    String text = header.getTextHeader();
-    if (text == null) {
-      StringWriter writer = new StringWriter();
-      new SAMTextHeaderCodec().encode(writer, header);
-      text = writer.toString();
+      String text = header.getTextHeader();
+      if (text == null) {
+        StringWriter writer = new StringWriter();
+        new SAMTextHeaderCodec().encode(writer, header);
+        text = writer.toString();
+      }
+      byte[] b;
+      try {
+        b = text.getBytes("UTF-8");
+      } catch (UnsupportedEncodingException e) {
+        b = null;
+        assert false;
+      }
+      headerRemaining = true;
+      headerLength = b.length;
+      headerStream = new ByteArrayInputStream(b);
+
+      this.length = Long.MAX_VALUE;
     }
-    byte[] b;
-    try {
-      b = text.getBytes("UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      b = null;
-      assert false;
+
+    public void setLength(long length) {
+      this.length = length;
     }
-    headerRemaining = true;
-    headerLength = b.length;
-    headerStream = new ByteArrayInputStream(b);
 
-    this.length = Long.MAX_VALUE;
-  }
+    public int getRemainingHeaderLength() {
+      return headerLength;
+    }
 
-  public void setLength(long length) {
-    this.length = length;
-  }
-
-  public int getRemainingHeaderLength() {
-    return headerLength;
-  }
-
-  @Override
-  public int read() throws IOException {
-    for (; ; ) {
-      switch (read(readBuf)) {
-        case 0:
-          continue;
-        case 1:
-          return readBuf[0];
-        case -1:
-          return -1;
+    @Override
+    public int read() throws IOException {
+      for (; ; ) {
+        switch (read(readBuf)) {
+          case 0:
+            continue;
+          case 1:
+            return readBuf[0];
+          case -1:
+            return -1;
+        }
       }
     }
-  }
 
-  @Override
-  public int read(byte[] buf, int off, int len) throws IOException {
-    if (!headerRemaining) {
-      return streamRead(buf, off, len);
-    }
+    @Override
+    public int read(byte[] buf, int off, int len) throws IOException {
+      if (!headerRemaining) {
+        return streamRead(buf, off, len);
+      }
 
-    int h;
-    if (strippingAts) {
-      h = 0;
-    } else {
-      h = headerStream.read(buf, off, len);
-      if (h == -1) {
-        // This should only happen when there was no header at all, in
-        // which case Picard doesn't throw an error until trying to read
-        // a record, for some reason. (Perhaps an oversight.) Thus we
-        // need to handle that case here.
-        assert (headerLength == 0);
+      int h;
+      if (strippingAts) {
         h = 0;
-      } else if (h < headerLength) {
-        headerLength -= h;
-        return h;
+      } else {
+        h = headerStream.read(buf, off, len);
+        if (h == -1) {
+          // This should only happen when there was no header at all, in
+          // which case Picard doesn't throw an error until trying to read
+          // a record, for some reason. (Perhaps an oversight.) Thus we
+          // need to handle that case here.
+          assert (headerLength == 0);
+          h = 0;
+        } else if (h < headerLength) {
+          headerLength -= h;
+          return h;
+        }
+        strippingAts = true;
+        headerStream.close();
       }
-      strippingAts = true;
-      headerStream.close();
-    }
 
-    final int newOff = off + h;
-    int s = streamRead(buf, newOff, len - h);
+      final int newOff = off + h;
+      int s = streamRead(buf, newOff, len - h);
 
-    if (s <= 0) {
-      return strippingAts ? s : h;
-    }
-
-    // HACK HACK HACK.
-    //
-    // We gave all of the header, which means that SAMFileReader is still
-    // trying to read more header lines. If we're in a split that isn't at
-    // the start of the SAM file, we could be in the middle of a line and
-    // thus see @ characters at the start of our data. Then SAMFileReader
-    // would try to understand those as header lines and the end result is
-    // that it throws an error, since they aren't actually header lines,
-    // they're just part of a SAM record.
-    //
-    // So, if we're done with the header, strip all @ characters we see. Thus
-    // SAMFileReader will stop reading the header there and won't throw an
-    // exception until we use its SAMRecordIterator, at which point we can
-    // catch it, because we know to expect it.
-    //
-    // headerRemaining remains true while it's possible that there are still
-    // @ characters coming.
-
-    int i = newOff - 1;
-    while (buf[++i] == '@' && --s > 0) {;
-    }
-
-    if (i != newOff) {
-      System.arraycopy(buf, i, buf, newOff, s);
-    }
-
-    headerRemaining = s == 0;
-    return h + s;
-  }
-
-  private int streamRead(byte[] buf, int off, int len) throws IOException {
-    if (len > length) {
-      if (foundEOL) {
-        return 0;
+      if (s <= 0) {
+        return strippingAts ? s : h;
       }
-      lookingForEOL = true;
-    }
-    int n = stream.read(buf, off, len);
-    if (n > 0) {
-      n = tryFindEOL(buf, off, n);
-      length -= n;
-    }
-    return n;
-  }
 
-  private int tryFindEOL(byte[] buf, int off, int len) {
-    assert !foundEOL;
+      // HACK HACK HACK.
+      //
+      // We gave all of the header, which means that SAMFileReader is still
+      // trying to read more header lines. If we're in a split that isn't at
+      // the start of the SAM file, we could be in the middle of a line and
+      // thus see @ characters at the start of our data. Then SAMFileReader
+      // would try to understand those as header lines and the end result is
+      // that it throws an error, since they aren't actually header lines,
+      // they're just part of a SAM record.
+      //
+      // So, if we're done with the header, strip all @ characters we see. Thus
+      // SAMFileReader will stop reading the header there and won't throw an
+      // exception until we use its SAMRecordIterator, at which point we can
+      // catch it, because we know to expect it.
+      //
+      // headerRemaining remains true while it's possible that there are still
+      // @ characters coming.
 
-    if (!lookingForEOL || len < length) {
+      int i = newOff - 1;
+      while (buf[++i] == '@' && --s > 0) {;
+      }
+
+      if (i != newOff) {
+        System.arraycopy(buf, i, buf, newOff, s);
+      }
+
+      headerRemaining = s == 0;
+      return h + s;
+    }
+
+    private int streamRead(byte[] buf, int off, int len) throws IOException {
+      if (len > length) {
+        if (foundEOL) {
+          return 0;
+        }
+        lookingForEOL = true;
+      }
+      int n = stream.read(buf, off, len);
+      if (n > 0) {
+        n = tryFindEOL(buf, off, n);
+        length -= n;
+      }
+      return n;
+    }
+
+    private int tryFindEOL(byte[] buf, int off, int len) {
+      assert !foundEOL;
+
+      if (!lookingForEOL || len < length) {
+        return len;
+      }
+
+      // Find the first EOL between length and len.
+
+      // len >= length so length fits in an int.
+      int i = Math.max(0, (int) length - 1);
+
+      for (; i < len; ++i) {
+        if (buf[off + i] == '\n') {
+          foundEOL = true;
+          return i + 1;
+        }
+      }
       return len;
     }
 
-    // Find the first EOL between length and len.
-
-    // len >= length so length fits in an int.
-    int i = Math.max(0, (int) length - 1);
-
-    for (; i < len; ++i) {
-      if (buf[off + i] == '\n') {
-        foundEOL = true;
-        return i + 1;
-      }
+    @Override
+    public void close() throws IOException {
+      stream.close();
     }
-    return len;
-  }
 
-  @Override
-  public void close() throws IOException {
-    stream.close();
-  }
-
-  @Override
-  public int available() throws IOException {
-    return headerRemaining ? headerStream.available() : stream.available();
+    @Override
+    public int available() throws IOException {
+      return headerRemaining ? headerStream.available() : stream.available();
+    }
   }
 }

@@ -101,34 +101,34 @@ public class LazyVCFGenotypesContext extends LazyParsingGenotypesContext {
       return codec.createGenotypeMap(str, alleles, chrom, start);
     }
   }
-}
 
-// This is a HACK. But, the functionality is only in AbstractVCFCodec so it
-// can't be helped. This is preferable to copying the functionality into
-// parse() above.
-class HeaderSettableVCFCodec extends AbstractVCFCodec {
+  // This is a HACK. But, the functionality is only in AbstractVCFCodec so it
+  // can't be helped. This is preferable to copying the functionality into
+  // parse() above.
+  static class HeaderSettableVCFCodec extends AbstractVCFCodec {
 
-  public boolean hasHeader() {
-    return header != null;
-  }
+    public boolean hasHeader() {
+      return header != null;
+    }
 
-  public void setHeaderAndVersion(VCFHeader header, VCFHeaderVersion ver) {
-    this.header = header;
-    this.version = ver;
-  }
+    public void setHeaderAndVersion(VCFHeader header, VCFHeaderVersion ver) {
+      this.header = header;
+      this.version = ver;
+    }
 
-  @Override
-  public Object readActualHeader(LineIterator reader) {
-    throw new UnsupportedOperationException("Internal error: this shouldn't be called");
-  }
+    @Override
+    public Object readActualHeader(LineIterator reader) {
+      throw new UnsupportedOperationException("Internal error: this shouldn't be called");
+    }
 
-  @Override
-  public List<String> parseFilters(String filterString) {
-    throw new UnsupportedOperationException("Internal error: this shouldn't be called");
-  }
+    @Override
+    public List<String> parseFilters(String filterString) {
+      throw new UnsupportedOperationException("Internal error: this shouldn't be called");
+    }
 
-  @Override
-  public boolean canDecode(String s) {
-    return true;
+    @Override
+    public boolean canDecode(String s) {
+      return true;
+    }
   }
 }

@@ -177,77 +177,77 @@ public class BCFRecordReader extends RecordReader<LongWritable, VariantContextWr
     vc.set(v);
     return true;
   }
-}
 
-class BGZFLimitingStream extends InputStream {
+  static class BGZFLimitingStream extends InputStream {
 
-  private final BlockCompressedInputStream bgzf;
-  private final long virtEnd;
-  private byte[] readBuf = new byte[1];
+    private final BlockCompressedInputStream bgzf;
+    private final long virtEnd;
+    private byte[] readBuf = new byte[1];
 
-  public BGZFLimitingStream(BlockCompressedInputStream stream, long virtualEnd) {
-    bgzf = stream;
-    virtEnd = virtualEnd;
-  }
-
-  @Override
-  public void close() throws IOException {
-    bgzf.close();
-  }
-
-  @Override
-  public int read() throws IOException {
-    switch (read(readBuf)) {
-      case 1:
-        return readBuf[0];
-      case -1:
-        return -1;
-      default:
-        assert false;
-        return -1;
-    }
-  }
-
-  @Override
-  public int read(byte[] buf, int off, int len) throws IOException {
-
-    int totalRead = 0;
-    long virt;
-
-    final int lastLen = (int) virtEnd & 0xffff;
-
-    while ((virt = bgzf.getFilePointer()) >>> 16 != virtEnd >>> 16) {
-      // We're not in the last BGZF block yet. Unfortunately
-      // BlockCompressedInputStream doesn't expose the length of the current
-      // block, so we can't simply (possibly repeatedly) read the current
-      // block to the end. Instead, we read at most virtEnd & 0xffff at a
-      // time, which ensures that we can't overshoot virtEnd even if the
-      // next block starts immediately.
-      final int r = bgzf.read(buf, off, Math.min(len, lastLen));
-      if (r == -1) {
-        return totalRead == 0 ? -1 : totalRead;
-      }
-
-      totalRead += r;
-      len -= r;
-      if (len == 0) {
-        return totalRead;
-      }
-      off += r;
+    public BGZFLimitingStream(BlockCompressedInputStream stream, long virtualEnd) {
+      bgzf = stream;
+      virtEnd = virtualEnd;
     }
 
-    // We're in the last BGZF block: read only up to lastLen.
-    len = Math.min(len, ((int) virt & 0xffff) - lastLen);
-    while (len > 0) {
-      final int r = bgzf.read(buf, off, len);
-      if (r == -1) {
-        return totalRead == 0 ? -1 : totalRead;
+    @Override
+    public void close() throws IOException {
+      bgzf.close();
+    }
+
+    @Override
+    public int read() throws IOException {
+      switch (read(readBuf)) {
+        case 1:
+          return readBuf[0];
+        case -1:
+          return -1;
+        default:
+          assert false;
+          return -1;
+      }
+    }
+
+    @Override
+    public int read(byte[] buf, int off, int len) throws IOException {
+
+      int totalRead = 0;
+      long virt;
+
+      final int lastLen = (int) virtEnd & 0xffff;
+
+      while ((virt = bgzf.getFilePointer()) >>> 16 != virtEnd >>> 16) {
+        // We're not in the last BGZF block yet. Unfortunately
+        // BlockCompressedInputStream doesn't expose the length of the current
+        // block, so we can't simply (possibly repeatedly) read the current
+        // block to the end. Instead, we read at most virtEnd & 0xffff at a
+        // time, which ensures that we can't overshoot virtEnd even if the
+        // next block starts immediately.
+        final int r = bgzf.read(buf, off, Math.min(len, lastLen));
+        if (r == -1) {
+          return totalRead == 0 ? -1 : totalRead;
+        }
+
+        totalRead += r;
+        len -= r;
+        if (len == 0) {
+          return totalRead;
+        }
+        off += r;
       }
 
-      totalRead += r;
-      len -= r;
-      off += r;
+      // We're in the last BGZF block: read only up to lastLen.
+      len = Math.min(len, ((int) virt & 0xffff) - lastLen);
+      while (len > 0) {
+        final int r = bgzf.read(buf, off, len);
+        if (r == -1) {
+          return totalRead == 0 ? -1 : totalRead;
+        }
+
+        totalRead += r;
+        len -= r;
+        off += r;
+      }
+      return totalRead == 0 ? -1 : totalRead;
     }
-    return totalRead == 0 ? -1 : totalRead;
   }
 }

@@ -122,57 +122,57 @@ public abstract class BCFRecordWriter<K> extends RecordWriter<K, VariantContextW
 
     writer.add(vc);
   }
-}
 
-// We must always call writer.writeHeader() because the writer requires
-// the header in writer.add(), and writeHeader() is the only way to give
-// the header to the writer. Thus, we use this class to simply throw away
-// output until after the header's been written.
-//
-// This is, of course, a HACK and a slightly dangerous one: if writer
-// does any buffering of its own and doesn't flush after writing the
-// header, this isn't as easy as this.
-//
-// In addition we do BGZF compression here, to simplify things.
-final class BCFStoppableOutputStream extends FilterOutputStream {
+  // We must always call writer.writeHeader() because the writer requires
+  // the header in writer.add(), and writeHeader() is the only way to give
+  // the header to the writer. Thus, we use this class to simply throw away
+  // output until after the header's been written.
+  //
+  // This is, of course, a HACK and a slightly dangerous one: if writer
+  // does any buffering of its own and doesn't flush after writing the
+  // header, this isn't as easy as this.
+  //
+  // In addition we do BGZF compression here, to simplify things.
+  static final class BCFStoppableOutputStream extends FilterOutputStream {
 
-  private final OutputStream origOut;
-  public boolean stopped;
+    private final OutputStream origOut;
+    public boolean stopped;
 
-  public BCFStoppableOutputStream(boolean startStopped, OutputStream out) {
-    super(new BlockCompressedOutputStream(out, null));
-    origOut = out;
-    stopped = startStopped;
-  }
-
-  @Override
-  public void write(int b) throws IOException {
-    if (!stopped) {
-      super.write(b);
+    public BCFStoppableOutputStream(boolean startStopped, OutputStream out) {
+      super(new BlockCompressedOutputStream(out, null));
+      origOut = out;
+      stopped = startStopped;
     }
-  }
 
-  @Override
-  public void write(byte[] b) throws IOException {
-    if (!stopped) {
-      super.write(b);
+    @Override
+    public void write(int b) throws IOException {
+      if (!stopped) {
+        super.write(b);
+      }
     }
-  }
 
-  @Override
-  public void write(byte[] b, int off, int len) throws IOException {
-    if (!stopped) {
-      super.write(b, off, len);
+    @Override
+    public void write(byte[] b) throws IOException {
+      if (!stopped) {
+        super.write(b);
+      }
     }
-  }
 
-  @Override
-  public void close() throws IOException {
-    // Don't close the BlockCompressedOutputStream, as we don't want
-    // the BGZF terminator.
-    this.out.flush();
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+      if (!stopped) {
+        super.write(b, off, len);
+      }
+    }
 
-    // Instead, close the lower-level output stream directly.
-    origOut.close();
+    @Override
+    public void close() throws IOException {
+      // Don't close the BlockCompressedOutputStream, as we don't want
+      // the BGZF terminator.
+      this.out.flush();
+
+      // Instead, close the lower-level output stream directly.
+      origOut.close();
+    }
   }
 }

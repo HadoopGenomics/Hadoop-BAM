@@ -65,89 +65,89 @@ public class LazyBAMRecordFactory implements SAMRecordFactory {
         insertSize,
         variableLengthBlock);
   }
-}
 
-class LazyBAMRecord extends BAMRecord {
+  static class LazyBAMRecord extends BAMRecord {
 
-  private boolean decodedRefIdx = false;
-  private boolean decodedMateRefIdx = false;
+    private boolean decodedRefIdx = false;
+    private boolean decodedMateRefIdx = false;
 
-  public LazyBAMRecord(
-      SAMFileHeader hdr,
-      int referenceID,
-      int coordinate,
-      short readNameLength,
-      short mappingQuality,
-      int indexingBin,
-      int cigarLen,
-      int flags,
-      int readLen,
-      int mateReferenceID,
-      int mateCoordinate,
-      int insertSize,
-      byte[] restOfData) {
-    super(
-        hdr,
-        referenceID,
-        coordinate,
-        readNameLength,
-        mappingQuality,
-        indexingBin,
-        cigarLen,
-        flags,
-        readLen,
-        mateReferenceID,
-        mateCoordinate,
-        insertSize,
-        restOfData);
-  }
-
-  @Override
-  public void setReferenceIndex(final int referenceIndex) {
-    mReferenceIndex = referenceIndex;
-    decodedRefIdx = false;
-  }
-
-  @Override
-  public void setMateReferenceIndex(final int referenceIndex) {
-    mMateReferenceIndex = referenceIndex;
-    decodedMateRefIdx = false;
-  }
-
-  @Override
-  public String getReferenceName() {
-    if (mReferenceIndex != null && !decodedRefIdx) {
-      decodedRefIdx = true;
-      super.setReferenceIndex(mReferenceIndex);
+    public LazyBAMRecord(
+        SAMFileHeader hdr,
+        int referenceID,
+        int coordinate,
+        short readNameLength,
+        short mappingQuality,
+        int indexingBin,
+        int cigarLen,
+        int flags,
+        int readLen,
+        int mateReferenceID,
+        int mateCoordinate,
+        int insertSize,
+        byte[] restOfData) {
+      super(
+          hdr,
+          referenceID,
+          coordinate,
+          readNameLength,
+          mappingQuality,
+          indexingBin,
+          cigarLen,
+          flags,
+          readLen,
+          mateReferenceID,
+          mateCoordinate,
+          insertSize,
+          restOfData);
     }
-    return super.getReferenceName();
-  }
 
-  @Override
-  public String getMateReferenceName() {
-    if (mMateReferenceIndex != null && !decodedMateRefIdx) {
-      decodedMateRefIdx = true;
-      super.setMateReferenceIndex(mMateReferenceIndex);
+    @Override
+    public void setReferenceIndex(final int referenceIndex) {
+      mReferenceIndex = referenceIndex;
+      decodedRefIdx = false;
     }
-    return super.getMateReferenceName();
-  }
 
-  @Override
-  protected void eagerDecode() {
-    getReferenceName();
-    getMateReferenceName();
-    super.eagerDecode();
-  }
+    @Override
+    public void setMateReferenceIndex(final int referenceIndex) {
+      mMateReferenceIndex = referenceIndex;
+      decodedMateRefIdx = false;
+    }
 
-  @Override
-  public boolean equals(Object o) {
-    // don't use decoded flags for equality check
-    return super.equals(o);
-  }
+    @Override
+    public String getReferenceName() {
+      if (mReferenceIndex != null && !decodedRefIdx) {
+        decodedRefIdx = true;
+        super.setReferenceIndex(mReferenceIndex);
+      }
+      return super.getReferenceName();
+    }
 
-  @Override
-  public int hashCode() {
-    // don't use decoded flags for hash code
-    return super.hashCode();
+    @Override
+    public String getMateReferenceName() {
+      if (mMateReferenceIndex != null && !decodedMateRefIdx) {
+        decodedMateRefIdx = true;
+        super.setMateReferenceIndex(mMateReferenceIndex);
+      }
+      return super.getMateReferenceName();
+    }
+
+    @Override
+    protected void eagerDecode() {
+      getReferenceName();
+      getMateReferenceName();
+      super.eagerDecode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      // don't use decoded flags for equality check
+      return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+      // don't use decoded flags for hash code
+      return super.hashCode();
+    }
   }
 }
