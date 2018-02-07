@@ -1,5 +1,7 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import java.io.File;
@@ -14,8 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.seqdoop.hadoop_bam.util.BGZFSplitGuesser;
-
-import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
 public class TestBGZFSplitGuesser {
@@ -32,9 +32,10 @@ public class TestBGZFSplitGuesser {
 
   @Parameterized.Parameters
   public static Collection<Object> data() {
-    return Arrays.asList(new Object[][] {
-        {"test.vcf.bgzf.gz", 821, 821}, {"HiSeq.10000.vcf.bgzf.gz", 16688, 509222}
-    });
+    return Arrays.asList(
+        new Object[][] {
+          {"test.vcf.bgzf.gz", 821, 821}, {"HiSeq.10000.vcf.bgzf.gz", 16688, 509222}
+        });
   }
 
   @Test
@@ -58,14 +59,14 @@ public class TestBGZFSplitGuesser {
     assertEquals(firstSplit, (long) boundaries.getFirst());
     assertEquals(lastSplit, (long) boundaries.getLast());
 
-    assertEquals("Last block start is terminator gzip block",
+    assertEquals(
+        "Last block start is terminator gzip block",
         file.length() - BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK.length,
         (long) boundaries.get(boundaries.size() - 1));
   }
 
   private void canReadFromBlockStart(long blockStart) throws IOException {
-    BlockCompressedInputStream blockCompressedInputStream = new
-        BlockCompressedInputStream(file);
+    BlockCompressedInputStream blockCompressedInputStream = new BlockCompressedInputStream(file);
     blockCompressedInputStream.setCheckCrcs(true);
     blockCompressedInputStream.seek(blockStart << 16);
     byte[] b = new byte[100];

@@ -1,5 +1,10 @@
 package org.seqdoop.hadoop_bam.util;
 
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.asPath;
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.deleteRecursive;
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.getFilesMatching;
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.mergeInto;
+
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
@@ -21,28 +26,25 @@ import org.seqdoop.hadoop_bam.VCFFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.asPath;
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.deleteRecursive;
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.getFilesMatching;
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.mergeInto;
-
 /**
- * Merges headerless VCF files produced by {@link KeyIgnoringVCFOutputFormat}
- * into a single file. BCF files are not supported.
+ * Merges headerless VCF files produced by {@link KeyIgnoringVCFOutputFormat} into a single file.
+ * BCF files are not supported.
  */
 public class VCFFileMerger {
+
   private static final Logger logger = LoggerFactory.getLogger(VCFFileMerger.class);
 
   /**
-   * Merge part file shards produced by {@link KeyIgnoringVCFOutputFormat} into a
-   * single file with the given header.
+   * Merge part file shards produced by {@link KeyIgnoringVCFOutputFormat} into a single file with
+   * the given header.
+   *
    * @param partDirectory the directory containing part files
    * @param outputFile the file to write the merged file to
    * @param header the header for the merged file
-   * @throws IOException
    */
-  public static void mergeParts(final String partDirectory, final String outputFile,
-      final VCFHeader header) throws IOException {
+  public static void mergeParts(
+      final String partDirectory, final String outputFile, final VCFHeader header)
+      throws IOException {
     // First, check for the _SUCCESS file.
     final Path partPath = asPath(partDirectory);
     final Path successPath = partPath.resolve("_SUCCESS");
@@ -51,15 +53,15 @@ public class VCFFileMerger {
     }
     final Path outputPath = asPath(outputFile);
     if (partPath.equals(outputPath)) {
-      throw new IllegalArgumentException("Cannot merge parts into output with same " +
-          "path: " + partPath);
+      throw new IllegalArgumentException(
+          "Cannot merge parts into output with same " + "path: " + partPath);
     }
 
-    List<Path> parts = getFilesMatching(partPath, NIOFileUtil.PARTS_GLOB,
-        TabixUtils.STANDARD_INDEX_EXTENSION);
+    List<Path> parts =
+        getFilesMatching(partPath, NIOFileUtil.PARTS_GLOB, TabixUtils.STANDARD_INDEX_EXTENSION);
     if (parts.isEmpty()) {
-      throw new IllegalArgumentException("Could not write bam file because no part " +
-          "files were found in " + partPath);
+      throw new IllegalArgumentException(
+          "Could not write bam file because no part " + "files were found in " + partPath);
     } else if (isBCF(parts)) {
       throw new IllegalArgumentException("BCF files are not supported.");
     }
@@ -77,20 +79,20 @@ public class VCFFileMerger {
     deleteRecursive(partPath);
   }
 
-  /**
-   * @return whether the output is block compressed
-   */
-  private static boolean writeHeader(OutputStream out, Path outputPath, List<Path> parts,
-      VCFHeader header) throws IOException {
+  /** @return whether the output is block compressed */
+  private static boolean writeHeader(
+      OutputStream out, Path outputPath, List<Path> parts, VCFHeader header) throws IOException {
     if (header == null) {
       return false;
     }
     boolean blockCompressed = isBlockCompressed(parts);
     boolean bgzExtension = outputPath.toString().endsWith(BGZFCodec.DEFAULT_EXTENSION);
     if (blockCompressed && !bgzExtension) {
-      logger.warn("Parts are block compressed, but output does not have .bgz extension: {}", outputPath);
+      logger.warn(
+          "Parts are block compressed, but output does not have .bgz extension: {}", outputPath);
     } else if (!blockCompressed && bgzExtension) {
-      logger.warn("Output has a .bgz extension, but parts are not block compressed: {}", outputPath);
+      logger.warn(
+          "Output has a .bgz extension, but parts are not block compressed: {}", outputPath);
     }
     boolean gzipCompressed = isGzipCompressed(parts);
     OutputStream headerOut;
@@ -101,8 +103,8 @@ public class VCFFileMerger {
     } else {
       headerOut = out;
     }
-    VariantContextWriter writer = new VariantContextWriterBuilder().clearOptions()
-        .setOutputVCFStream(headerOut).build();
+    VariantContextWriter writer =
+        new VariantContextWriterBuilder().clearOptions().setOutputVCFStream(headerOut).build();
     writer.writeHeader(header);
     headerOut.flush();
     if (headerOut instanceof GZIPOutputStream) {

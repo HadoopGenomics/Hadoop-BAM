@@ -22,36 +22,35 @@
 
 package org.seqdoop.hadoop_bam.util;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
-
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import org.seqdoop.hadoop_bam.SAMFormat;
 
 public final class GetSortedBAMHeader {
-	public static void main(String[] args) throws IOException {
-		if (args.length < 2) {
-			System.err.println(
-				"Usage: GetSortedBAMHeader input output\n\n"+
 
-				"Reads the BAM header from input (a standard BGZF-compressed BAM "+
-				"file), and\nwrites it (BGZF-compressed, no terminator block) to "+
-				"output. Sets the sort order\nindicated in the SAM header to "+
-				"'coordinate'.");
-			System.exit(1);
-		}
+  public static void main(String[] args) throws IOException {
+    if (args.length < 2) {
+      System.err.println(
+          "Usage: GetSortedBAMHeader input output\n\n"
+              + "Reads the BAM header from input (a standard BGZF-compressed BAM "
+              + "file), and\nwrites it (BGZF-compressed, no terminator block) to "
+              + "output. Sets the sort order\nindicated in the SAM header to "
+              + "'coordinate'.");
+      System.exit(1);
+    }
 
-		final SAMFileHeader h =
-				SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT)
-						.setUseAsyncIo(false)
-						.open(new File(args[0])).getFileHeader();
-		h.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+    final SAMFileHeader h =
+        SamReaderFactory.makeDefault()
+            .validationStringency(ValidationStringency.SILENT)
+            .setUseAsyncIo(false)
+            .open(new File(args[0]))
+            .getFileHeader();
+    h.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
-		new SAMOutputPreparer().prepareForRecords(
-			new FileOutputStream(args[1]), SAMFormat.BAM, h);
-	}
+    new SAMOutputPreparer().prepareForRecords(new FileOutputStream(args[1]), SAMFormat.BAM, h);
+  }
 }

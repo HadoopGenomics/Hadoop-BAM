@@ -1,64 +1,65 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+
 import htsjdk.samtools.*;
-import htsjdk.samtools.cram.CRAMException;
+import java.io.InputStream;
+import java.net.URI;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-import java.io.InputStream;
-import java.net.URI;
-
-import static org.junit.Assert.assertEquals;
-
 public class TestSAMHeaderReader {
-    @Rule
-    public ExpectedException thrown= ExpectedException.none();
 
-    @Test
-    public void testBAMHeaderReaderNoReference() throws Exception {
+  @Rule public ExpectedException thrown = ExpectedException.none();
 
-        final Configuration conf = new Configuration();
+  @Test
+  public void testBAMHeaderReaderNoReference() throws Exception {
 
-        InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.bam");
-        final SamReader samReader = SamReaderFactory.makeDefault().open(SamInputResource.of(inputStream));
-        int sequenceCount = samReader.getFileHeader().getSequenceDictionary().size();
-        samReader.close();
+    final Configuration conf = new Configuration();
 
-        inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.bam");
-        SAMFileHeader samHeader = SAMHeaderReader.readSAMHeaderFrom(inputStream, conf);
-        inputStream.close();
+    InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.bam");
+    final SamReader samReader =
+        SamReaderFactory.makeDefault().open(SamInputResource.of(inputStream));
+    int sequenceCount = samReader.getFileHeader().getSequenceDictionary().size();
+    samReader.close();
 
-        assertEquals(samHeader.getSequenceDictionary().size(), sequenceCount);
-    }
+    inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.bam");
+    SAMFileHeader samHeader = SAMHeaderReader.readSAMHeaderFrom(inputStream, conf);
+    inputStream.close();
 
-    @Test
-    public void testCRAMHeaderReaderWithReference() throws Exception {
-        final Configuration conf = new Configuration();
+    assertEquals(samHeader.getSequenceDictionary().size(), sequenceCount);
+  }
 
-        final InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.cram");
-        final URI reference = ClassLoader.getSystemClassLoader().getResource("auxf.fa").toURI();
-        conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, reference.toString());
+  @Test
+  public void testCRAMHeaderReaderWithReference() throws Exception {
+    final Configuration conf = new Configuration();
 
-        SAMFileHeader samHeader = SAMHeaderReader.readSAMHeaderFrom(inputStream, conf);
-        inputStream.close();
+    final InputStream inputStream =
+        ClassLoader.getSystemClassLoader().getResourceAsStream("test.cram");
+    final URI reference = ClassLoader.getSystemClassLoader().getResource("auxf.fa").toURI();
+    conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, reference.toString());
 
-        assertEquals(samHeader.getSequenceDictionary().size(), 1);
-    }
+    SAMFileHeader samHeader = SAMHeaderReader.readSAMHeaderFrom(inputStream, conf);
+    inputStream.close();
 
-    @Test
-    public void testCRAMHeaderReaderNoReference() throws Exception {
+    assertEquals(samHeader.getSequenceDictionary().size(), 1);
+  }
 
-        thrown.expect(IllegalStateException.class); // htsjdk throws on CRAM file with no reference provided
+  @Test
+  public void testCRAMHeaderReaderNoReference() throws Exception {
 
-        final Configuration conf = new Configuration();
-        final InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test.cram");
-        SAMFileHeader samHeader = SAMHeaderReader.readSAMHeaderFrom(inputStream, conf);
-        inputStream.close();
+    thrown.expect(
+        IllegalStateException.class); // htsjdk throws on CRAM file with no reference provided
 
-        assertEquals(samHeader.getSequenceDictionary().size(), 1);
-    }
+    final Configuration conf = new Configuration();
+    final InputStream inputStream =
+        ClassLoader.getSystemClassLoader().getResourceAsStream("test.cram");
+    SAMFileHeader samHeader = SAMHeaderReader.readSAMHeaderFrom(inputStream, conf);
+    inputStream.close();
 
+    assertEquals(samHeader.getSequenceDictionary().size(), 1);
+  }
 }

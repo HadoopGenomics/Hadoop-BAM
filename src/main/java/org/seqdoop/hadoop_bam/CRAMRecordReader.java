@@ -6,8 +6,6 @@ import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Paths;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -31,18 +29,18 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
 
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context) throws IOException {
-    if(isInitialized) {
+    if (isInitialized) {
       close();
     }
     isInitialized = true;
 
     final Configuration conf = context.getConfiguration();
     final FileSplit fileSplit = (FileSplit) split;
-    final Path file  = fileSplit.getPath();
+    final Path file = fileSplit.getPath();
 
     String refSourcePath = conf.get(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY);
-    ReferenceSource refSource = new ReferenceSource(refSourcePath == null ? null :
-        NIOFileUtil.asPath(refSourcePath));
+    ReferenceSource refSource =
+        new ReferenceSource(refSourcePath == null ? null : NIOFileUtil.asPath(refSourcePath));
 
     seekableStream = WrapSeekable.openPath(conf, file);
     start = fileSplit.getStart();
@@ -78,7 +76,7 @@ public class CRAMRecordReader extends RecordReader<LongWritable, SAMRecordWritab
 
   @Override
   public float getProgress() throws IOException {
-    return (float)(seekableStream.position() - start) / length;
+    return (float) (seekableStream.position() - start) / length;
   }
 
   @Override

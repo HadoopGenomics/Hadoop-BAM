@@ -13,7 +13,7 @@ before_install:
   - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname | cut -c1-63)/" /etc/hosts | sudo tee /etc/hosts
   - cat /etc/hosts # optionally check the content *after*
 
-script: mvn clean test jacoco:report
+script: mvn clean fmt:check test jacoco:report
 
 after_success:
   - python scripts/deploy/addServerToM2Settings.py

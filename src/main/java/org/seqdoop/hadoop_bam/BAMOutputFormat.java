@@ -24,18 +24,17 @@ package org.seqdoop.hadoop_bam;
 
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-/** Currently this only locks down the value type of the {@link
+/**
+ * Currently this only locks down the value type of the {@link
  * org.apache.hadoop.mapreduce.OutputFormat}: contains no functionality.
  */
-public abstract class BAMOutputFormat<K>
-	extends FileOutputFormat<K,SAMRecordWritable> {
-	/**
-	 * If set to <code>true</code>, write <i>.splitting-bai</i> files for every BAM file
-	 * (defaults to <code>false</code>).
-	 * A splitting BAI file (not to be confused with a regular BAI file) contains an
-	 * index of offsets that the BAM file can be read from; they are used by
-	 * {@link BAMInputFormat} to construct splits.
-	 */
-	public static final String WRITE_SPLITTING_BAI =
-			"hadoopbam.bam.write-splitting-bai";
+public abstract class BAMOutputFormat<K> extends FileOutputFormat<K, SAMRecordWritable> {
+
+  /**
+   * If set to <code>true</code>, write <i>.splitting-bai</i> files for every BAM file (defaults to
+   * <code>false</code>). A splitting BAI file (not to be confused with a regular BAI file) contains
+   * an index of offsets that the BAM file can be read from; they are used by {@link BAMInputFormat}
+   * to construct splits.
+   */
+  public static final String WRITE_SPLITTING_BAI = "hadoopbam.bam.write-splitting-bai";
 }

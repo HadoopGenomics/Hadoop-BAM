@@ -1,5 +1,10 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -14,12 +19,8 @@ import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 public class TestFastaInputFormat {
+
   private String input;
   private TaskAttemptContext taskAttemptContext;
   private JobContext jobContext;
@@ -42,29 +43,53 @@ public class TestFastaInputFormat {
     FastaInputFormat inputFormat = new FastaInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
     assertEquals(2, splits.size());
-    RecordReader<Text, ReferenceFragment> reader = inputFormat
-        .createRecordReader(splits.get(0), taskAttemptContext);
+    RecordReader<Text, ReferenceFragment> reader =
+        inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
     reader.initialize(splits.get(0), taskAttemptContext);
 
     assertTrue(reader.nextKeyValue());
-    assertEquals(new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:11"), reader.getCurrentKey());
-    assertEquals(new Text("TAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTA"), reader.getCurrentValue().getSequence());
+    assertEquals(
+        new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:11"), reader.getCurrentKey());
+    assertEquals(
+        new Text(
+            "TAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTA"),
+        reader.getCurrentValue().getSequence());
 
     assertTrue(reader.nextKeyValue());
-    assertEquals(new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:182"), reader.getCurrentKey());
-    assertEquals(new Text("ACCCTAACCCTAACCCTAACCCTAACCCAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCCTAAC"), reader.getCurrentValue().getSequence());
+    assertEquals(
+        new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:182"),
+        reader.getCurrentKey());
+    assertEquals(
+        new Text(
+            "ACCCTAACCCTAACCCTAACCCTAACCCAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCCTAAC"),
+        reader.getCurrentValue().getSequence());
 
     assertTrue(reader.nextKeyValue());
-    assertEquals(new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:1163"), reader.getCurrentKey());
-    assertEquals(new Text("CCTAACCCTAACCCTAACCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCC"), reader.getCurrentValue().getSequence());
+    assertEquals(
+        new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:1163"),
+        reader.getCurrentKey());
+    assertEquals(
+        new Text(
+            "CCTAACCCTAACCCTAACCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCC"),
+        reader.getCurrentValue().getSequence());
 
     assertTrue(reader.nextKeyValue());
-    assertEquals(new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:1244"), reader.getCurrentKey());
-    assertEquals(new Text("TAACCCTAAACCCTAAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCAACCCCAACCCCAACCCCAACCCCAACCC"), reader.getCurrentValue().getSequence());
+    assertEquals(
+        new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:1244"),
+        reader.getCurrentKey());
+    assertEquals(
+        new Text(
+            "TAACCCTAAACCCTAAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCAACCCCAACCCCAACCCCAACCCCAACCC"),
+        reader.getCurrentValue().getSequence());
 
     assertTrue(reader.nextKeyValue());
-    assertEquals(new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:1325"), reader.getCurrentKey());
-    assertEquals(new Text("CAACCCTAACCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCCC"), reader.getCurrentValue().getSequence());
+    assertEquals(
+        new Text("chr1 dna:chromosome chromosome:GRCh37:1:1:249250621:1325"),
+        reader.getCurrentKey());
+    assertEquals(
+        new Text(
+            "CAACCCTAACCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCCC"),
+        reader.getCurrentValue().getSequence());
 
     assertFalse(reader.nextKeyValue());
 
@@ -72,12 +97,15 @@ public class TestFastaInputFormat {
     reader.initialize(splits.get(1), taskAttemptContext);
 
     assertTrue(reader.nextKeyValue());
-    assertEquals(new Text("chr2 dna:chromosome chromosome:GRCh37:2:1:243199373:11"), reader.getCurrentKey());
-    assertEquals(new Text("TAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCCTAACCCTAACCCTAACCCTCGCGGTACCCTC"), reader.getCurrentValue().getSequence());
+    assertEquals(
+        new Text("chr2 dna:chromosome chromosome:GRCh37:2:1:243199373:11"), reader.getCurrentKey());
+    assertEquals(
+        new Text(
+            "TAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCCTAACCCTAACCCTAACCCTAACCCTCGCGGTACCCTC"),
+        reader.getCurrentValue().getSequence());
 
     assertFalse(reader.nextKeyValue());
 
     reader.close();
   }
-
 }

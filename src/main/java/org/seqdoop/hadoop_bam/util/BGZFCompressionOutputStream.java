@@ -6,19 +6,17 @@ import java.io.OutputStream;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
 
 /**
- * An implementation of {@code CompressionOutputStream} for BGZF, using
- * {@link BlockCompressedOutputStream} from htsjdk. Note that unlike
- * {@link BlockCompressedOutputStream}, an empty gzip block file terminator is
- * <i>not</i> written at the end of the stream. This is because in Hadoop, multiple
- * headerless files are often written in parallel, and merged afterwards into a single
- * file, and it's during the merge process the header and terminator are added.
+ * An implementation of {@code CompressionOutputStream} for BGZF, using {@link
+ * BlockCompressedOutputStream} from htsjdk. Note that unlike {@link BlockCompressedOutputStream},
+ * an empty gzip block file terminator is <i>not</i> written at the end of the stream. This is
+ * because in Hadoop, multiple headerless files are often written in parallel, and merged afterwards
+ * into a single file, and it's during the merge process the header and terminator are added.
  */
 class BGZFCompressionOutputStream extends CompressionOutputStream {
 
   private BlockCompressedOutputStream output;
 
-  public BGZFCompressionOutputStream(OutputStream out)
-      throws IOException {
+  public BGZFCompressionOutputStream(OutputStream out) throws IOException {
     super(out);
     this.output = new BlockCompressedOutputStream(out, null);
   }

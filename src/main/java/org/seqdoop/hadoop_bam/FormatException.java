@@ -22,11 +22,11 @@
 
 package org.seqdoop.hadoop_bam;
 
-public class FormatException extends RuntimeException
-{
-	private static final long serialVersionUID = 1L;
-	public FormatException(String msg)
-	{
-		super(msg);
-	}
+public class FormatException extends RuntimeException {
+
+  private static final long serialVersionUID = 1L;
+
+  public FormatException(String msg) {
+    super(msg);
+  }
 }

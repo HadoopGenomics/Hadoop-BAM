@@ -22,69 +22,62 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.seqdoop.hadoop_bam.util.ConfHelper;
-
-import org.junit.*;
 import static org.junit.Assert.*;
 
 import org.apache.hadoop.conf.Configuration;
+import org.junit.*;
+import org.seqdoop.hadoop_bam.util.ConfHelper;
 
-public class TestConfHelper
-{
-	@Test
-	public void testParseBooleanValidValues()
-	{
-		assertTrue(ConfHelper.parseBoolean("true", false));
-		assertTrue(ConfHelper.parseBoolean("tRuE", false));
-		assertTrue(ConfHelper.parseBoolean("TRUE", false));
-		assertTrue(ConfHelper.parseBoolean("t", false));
-		assertTrue(ConfHelper.parseBoolean("yes", false));
-		assertTrue(ConfHelper.parseBoolean("y", false));
-		assertTrue(ConfHelper.parseBoolean("Y", false));
-		assertTrue(ConfHelper.parseBoolean("1", false));
+public class TestConfHelper {
 
-		assertFalse(ConfHelper.parseBoolean("false", true));
-		assertFalse(ConfHelper.parseBoolean("faLse", true));
-		assertFalse(ConfHelper.parseBoolean("FALSE", true));
-		assertFalse(ConfHelper.parseBoolean("f", true));
-		assertFalse(ConfHelper.parseBoolean("no", true));
-		assertFalse(ConfHelper.parseBoolean("n", true));
-		assertFalse(ConfHelper.parseBoolean("N", true));
-		assertFalse(ConfHelper.parseBoolean("0", true));
-	}
+  public static void main(String args[]) {
+    org.junit.runner.JUnitCore.main(TestConfHelper.class.getName());
+  }
 
-	@Test
-	public void testParseBooleanNull()
-	{
-		assertTrue(ConfHelper.parseBoolean(null, true));
-		assertFalse(ConfHelper.parseBoolean(null, false));
-	}
+  @Test
+  public void testParseBooleanValidValues() {
+    assertTrue(ConfHelper.parseBoolean("true", false));
+    assertTrue(ConfHelper.parseBoolean("tRuE", false));
+    assertTrue(ConfHelper.parseBoolean("TRUE", false));
+    assertTrue(ConfHelper.parseBoolean("t", false));
+    assertTrue(ConfHelper.parseBoolean("yes", false));
+    assertTrue(ConfHelper.parseBoolean("y", false));
+    assertTrue(ConfHelper.parseBoolean("Y", false));
+    assertTrue(ConfHelper.parseBoolean("1", false));
 
-	@Test(expected=IllegalArgumentException.class)
-	public void testParseBooleanInvalidValue()
-	{
-		ConfHelper.parseBoolean("dodo", true);
-	}
+    assertFalse(ConfHelper.parseBoolean("false", true));
+    assertFalse(ConfHelper.parseBoolean("faLse", true));
+    assertFalse(ConfHelper.parseBoolean("FALSE", true));
+    assertFalse(ConfHelper.parseBoolean("f", true));
+    assertFalse(ConfHelper.parseBoolean("no", true));
+    assertFalse(ConfHelper.parseBoolean("n", true));
+    assertFalse(ConfHelper.parseBoolean("N", true));
+    assertFalse(ConfHelper.parseBoolean("0", true));
+  }
 
-	@Test
-	public void testParseBooleanFromConfValue()
-	{
-		final String propName = "my.property";
-		Configuration conf = new Configuration();
-		conf.set(propName, "t");
-		assertTrue(ConfHelper.parseBoolean(conf, propName, false));
-	}
+  @Test
+  public void testParseBooleanNull() {
+    assertTrue(ConfHelper.parseBoolean(null, true));
+    assertFalse(ConfHelper.parseBoolean(null, false));
+  }
 
-	@Test
-	public void testParseBooleanFromConfNull()
-	{
-		Configuration conf = new Configuration();
-		assertTrue(ConfHelper.parseBoolean(conf, "my.property", true));
-		assertFalse(ConfHelper.parseBoolean(conf, "my.property", false));
-	}
+  @Test(expected = IllegalArgumentException.class)
+  public void testParseBooleanInvalidValue() {
+    ConfHelper.parseBoolean("dodo", true);
+  }
 
+  @Test
+  public void testParseBooleanFromConfValue() {
+    final String propName = "my.property";
+    Configuration conf = new Configuration();
+    conf.set(propName, "t");
+    assertTrue(ConfHelper.parseBoolean(conf, propName, false));
+  }
 
-	public static void main(String args[]) {
-		org.junit.runner.JUnitCore.main(TestConfHelper.class.getName());
-	}
+  @Test
+  public void testParseBooleanFromConfNull() {
+    Configuration conf = new Configuration();
+    assertTrue(ConfHelper.parseBoolean(conf, "my.property", true));
+    assertFalse(ConfHelper.parseBoolean(conf, "my.property", false));
+  }
 }

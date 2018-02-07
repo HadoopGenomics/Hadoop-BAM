@@ -22,6 +22,12 @@
 
 package org.seqdoop.hadoop_bam.util;
 
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMTextHeaderCodec;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.common.CramVersions;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,115 +36,102 @@ import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
-
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.SAMTextHeaderCodec;
-import htsjdk.samtools.cram.build.CramIO;
-import htsjdk.samtools.cram.common.CramVersions;
-import htsjdk.samtools.util.BlockCompressedOutputStream;
-
 import org.seqdoop.hadoop_bam.SAMFormat;
 
 public class SAMOutputPreparer {
-	private ByteBuffer buf;
 
-	public SAMOutputPreparer() {
-		// Enough room for a 32-bit integer.
-		buf = ByteBuffer.wrap(new byte[4]);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-	}
+  public static final byte[] BAM_MAGIC = {'B', 'A', 'M', 1};
+  private ByteBuffer buf;
 
-	public static final byte[] BAM_MAGIC = {'B','A','M', 1};
+  public SAMOutputPreparer() {
+    // Enough room for a 32-bit integer.
+    buf = ByteBuffer.wrap(new byte[4]);
+    buf.order(ByteOrder.LITTLE_ENDIAN);
+  }
 
-	/** Prepares the given output stream for writing of SAMRecords in the given
-	 * format. This includes writing the given SAM header and, in the case of
-	 * BAM or CRAM, writing some further metadata as well as compressing everything
-	 * written. Returns a new stream to replace the original: it will do the
-	 * appropriate compression for BAM/CRAM files.
-	 */
-	public OutputStream prepareForRecords(
-			OutputStream out, final SAMFormat format,
-			final SAMFileHeader header)
-		throws IOException {
+  private static void writeString(final OutputStream out, final String s) throws IOException {
+    // Don't flush the underlying stream yet, only the writer: in the case of
+    // BAM, we might be able to cram more things into the gzip block still.
+    final OutputStreamWriter w =
+        new OutputStreamWriter(
+            new FilterOutputStream(out) {
+              @Override
+              public void flush() {}
+            });
+    w.write(s);
+    w.flush();
+  }
 
-        switch (format) {
-            case SAM:
-                out = prepareSAMOrBAMStream(out, format, header);
-                break;
-            case BAM:
-                out = prepareSAMOrBAMStream(out, format, header);
-                break;
-            case CRAM:
-                out = prepareCRAMStream(out, format, header);
-                break;
-            default:
-                throw new IllegalArgumentException
-                    ("Unsupported SAM file format, must be one of SAM, BAM or CRAM");
-        }
+  /**
+   * Prepares the given output stream for writing of SAMRecords in the given format. This includes
+   * writing the given SAM header and, in the case of BAM or CRAM, writing some further metadata as
+   * well as compressing everything written. Returns a new stream to replace the original: it will
+   * do the appropriate compression for BAM/CRAM files.
+   */
+  public OutputStream prepareForRecords(
+      OutputStream out, final SAMFormat format, final SAMFileHeader header) throws IOException {
 
-        // Important for BAM: if the caller doesn't want to use the new stream
-        // for some reason, the BlockCompressedOutputStream's buffer would never
-        // be flushed.
-        out.flush();
-        return out;
-	}
+    switch (format) {
+      case SAM:
+        out = prepareSAMOrBAMStream(out, format, header);
+        break;
+      case BAM:
+        out = prepareSAMOrBAMStream(out, format, header);
+        break;
+      case CRAM:
+        out = prepareCRAMStream(out, format, header);
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported SAM file format, must be one of SAM, BAM or CRAM");
+    }
 
-	private OutputStream prepareCRAMStream(
-			OutputStream out, final SAMFormat format,
-	        final SAMFileHeader header)  throws IOException
-	{
-		CramIO.writeHeader(CramVersions.DEFAULT_CRAM_VERSION, out, header, null);
-		return out;
-	}
+    // Important for BAM: if the caller doesn't want to use the new stream
+    // for some reason, the BlockCompressedOutputStream's buffer would never
+    // be flushed.
+    out.flush();
+    return out;
+  }
 
-	private OutputStream prepareSAMOrBAMStream(
-			OutputStream out, final SAMFormat format,
-			final SAMFileHeader header) throws IOException
-	{
-		final StringWriter sw = new StringWriter();
-		new SAMTextHeaderCodec().encode(sw, header);
-		final String text = sw.toString();
+  private OutputStream prepareCRAMStream(
+      OutputStream out, final SAMFormat format, final SAMFileHeader header) throws IOException {
+    CramIO.writeHeader(CramVersions.DEFAULT_CRAM_VERSION, out, header, null);
+    return out;
+  }
 
-		if (format == SAMFormat.BAM) {
-			out = new BlockCompressedOutputStream(out, null);
-			out.write(BAM_MAGIC);
-			writeInt32(out, text.length());
-		}
+  private OutputStream prepareSAMOrBAMStream(
+      OutputStream out, final SAMFormat format, final SAMFileHeader header) throws IOException {
+    final StringWriter sw = new StringWriter();
+    new SAMTextHeaderCodec().encode(sw, header);
+    final String text = sw.toString();
 
-		writeString(out, text);
+    if (format == SAMFormat.BAM) {
+      out = new BlockCompressedOutputStream(out, null);
+      out.write(BAM_MAGIC);
+      writeInt32(out, text.length());
+    }
 
-		if (format == SAMFormat.BAM) {
-			final List<SAMSequenceRecord> refs =
-				header.getSequenceDictionary().getSequences();
+    writeString(out, text);
 
-			writeInt32(out, refs.size());
+    if (format == SAMFormat.BAM) {
+      final List<SAMSequenceRecord> refs = header.getSequenceDictionary().getSequences();
 
-			for (final SAMSequenceRecord ref : refs) {
-				final String name = ref.getSequenceName();
-				writeInt32(out, name.length() + 1);
-				writeString(out, name);
-				out.write(0);
-				writeInt32(out, ref.getSequenceLength());
-			}
-		}
+      writeInt32(out, refs.size());
 
-		return out;
-	}
+      for (final SAMSequenceRecord ref : refs) {
+        final String name = ref.getSequenceName();
+        writeInt32(out, name.length() + 1);
+        writeString(out, name);
+        out.write(0);
+        writeInt32(out, ref.getSequenceLength());
+      }
+    }
 
-	private static void writeString(final OutputStream out, final String s)
-		throws IOException
-	{
-		// Don't flush the underlying stream yet, only the writer: in the case of
-		// BAM, we might be able to cram more things into the gzip block still.
-		final OutputStreamWriter w = new OutputStreamWriter(
-			new FilterOutputStream(out) { @Override public void flush() {} } );
-		w.write(s);
-		w.flush();
-	}
+    return out;
+  }
 
-	private void writeInt32(final OutputStream out, int n) throws IOException {
-		buf.putInt(0, n);
-		out.write(buf.array());
-	}
+  private void writeInt32(final OutputStream out, int n) throws IOException {
+    buf.putInt(0, n);
+    out.write(buf.array());
+  }
 }

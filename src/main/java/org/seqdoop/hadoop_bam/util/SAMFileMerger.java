@@ -1,5 +1,10 @@
 package org.seqdoop.hadoop_bam.util;
 
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.asPath;
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.deleteRecursive;
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.getFilesMatching;
+import static org.seqdoop.hadoop_bam.util.NIOFileUtil.mergeInto;
+
 import com.google.common.io.CountingOutputStream;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.cram.build.CramIO;
@@ -20,31 +25,29 @@ import org.seqdoop.hadoop_bam.SAMFormat;
 import org.seqdoop.hadoop_bam.SplittingBAMIndex;
 import org.seqdoop.hadoop_bam.SplittingBAMIndexer;
 
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.asPath;
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.deleteRecursive;
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.getFilesMatching;
-import static org.seqdoop.hadoop_bam.util.NIOFileUtil.mergeInto;
-
 /**
- * Merges headerless BAM or CRAM files produced by {@link KeyIgnoringAnySAMOutputFormat}
- * into a single file.
+ * Merges headerless BAM or CRAM files produced by {@link KeyIgnoringAnySAMOutputFormat} into a
+ * single file.
  */
 public class SAMFileMerger {
 
-  private SAMFileMerger() {
-  }
+  private SAMFileMerger() {}
 
   /**
-   * Merge part file shards produced by {@link KeyIgnoringAnySAMOutputFormat} into a
-   * single file with the given header.
+   * Merge part file shards produced by {@link KeyIgnoringAnySAMOutputFormat} into a single file
+   * with the given header.
+   *
    * @param partDirectory the directory containing part files
    * @param outputFile the file to write the merged file to
    * @param samOutputFormat the format (must be BAM or CRAM; SAM is not supported)
    * @param header the header for the merged file
-   * @throws IOException
    */
-  public static void mergeParts(final String partDirectory, final String outputFile,
-      final SAMFormat samOutputFormat, final SAMFileHeader header) throws IOException {
+  public static void mergeParts(
+      final String partDirectory,
+      final String outputFile,
+      final SAMFormat samOutputFormat,
+      final SAMFileHeader header)
+      throws IOException {
 
     // First, check for the _SUCCESS file.
     final Path partPath = asPath(partDirectory);
@@ -54,22 +57,23 @@ public class SAMFileMerger {
     }
     final Path outputPath = asPath(outputFile);
     if (partPath.equals(outputPath)) {
-      throw new IllegalArgumentException("Cannot merge parts into output with same " +
-          "path: " + partPath);
+      throw new IllegalArgumentException(
+          "Cannot merge parts into output with same " + "path: " + partPath);
     }
 
-    List<Path> parts = getFilesMatching(partPath, NIOFileUtil.PARTS_GLOB,
-        SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+    List<Path> parts =
+        getFilesMatching(
+            partPath, NIOFileUtil.PARTS_GLOB, SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
     if (parts.isEmpty()) {
-      throw new IllegalArgumentException("Could not write bam file because no part " +
-          "files were found in " + partPath);
+      throw new IllegalArgumentException(
+          "Could not write bam file because no part " + "files were found in " + partPath);
     }
 
     Files.deleteIfExists(outputPath);
 
     long headerLength;
     try (final CountingOutputStream out =
-             new CountingOutputStream(Files.newOutputStream(outputPath))) {
+        new CountingOutputStream(Files.newOutputStream(outputPath))) {
       if (header != null) {
         new SAMOutputPreparer().prepareForRecords(out, samOutputFormat, header); // write the header
       }
@@ -79,8 +83,9 @@ public class SAMFileMerger {
     }
     long fileLength = Files.size(outputPath);
 
-    final Path outputSplittingBaiPath = outputPath.resolveSibling(
-        outputPath.getFileName() + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
+    final Path outputSplittingBaiPath =
+        outputPath.resolveSibling(
+            outputPath.getFileName() + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
     Files.deleteIfExists(outputSplittingBaiPath);
     try (final OutputStream out = Files.newOutputStream(outputSplittingBaiPath)) {
       mergeSplittingBaiFiles(out, partPath, headerLength, fileLength);
@@ -92,8 +97,10 @@ public class SAMFileMerger {
     deleteRecursive(partPath);
   }
 
-  //Terminate the aggregated output stream with an appropriate SAMOutputFormat-dependent terminator block
-  private static void writeTerminatorBlock(final OutputStream out, final SAMFormat samOutputFormat) throws IOException {
+  // Terminate the aggregated output stream with an appropriate SAMOutputFormat-dependent terminator
+  // block
+  private static void writeTerminatorBlock(final OutputStream out, final SAMFormat samOutputFormat)
+      throws IOException {
     if (SAMFormat.CRAM == samOutputFormat) {
       CramIO.issueEOF(CramVersions.DEFAULT_CRAM_VERSION, out); // terminate with CRAM EOF container
     } else {
@@ -101,10 +108,11 @@ public class SAMFileMerger {
     }
   }
 
-  static void mergeSplittingBaiFiles(OutputStream out, Path directory, long headerLength,
-      long fileLength) throws IOException {
-    final List<Path> parts = getFilesMatching(directory,
-        NIOFileUtil.PARTS_GLOB + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION, null);
+  static void mergeSplittingBaiFiles(
+      OutputStream out, Path directory, long headerLength, long fileLength) throws IOException {
+    final List<Path> parts =
+        getFilesMatching(
+            directory, NIOFileUtil.PARTS_GLOB + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION, null);
     if (parts.isEmpty()) {
       return; // nothing to merge
     }
@@ -124,7 +132,6 @@ public class SAMFileMerger {
       }
     }
 
-
     SplittingBAMIndexer splittingBAMIndexer = new SplittingBAMIndexer(out);
     for (Long offset : mergedVirtualOffsets) {
       splittingBAMIndexer.writeVirtualOffset(offset);
@@ -132,8 +139,11 @@ public class SAMFileMerger {
     splittingBAMIndexer.finish(partFileOffset);
     int terminatingBlockLength = BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK.length;
     if (partFileOffset + terminatingBlockLength != fileLength) {
-      throw new IOException("Part file length mismatch. Last part file offset is " +
-          partFileOffset + ", expected: " + (fileLength - terminatingBlockLength));
+      throw new IOException(
+          "Part file length mismatch. Last part file offset is "
+              + partFileOffset
+              + ", expected: "
+              + (fileLength - terminatingBlockLength));
     }
 
     for (final Path part : parts) {

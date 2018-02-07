@@ -34,7 +34,6 @@ import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,162 +56,161 @@ import org.seqdoop.hadoop_bam.util.MurmurHash3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** The key is the bitwise OR of the chromosome index in the upper 32 bits
- * and the 0-based leftmost coordinate in the lower.
+/**
+ * The key is the bitwise OR of the chromosome index in the upper 32 bits and the 0-based leftmost
+ * coordinate in the lower.
  *
- * The chromosome index is based on the ordering of the contig lines in the VCF
- * header. If a chromosome name that cannot be found in the contig lines is
- * used, that name is instead hashed to form the upper part of the key.
+ * <p>The chromosome index is based on the ordering of the contig lines in the VCF header. If a
+ * chromosome name that cannot be found in the contig lines is used, that name is instead hashed to
+ * form the upper part of the key.
  */
-public class VCFRecordReader
-	extends RecordReader<LongWritable,VariantContextWritable>
-{
+public class VCFRecordReader extends RecordReader<LongWritable, VariantContextWritable> {
 
-	private static final Logger logger = LoggerFactory.getLogger(VCFRecordReader.class);
-    
-	/** A String property corresponding to a ValidationStringency
-	 * value. If set, the given stringency is used when any part of the
-	 * Hadoop-BAM library reads VCF.
-	 */
-	public static final String VALIDATION_STRINGENCY_PROPERTY =
-		"hadoopbam.vcfrecordreader.validation-stringency";
+  /**
+   * A String property corresponding to a ValidationStringency value. If set, the given stringency
+   * is used when any part of the Hadoop-BAM library reads VCF.
+   */
+  public static final String VALIDATION_STRINGENCY_PROPERTY =
+      "hadoopbam.vcfrecordreader.validation-stringency";
 
-	static ValidationStringency getValidationStringency(
-		final Configuration conf)
-	{
-		final String p = conf.get(VALIDATION_STRINGENCY_PROPERTY);
-		return p == null ? ValidationStringency.STRICT : ValidationStringency.valueOf(p);
-	}
+  private static final Logger logger = LoggerFactory.getLogger(VCFRecordReader.class);
+  private final LongWritable key = new LongWritable();
+  private final VariantContextWritable vc = new VariantContextWritable();
+  private final Map<String, Integer> contigDict = new HashMap<String, Integer>();
+  private VCFCodec codec = new VCFCodec();
+  private LineRecordReader lineRecordReader = new LineRecordReader();
+  private VCFHeader header;
+  private List<Interval> intervals;
+  private OverlapDetector<Interval> overlapDetector;
+  private ValidationStringency stringency;
 
-	public static void setValidationStringency(
-		final Configuration conf,
-		final ValidationStringency stringency)
-	{
-		conf.set(VALIDATION_STRINGENCY_PROPERTY, stringency.toString());
-	}
+  static ValidationStringency getValidationStringency(final Configuration conf) {
+    final String p = conf.get(VALIDATION_STRINGENCY_PROPERTY);
+    return p == null ? ValidationStringency.STRICT : ValidationStringency.valueOf(p);
+  }
 
-    
-	private final LongWritable          key = new LongWritable();
-	private final VariantContextWritable vc = new VariantContextWritable();
+  public static void setValidationStringency(
+      final Configuration conf, final ValidationStringency stringency) {
+    conf.set(VALIDATION_STRINGENCY_PROPERTY, stringency.toString());
+  }
 
-	private VCFCodec codec = new VCFCodec();
-	private LineRecordReader lineRecordReader = new LineRecordReader();
+  @Override
+  public void initialize(InputSplit spl, TaskAttemptContext ctx) throws IOException {
+    final FileSplit split = (FileSplit) spl;
 
-	private VCFHeader header;
+    final Path file = split.getPath();
+    final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
-	private final Map<String,Integer> contigDict =
-		new HashMap<String,Integer>();
+    final FSDataInputStream ins = fs.open(file);
 
-	private List<Interval> intervals;
-	private OverlapDetector<Interval> overlapDetector;
+    CompressionCodec compressionCodec =
+        new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
+    AsciiLineReader reader;
+    if (compressionCodec == null) {
+      reader = new AsciiLineReader(ins);
+    } else {
+      Decompressor decompressor = CodecPool.getDecompressor(compressionCodec);
+      CompressionInputStream in = compressionCodec.createInputStream(ins, decompressor);
+      reader = new AsciiLineReader(in);
+    }
 
-	private ValidationStringency stringency;
-    
-	@Override public void initialize(InputSplit spl, TaskAttemptContext ctx)
-		throws IOException
-	{
-		final FileSplit split = (FileSplit)spl;
+    AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
 
-		final Path file = split.getPath();
-		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
+    final FeatureCodecHeader h = codec.readHeader(it);
+    if (h == null || !(h.getHeaderValue() instanceof VCFHeader)) {
+      throw new IOException("No VCF header found in " + file);
+    }
 
-		final FSDataInputStream ins = fs.open(file);
+    header = (VCFHeader) h.getHeaderValue();
 
-		CompressionCodec compressionCodec =
-				new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
-		AsciiLineReader reader;
-		if (compressionCodec == null) {
-			reader = new AsciiLineReader(ins);
-		} else {
-			Decompressor decompressor = CodecPool.getDecompressor(compressionCodec);
-			CompressionInputStream in = compressionCodec.createInputStream(ins,
-					decompressor);
-			reader = new AsciiLineReader(in);
-		}
+    contigDict.clear();
+    int i = 0;
+    for (final VCFContigHeaderLine contig : header.getContigLines()) {
+      contigDict.put(contig.getID(), i++);
+    }
 
-		AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
+    lineRecordReader.initialize(spl, ctx);
 
-		final FeatureCodecHeader h = codec.readHeader(it);
-		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
-			throw new IOException("No VCF header found in "+ file);
+    intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
+    if (intervals != null) {
+      overlapDetector = OverlapDetector.create(intervals);
+    }
 
-		header = (VCFHeader) h.getHeaderValue();
+    stringency = VCFRecordReader.getValidationStringency(ctx.getConfiguration());
+  }
 
-		contigDict.clear();
-		int i = 0;
-		for (final VCFContigHeaderLine contig : header.getContigLines())
-			contigDict.put(contig.getID(), i++);
+  @Override
+  public void close() throws IOException {
+    lineRecordReader.close();
+  }
 
-		lineRecordReader.initialize(spl, ctx);
+  @Override
+  public float getProgress() throws IOException {
+    return lineRecordReader.getProgress();
+  }
 
-		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
-		if (intervals != null) {
-			overlapDetector = OverlapDetector.create(intervals);
-		}
+  @Override
+  public LongWritable getCurrentKey() {
+    return key;
+  }
 
-                stringency = VCFRecordReader.getValidationStringency(ctx.getConfiguration());
-	}
-	@Override public void close() throws IOException { lineRecordReader.close(); }
+  @Override
+  public VariantContextWritable getCurrentValue() {
+    return vc;
+  }
 
-	@Override public float getProgress() throws IOException {
-		return lineRecordReader.getProgress();
-	}
+  @Override
+  public boolean nextKeyValue() throws IOException {
+    while (true) {
+      String line;
+      while (true) {
+        if (!lineRecordReader.nextKeyValue()) {
+          return false;
+        }
+        line = lineRecordReader.getCurrentValue().toString();
+        if (!line.startsWith("#")) {
+          break;
+        }
+      }
 
-	@Override public LongWritable           getCurrentKey  () { return key; }
-	@Override public VariantContextWritable getCurrentValue() { return vc; }
+      final VariantContext v;
+      try {
+        v = codec.decode(line);
+      } catch (TribbleException e) {
+        if (stringency == ValidationStringency.STRICT) {
+          if (logger.isErrorEnabled()) {
+            logger.error("Parsing line {} failed with {}.", line, e);
+          }
+          throw e;
+        } else {
+          if (stringency == ValidationStringency.LENIENT && logger.isWarnEnabled()) {
+            logger.warn("Parsing line {} failed with {}. Skipping...", line, e);
+          }
+          continue;
+        }
+      }
 
-	@Override public boolean nextKeyValue() throws IOException {
-		while (true) {
-			String line;
-			while (true) {
-				if (!lineRecordReader.nextKeyValue()) {
-					return false;
-				}
-				line = lineRecordReader.getCurrentValue().toString();
-				if (!line.startsWith("#")) {
-					break;
-				}
-			}
+      if (!overlaps(v)) {
+        continue;
+      }
 
-                        final VariantContext v;
-                        try {
-				v = codec.decode(line);
-			} catch (TribbleException e) {
-				if (stringency == ValidationStringency.STRICT) {
-					if (logger.isErrorEnabled()) {
-						logger.error("Parsing line {} failed with {}.", line, e);
-					}
-					throw e;
-				} else {
-					if (stringency == ValidationStringency.LENIENT &&
-                                            logger.isWarnEnabled()) {
-						logger.warn("Parsing line {} failed with {}. Skipping...",
-                                                            line, e);
-					}
-					continue;
-				}
-			}
+      Integer chromIdx = contigDict.get(v.getContig());
+      if (chromIdx == null) {
+        chromIdx = (int) MurmurHash3.murmurhash3(v.getContig(), 0);
+      }
 
-			if (!overlaps(v)) {
-				continue;
-			}
+      key.set((long) chromIdx << 32 | (long) (v.getStart() - 1));
+      vc.set(v, header);
 
-			Integer chromIdx = contigDict.get(v.getContig());
-			if (chromIdx == null)
-				chromIdx = (int) MurmurHash3.murmurhash3(v.getContig(), 0);
+      return true;
+    }
+  }
 
-			key.set((long) chromIdx << 32 | (long) (v.getStart() - 1));
-			vc.set(v, header);
-
-			return true;
-		}
-	}
-
-	private boolean overlaps(VariantContext v) {
-		if (intervals == null) {
-			return true;
-		}
-		final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
-		return overlapDetector.overlapsAny(interval);
-	}
+  private boolean overlaps(VariantContext v) {
+    if (intervals == null) {
+      return true;
+    }
+    final Interval interval = new Interval(v.getContig(), v.getStart(), v.getEnd());
+    return overlapDetector.overlapsAny(interval);
+  }
 }

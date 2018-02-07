@@ -22,11 +22,6 @@
 
 package org.seqdoop.hadoop_bam;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.StringWriter;
-import java.io.Writer;
-
 import htsjdk.samtools.BAMRecordCodec;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
@@ -35,122 +30,113 @@ import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SAMTextHeaderCodec;
 import htsjdk.samtools.util.BinaryCodec;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
-
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-/** A base {@link RecordWriter} for BAM records.
+/**
+ * A base {@link RecordWriter} for BAM records.
  *
- * <p>Handles the output stream, writing the header if requested, and provides
- * the {@link #writeAlignment} function for subclasses.</p>
+ * <p>Handles the output stream, writing the header if requested, and provides the {@link
+ * #writeAlignment} function for subclasses.
  */
-public abstract class BAMRecordWriter<K>
-	extends RecordWriter<K,SAMRecordWritable>
-{
-	private OutputStream   origOutput;
-	private BinaryCodec    binaryCodec;
-	private BAMRecordCodec recordCodec;
-	private BlockCompressedOutputStream compressedOut;
-	private SplittingBAMIndexer splittingBAMIndexer;
+public abstract class BAMRecordWriter<K> extends RecordWriter<K, SAMRecordWritable> {
 
-	/** A SAMFileHeader is read from the input Path. */
-	public BAMRecordWriter(
-			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output,
-			SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()),
-			writeHeader, ctx);
-		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
-			Path splittingIndex = BAMInputFormat.getIdxPath(output);
-			OutputStream splittingIndexOutput =
-					output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
-			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
-		}
-	}
-	public BAMRecordWriter(
-			Path output, SAMFileHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-		if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
-			Path splittingIndex = BAMInputFormat.getIdxPath(output);
-			OutputStream splittingIndexOutput =
-					output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
-			splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
-		}
-	}
+  private OutputStream origOutput;
+  private BinaryCodec binaryCodec;
+  private BAMRecordCodec recordCodec;
+  private BlockCompressedOutputStream compressedOut;
+  private SplittingBAMIndexer splittingBAMIndexer;
 
-	// Working around not being able to call a constructor other than as the
-	// first statement...
-	private void init(
-			Path output, SAMFileHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-	}
-	private void init(
-			OutputStream output, SAMFileHeader header, boolean writeHeader)
-		throws IOException
-	{
-		origOutput = output;
+  /** A SAMFileHeader is read from the input Path. */
+  public BAMRecordWriter(Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    init(
+        output, SAMHeaderReader.readSAMHeaderFrom(input, ctx.getConfiguration()), writeHeader, ctx);
+    if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
+      Path splittingIndex = BAMInputFormat.getIdxPath(output);
+      OutputStream splittingIndexOutput =
+          output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
+      splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
+    }
+  }
 
-		compressedOut = new BlockCompressedOutputStream(origOutput, null);
+  public BAMRecordWriter(
+      Path output, SAMFileHeader header, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    init(output.getFileSystem(ctx.getConfiguration()).create(output), header, writeHeader);
+    if (ctx.getConfiguration().getBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, false)) {
+      Path splittingIndex = BAMInputFormat.getIdxPath(output);
+      OutputStream splittingIndexOutput =
+          output.getFileSystem(ctx.getConfiguration()).create(splittingIndex);
+      splittingBAMIndexer = new SplittingBAMIndexer(splittingIndexOutput);
+    }
+  }
 
-		binaryCodec = new BinaryCodec(compressedOut);
-		recordCodec = new BAMRecordCodec(header);
-		recordCodec.setOutputStream(compressedOut);
+  // Working around not being able to call a constructor other than as the
+  // first statement...
+  private void init(Path output, SAMFileHeader header, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    init(output.getFileSystem(ctx.getConfiguration()).create(output), header, writeHeader);
+  }
 
-		if (writeHeader)
-			this.writeHeader(header);
-	}
+  private void init(OutputStream output, SAMFileHeader header, boolean writeHeader)
+      throws IOException {
+    origOutput = output;
 
-	@Override public void close(TaskAttemptContext ctx) throws IOException {
-		// Don't close the codec, we don't want BlockCompressedOutputStream's
-		// file terminator to be output. But do flush the stream.
-		binaryCodec.getOutputStream().flush();
+    compressedOut = new BlockCompressedOutputStream(origOutput, null);
 
-		// Finish indexer with file length
-		if (splittingBAMIndexer != null) {
-			splittingBAMIndexer.finish(compressedOut.getFilePointer() >> 16);
-		}
+    binaryCodec = new BinaryCodec(compressedOut);
+    recordCodec = new BAMRecordCodec(header);
+    recordCodec.setOutputStream(compressedOut);
 
-		// And close the original output.
-		origOutput.close();
-	}
+    if (writeHeader) {
+      this.writeHeader(header);
+    }
+  }
 
-	protected void writeAlignment(final SAMRecord rec) throws IOException {
-		if (splittingBAMIndexer != null) {
-			splittingBAMIndexer.processAlignment(compressedOut.getFilePointer());
-		}
-		recordCodec.encode(rec);
-	}
+  @Override
+  public void close(TaskAttemptContext ctx) throws IOException {
+    // Don't close the codec, we don't want BlockCompressedOutputStream's
+    // file terminator to be output. But do flush the stream.
+    binaryCodec.getOutputStream().flush();
 
-	private void writeHeader(final SAMFileHeader header) {
-		binaryCodec.writeBytes("BAM\001".getBytes(Charset.forName("UTF8")));
+    // Finish indexer with file length
+    if (splittingBAMIndexer != null) {
+      splittingBAMIndexer.finish(compressedOut.getFilePointer() >> 16);
+    }
 
-		final Writer sw = new StringWriter();
-		new SAMTextHeaderCodec().encode(sw, header);
+    // And close the original output.
+    origOutput.close();
+  }
 
-		binaryCodec.writeString(sw.toString(), true, false);
+  protected void writeAlignment(final SAMRecord rec) throws IOException {
+    if (splittingBAMIndexer != null) {
+      splittingBAMIndexer.processAlignment(compressedOut.getFilePointer());
+    }
+    recordCodec.encode(rec);
+  }
 
-		final SAMSequenceDictionary dict = header.getSequenceDictionary();
+  private void writeHeader(final SAMFileHeader header) {
+    binaryCodec.writeBytes("BAM\001".getBytes(Charset.forName("UTF8")));
 
-		binaryCodec.writeInt(dict.size());
-		for (final SAMSequenceRecord rec : dict.getSequences()) {
-			binaryCodec.writeString(rec.getSequenceName(), true, true);
-			binaryCodec.writeInt   (rec.getSequenceLength());
-		}
-	}
+    final Writer sw = new StringWriter();
+    new SAMTextHeaderCodec().encode(sw, header);
+
+    binaryCodec.writeString(sw.toString(), true, false);
+
+    final SAMSequenceDictionary dict = header.getSequenceDictionary();
+
+    binaryCodec.writeInt(dict.size());
+    for (final SAMSequenceRecord rec : dict.getSequences()) {
+      binaryCodec.writeString(rec.getSequenceName(), true, true);
+      binaryCodec.writeInt(rec.getSequenceLength());
+    }
+  }
 }

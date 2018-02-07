@@ -22,151 +22,140 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.seqdoop.hadoop_bam.QseqOutputFormat.QseqRecordWriter;
-import org.seqdoop.hadoop_bam.SequencedFragment;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-
-import java.io.DataOutputStream;
-import java.io.ByteArrayOutputStream;
-
-import org.junit.*;
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.*;
+import org.seqdoop.hadoop_bam.QseqOutputFormat.QseqRecordWriter;
 
-public class TestQseqOutputFormat
-{
-	private SequencedFragment fragment;
+public class TestQseqOutputFormat {
 
-	private ByteArrayOutputStream outputBuffer;
-	private DataOutputStream dataOutput;
-	private QseqRecordWriter writer;
+  private SequencedFragment fragment;
 
-	@Before
-	public void setup() throws IOException
-	{
-		fragment = new SequencedFragment();
-		fragment.setInstrument("instrument");
-		fragment.setRunNumber(1);
-		fragment.setFlowcellId("xyz");
-		fragment.setLane(2);
-		fragment.setTile(1001);
-		fragment.setXpos(10000);
-		fragment.setYpos(9999);
-		fragment.setRead(1);
-		fragment.setFilterPassed(true);
-		fragment.setIndexSequence("CATCAT");
-		fragment.setSequence(new Text("AAAAAAAAAA"));
-		fragment.setQuality(new Text("##########"));
+  private ByteArrayOutputStream outputBuffer;
+  private DataOutputStream dataOutput;
+  private QseqRecordWriter writer;
 
-		outputBuffer = new ByteArrayOutputStream();
-		dataOutput = new DataOutputStream(outputBuffer);
-		writer = new QseqRecordWriter(new Configuration(), dataOutput);
-	}
+  @Before
+  public void setup() throws IOException {
+    fragment = new SequencedFragment();
+    fragment.setInstrument("instrument");
+    fragment.setRunNumber(1);
+    fragment.setFlowcellId("xyz");
+    fragment.setLane(2);
+    fragment.setTile(1001);
+    fragment.setXpos(10000);
+    fragment.setYpos(9999);
+    fragment.setRead(1);
+    fragment.setFilterPassed(true);
+    fragment.setIndexSequence("CATCAT");
+    fragment.setSequence(new Text("AAAAAAAAAA"));
+    fragment.setQuality(new Text("##########"));
 
-	@Test
-	public void testSimple() throws IOException
-	{
-		writer.write(null, fragment);
-		writer.close(null);
+    outputBuffer = new ByteArrayOutputStream();
+    dataOutput = new DataOutputStream(outputBuffer);
+    writer = new QseqRecordWriter(new Configuration(), dataOutput);
+  }
 
-		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
-		assertEquals(11, fields.length);
+  @Test
+  public void testSimple() throws IOException {
+    writer.write(null, fragment);
+    writer.close(null);
 
-		assertEquals(fragment.getInstrument(), fields[0]);
-		assertEquals(fragment.getRunNumber().toString(), fields[1]);
-		assertEquals(fragment.getLane().toString(), fields[2]);
-		assertEquals(fragment.getTile().toString(), fields[3]);
-		assertEquals(fragment.getXpos().toString(), fields[4]);
-		assertEquals(fragment.getYpos().toString(), fields[5]);
-		assertEquals(fragment.getIndexSequence().toString(), fields[6]);
-		assertEquals(fragment.getRead().toString(), fields[7]);
-		assertEquals(fragment.getSequence().toString(), fields[8]);
-		assertEquals(fragment.getQuality().toString().replace('#', 'B'), fields[9]);
-		assertEquals(fragment.getFilterPassed() ? "1\n" : "0\n", fields[10]);
-	}
+    String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+    assertEquals(11, fields.length);
 
-	@Test
-	public void testConvertUnknowns() throws IOException, UnsupportedEncodingException
-	{
-		String seq = "AAAAANNNNN";
-		fragment.setSequence(new Text(seq));
-		writer.write(null, fragment);
-		writer.close(null);
+    assertEquals(fragment.getInstrument(), fields[0]);
+    assertEquals(fragment.getRunNumber().toString(), fields[1]);
+    assertEquals(fragment.getLane().toString(), fields[2]);
+    assertEquals(fragment.getTile().toString(), fields[3]);
+    assertEquals(fragment.getXpos().toString(), fields[4]);
+    assertEquals(fragment.getYpos().toString(), fields[5]);
+    assertEquals(fragment.getIndexSequence().toString(), fields[6]);
+    assertEquals(fragment.getRead().toString(), fields[7]);
+    assertEquals(fragment.getSequence().toString(), fields[8]);
+    assertEquals(fragment.getQuality().toString().replace('#', 'B'), fields[9]);
+    assertEquals(fragment.getFilterPassed() ? "1\n" : "0\n", fields[10]);
+  }
 
-		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
-		assertEquals(seq.replace("N", "."), fields[8]);
-	}
+  @Test
+  public void testConvertUnknowns() throws IOException, UnsupportedEncodingException {
+    String seq = "AAAAANNNNN";
+    fragment.setSequence(new Text(seq));
+    writer.write(null, fragment);
+    writer.close(null);
 
-	@Test
-	public void testConvertUnknownsInIndexSequence() throws IOException, UnsupportedEncodingException
-	{
-		String index = "CATNNN";
-		fragment.setIndexSequence(index);
-		writer.write(null, fragment);
-		writer.close(null);
+    String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+    assertEquals(seq.replace("N", "."), fields[8]);
+  }
 
-		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
-		assertEquals(index.replace("N", "."), fields[6]);
-	}
+  @Test
+  public void testConvertUnknownsInIndexSequence()
+      throws IOException, UnsupportedEncodingException {
+    String index = "CATNNN";
+    fragment.setIndexSequence(index);
+    writer.write(null, fragment);
+    writer.close(null);
 
-	@Test
-	public void testBaseQualities() throws IOException
-	{
-		// ensure sanger qualities are converted to illumina
-		String seq = "AAAAAAAAAA";
-		String qual = "##########";
+    String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+    assertEquals(index.replace("N", "."), fields[6]);
+  }
 
-		fragment.setSequence(new Text(seq));
-		fragment.setQuality(new Text(qual));
+  @Test
+  public void testBaseQualities() throws IOException {
+    // ensure sanger qualities are converted to illumina
+    String seq = "AAAAAAAAAA";
+    String qual = "##########";
 
-		writer.write(null, fragment);
-		writer.close(null);
+    fragment.setSequence(new Text(seq));
+    fragment.setQuality(new Text(qual));
 
-		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
-		assertEquals(qual.replace("#", "B"), fields[9]);
-	}
+    writer.write(null, fragment);
+    writer.close(null);
 
-	@Test
-	public void testConfigureOutputInSanger() throws IOException
-	{
-		String seq = "AAAAAAAAAA";
-		String qual = "##########";
+    String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+    assertEquals(qual.replace("#", "B"), fields[9]);
+  }
 
-		fragment.setSequence(new Text(seq));
-		fragment.setQuality(new Text(qual));
+  @Test
+  public void testConfigureOutputInSanger() throws IOException {
+    String seq = "AAAAAAAAAA";
+    String qual = "##########";
 
-		Configuration conf = new Configuration();
-		conf.set("hbam.qseq-output.base-quality-encoding", "sanger");
-		writer.setConf(conf);
+    fragment.setSequence(new Text(seq));
+    fragment.setQuality(new Text(qual));
 
-		writer.write(null, fragment);
-		writer.close(null);
+    Configuration conf = new Configuration();
+    conf.set("hbam.qseq-output.base-quality-encoding", "sanger");
+    writer.setConf(conf);
 
-		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
-		assertEquals(qual, fields[9]);
-	}
+    writer.write(null, fragment);
+    writer.close(null);
 
-	@Test
-	public void testClose() throws IOException
-	{
-		// doesn't really do anything but exercise the code
-		writer.close(null);
-	}
+    String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+    assertEquals(qual, fields[9]);
+  }
 
-	@Test
-	public void testNoIndex() throws IOException
-	{
-		fragment.setIndexSequence(null);
-		writer.write(null, fragment);
-		writer.close(null);
+  @Test
+  public void testClose() throws IOException {
+    // doesn't really do anything but exercise the code
+    writer.close(null);
+  }
 
-		String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
-		assertEquals(11, fields.length);
+  @Test
+  public void testNoIndex() throws IOException {
+    fragment.setIndexSequence(null);
+    writer.write(null, fragment);
+    writer.close(null);
 
-		assertEquals("0", fields[6]);
-	}
+    String[] fields = new String(outputBuffer.toByteArray(), "US-ASCII").split("\t");
+    assertEquals(11, fields.length);
+
+    assertEquals("0", fields[6]);
+  }
 }

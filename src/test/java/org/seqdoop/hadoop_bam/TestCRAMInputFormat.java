@@ -1,5 +1,9 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -28,11 +32,8 @@ import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 public class TestCRAMInputFormat {
+
   private String input;
   private String reference;
   private TaskAttemptContext taskAttemptContext;
@@ -53,8 +54,10 @@ public class TestCRAMInputFormat {
   @Test
   public void testReader() throws Exception {
     int expectedCount = 0;
-    SamReader samReader = SamReaderFactory.makeDefault()
-        .referenceSequence(new File(URI.create(reference))).open(new File(input));
+    SamReader samReader =
+        SamReaderFactory.makeDefault()
+            .referenceSequence(new File(URI.create(reference)))
+            .open(new File(input));
     for (SAMRecord r : samReader) {
       expectedCount++;
     }
@@ -62,8 +65,8 @@ public class TestCRAMInputFormat {
     AnySAMInputFormat inputFormat = new AnySAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
     assertEquals(1, splits.size());
-    RecordReader<LongWritable, SAMRecordWritable> reader = inputFormat
-        .createRecordReader(splits.get(0), taskAttemptContext);
+    RecordReader<LongWritable, SAMRecordWritable> reader =
+        inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
     reader.initialize(splits.get(0), taskAttemptContext);
 
     int actualCount = 0;
@@ -135,8 +138,10 @@ public class TestCRAMInputFormat {
     assertTrue(success);
 
     List<String> samStrings = new ArrayList<String>();
-    SamReader samReader = SamReaderFactory.makeDefault()
-        .referenceSequence(new File(URI.create(reference))).open(new File(input));
+    SamReader samReader =
+        SamReaderFactory.makeDefault()
+            .referenceSequence(new File(URI.create(reference)))
+            .open(new File(input));
     for (SAMRecord r : samReader) {
       samStrings.add(r.getSAMString().trim());
     }

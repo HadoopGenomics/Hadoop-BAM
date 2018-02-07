@@ -1,5 +1,8 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -10,10 +13,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class TestSplittingBAMIndexer {
+
   private String input;
 
   @Before
@@ -24,7 +25,7 @@ public class TestSplittingBAMIndexer {
   @Test
   public void testIndexersProduceSameIndexes() throws Exception {
     long bamFileSize = new File(input).length();
-    for (int g : new int[] { 2, 10, SplittingBAMIndexer.DEFAULT_GRANULARITY}) {
+    for (int g : new int[] {2, 10, SplittingBAMIndexer.DEFAULT_GRANULARITY}) {
       SplittingBAMIndex index1 = fromBAMFile(g);
       SplittingBAMIndex index2 = fromSAMRecords(g);
       assertEquals(index1, index2);
@@ -33,8 +34,7 @@ public class TestSplittingBAMIndexer {
     }
   }
 
-  private SplittingBAMIndex fromBAMFile(int granularity) throws
-      IOException {
+  private SplittingBAMIndex fromBAMFile(int granularity) throws IOException {
     Configuration conf = new Configuration();
     conf.set("input", new File(input).toURI().toString());
     conf.setInt("granularity", granularity);
@@ -51,8 +51,10 @@ public class TestSplittingBAMIndexer {
     File indexFile = new File(input + SplittingBAMIndexer.OUTPUT_FILE_EXTENSION);
     FileOutputStream out = new FileOutputStream(indexFile);
     SplittingBAMIndexer indexer = new SplittingBAMIndexer(out, granularity);
-    SamReader samReader = SamReaderFactory.makeDefault()
-        .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS).open(new File(input));
+    SamReader samReader =
+        SamReaderFactory.makeDefault()
+            .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
+            .open(new File(input));
     for (SAMRecord r : samReader) {
       indexer.processAlignment(r);
     }

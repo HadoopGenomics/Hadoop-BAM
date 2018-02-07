@@ -25,34 +25,35 @@ package org.seqdoop.hadoop_bam;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-/** An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for SAM and
- * BAM files. Only locks down the value type and stores the output format
- * requested.
+/**
+ * An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for SAM and BAM files. Only locks
+ * down the value type and stores the output format requested.
  */
-public abstract class AnySAMOutputFormat<K>
-	extends FileOutputFormat<K,SAMRecordWritable>
-{
-	/** A string property defining the output format to use. The value is read
-	 * directly by {@link SAMFormat#valueOf}.
-	 */
-	public static final String OUTPUT_SAM_FORMAT_PROPERTY =
-		"hadoopbam.anysam.output-format";
+public abstract class AnySAMOutputFormat<K> extends FileOutputFormat<K, SAMRecordWritable> {
 
-	protected SAMFormat format;
+  /**
+   * A string property defining the output format to use. The value is read directly by {@link
+   * SAMFormat#valueOf}.
+   */
+  public static final String OUTPUT_SAM_FORMAT_PROPERTY = "hadoopbam.anysam.output-format";
 
-	/** Creates a new output format, reading {@link #OUTPUT_SAM_FORMAT_PROPERTY}
-	 * from the given <code>Configuration</code>.
-	 */
-	protected AnySAMOutputFormat(Configuration conf) {
-		final String fmtStr = conf.get(OUTPUT_SAM_FORMAT_PROPERTY);
+  protected SAMFormat format;
 
-		format = fmtStr == null ? null : SAMFormat.valueOf(fmtStr);
-	}
+  /**
+   * Creates a new output format, reading {@link #OUTPUT_SAM_FORMAT_PROPERTY} from the given <code>
+   * Configuration</code>.
+   */
+  protected AnySAMOutputFormat(Configuration conf) {
+    final String fmtStr = conf.get(OUTPUT_SAM_FORMAT_PROPERTY);
 
-	/** Creates a new output format for the given SAM format. */
-	protected AnySAMOutputFormat(SAMFormat fmt) {
-		if (fmt == null)
-			throw new IllegalArgumentException("null SAMFormat");
-		format = fmt;
-	}
+    format = fmtStr == null ? null : SAMFormat.valueOf(fmtStr);
+  }
+
+  /** Creates a new output format for the given SAM format. */
+  protected AnySAMOutputFormat(SAMFormat fmt) {
+    if (fmt == null) {
+      throw new IllegalArgumentException("null SAMFormat");
+    }
+    format = fmt;
+  }
 }
