@@ -1,11 +1,11 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class TestSAMFormat {
 
@@ -22,7 +22,7 @@ public class TestSAMFormat {
     assertEquals(SAMFormat.SAM, SAMFormat.inferFromData(stream("test.sam")));
     assertEquals(SAMFormat.BAM, SAMFormat.inferFromData(stream("test.bam")));
     assertEquals(SAMFormat.CRAM, SAMFormat.inferFromData(stream("test.cram")));
-    assertNull( SAMFormat.inferFromData(stream("test.vcf")));
+    assertNull(SAMFormat.inferFromData(stream("test.vcf")));
   }
 
   private InputStream stream(String resource) throws IOException {

@@ -22,42 +22,54 @@
 
 package org.seqdoop.hadoop_bam;
 
-import java.io.InputStream;
 import java.io.IOException;
-
+import java.io.InputStream;
 import org.apache.hadoop.fs.Path;
 
 /** Describes a SAM format. */
 public enum SAMFormat {
-	SAM, BAM, CRAM;
+  SAM,
+  BAM,
+  CRAM;
 
-	/** Infers the SAM format by looking at the filename of the given path.
-	 *
-	 * @see #inferFromFilePath(String)
-	 */
-	public static SAMFormat inferFromFilePath(final Path path) {
-		return inferFromFilePath(path.getName());
-	}
+  /**
+   * Infers the SAM format by looking at the filename of the given path.
+   *
+   * @see #inferFromFilePath(String)
+   */
+  public static SAMFormat inferFromFilePath(final Path path) {
+    return inferFromFilePath(path.getName());
+  }
 
-	/** Infers the SAM format by looking at the extension of the given file
-	 * name. <code>*.sam</code> is recognized as {@link #SAM},
-	 * <code>*.bam</code> as {@link #BAM}, and <code>*.bam</code> as {@link #CRAM}.
-	 */
-	public static SAMFormat inferFromFilePath(final String name) {
-		if (name.endsWith(".bam")) return BAM;
-		if (name.endsWith(".cram")) return CRAM;
-		if (name.endsWith(".sam")) return SAM;
-		return null;
-	}
+  /**
+   * Infers the SAM format by looking at the extension of the given file name. <code>*.sam</code> is
+   * recognized as {@link #SAM}, <code>*.bam</code> as {@link #BAM}, and <code>*.bam</code> as
+   * {@link #CRAM}.
+   */
+  public static SAMFormat inferFromFilePath(final String name) {
+    if (name.endsWith(".bam")) {
+      return BAM;
+    }
+    if (name.endsWith(".cram")) {
+      return CRAM;
+    }
+    if (name.endsWith(".sam")) {
+      return SAM;
+    }
+    return null;
+  }
 
-	public static SAMFormat inferFromData(final InputStream in) throws IOException {
-		final byte b = (byte)in.read();
-		in.close();
-		switch (b) {
-			case 0x1f: return SAMFormat.BAM;
-			case 0x43: return SAMFormat.CRAM;
-			case '@':  return SAMFormat.SAM;
-		}
-		return null;
-	}
+  public static SAMFormat inferFromData(final InputStream in) throws IOException {
+    final byte b = (byte) in.read();
+    in.close();
+    switch (b) {
+      case 0x1f:
+        return SAMFormat.BAM;
+      case 0x43:
+        return SAMFormat.CRAM;
+      case '@':
+        return SAMFormat.SAM;
+    }
+    return null;
+  }
 }

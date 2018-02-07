@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,343 +46,335 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Reads the FASTA reference sequence format.
- * Key: sequence description and position offset, delimited by ':' characters.
- * Value:  a ReferenceFragment object representing the entry.
+ * Reads the FASTA reference sequence format. Key: sequence description and position offset,
+ * delimited by ':' characters. Value: a ReferenceFragment object representing the entry.
  *
- * Note: here sections in the input file are assumed to be delimited by single
- * line descriptions that start with '>'.
+ * <p>Note: here sections in the input file are assumed to be delimited by single line descriptions
+ * that start with '>'.
  */
-public class FastaInputFormat extends FileInputFormat<Text,ReferenceFragment>
-{
-	private static final Logger logger = LoggerFactory.getLogger(FastaInputFormat.class);
-	public static final Charset UTF8 = Charset.forName("UTF8");
+public class FastaInputFormat extends FileInputFormat<Text, ReferenceFragment> {
 
-    @Override public List<InputSplit> getSplits(JobContext job) throws IOException
-	{
+  public static final Charset UTF8 = Charset.forName("UTF8");
+  private static final Logger logger = LoggerFactory.getLogger(FastaInputFormat.class);
 
-	    // Note: We generate splits that correspond to different sections in the FASTA
-	    // input (which here are called "chromosomes", delimited by '>' and
-	    // followed by a single line description.
-	    // Some locality is preserved since the locations are formed from the input
-	    // splits, although no special attention is given to this issues (FASTA files
-	    // are assumed to be smallish).
-	    // The splits are generated on the client. In the future the split generation
-	    // should be only performed once and an index file stored inside HDFS for
-	    // peformance reasons. Currently this is not attempted (again: FASTA files
-	    // aren't all that big).
+  @Override
+  public List<InputSplit> getSplits(JobContext job) throws IOException {
 
-	    // we first make sure we are given only a single file
+    // Note: We generate splits that correspond to different sections in the FASTA
+    // input (which here are called "chromosomes", delimited by '>' and
+    // followed by a single line description.
+    // Some locality is preserved since the locations are formed from the input
+    // splits, although no special attention is given to this issues (FASTA files
+    // are assumed to be smallish).
+    // The splits are generated on the client. In the future the split generation
+    // should be only performed once and an index file stored inside HDFS for
+    // peformance reasons. Currently this is not attempted (again: FASTA files
+    // aren't all that big).
 
-            List<InputSplit> splits = super.getSplits(job);
-            
-            // first sort by input path
-            Collections.sort(splits, new Comparator<InputSplit>()
-                             {
-                                 public int compare(InputSplit a, InputSplit b) {
-                                     FileSplit fa = (FileSplit)a, fb = (FileSplit)b;
-                                     return fa.getPath().compareTo(fb.getPath());
-                                 }
-                             });
+    // we first make sure we are given only a single file
 
-            for (int i = 0; i < splits.size()-1; i++) {
-                FileSplit fa = (FileSplit)splits.get(i);
-                FileSplit fb = (FileSplit)splits.get(i+1);
-                    
-                if(fa.getPath().compareTo(fb.getPath()) != 0)
-                    throw new IOException("FastaInputFormat assumes single FASTA input file!");
+    List<InputSplit> splits = super.getSplits(job);
+
+    // first sort by input path
+    Collections.sort(
+        splits,
+        new Comparator<InputSplit>() {
+          public int compare(InputSplit a, InputSplit b) {
+            FileSplit fa = (FileSplit) a, fb = (FileSplit) b;
+            return fa.getPath().compareTo(fb.getPath());
+          }
+        });
+
+    for (int i = 0; i < splits.size() - 1; i++) {
+      FileSplit fa = (FileSplit) splits.get(i);
+      FileSplit fb = (FileSplit) splits.get(i + 1);
+
+      if (fa.getPath().compareTo(fb.getPath()) != 0) {
+        throw new IOException("FastaInputFormat assumes single FASTA input file!");
+      }
+    }
+
+    // now we are sure we only have one FASTA input file
+
+    final List<InputSplit> newSplits = new ArrayList<InputSplit>(splits.size());
+    FileSplit fileSplit = (FileSplit) splits.get(0);
+    Path path = fileSplit.getPath();
+
+    FileSystem fs = path.getFileSystem(job.getConfiguration());
+    FSDataInputStream fis = fs.open(path);
+    byte[] buffer = new byte[1024];
+
+    long byte_counter = 0;
+    long prev_chromosome_byte_offset = 0;
+    boolean first_chromosome = true;
+
+    for (int j = 0; j < splits.size(); j++) {
+      FileSplit origsplit = (FileSplit) splits.get(j);
+
+      while (byte_counter < origsplit.getStart() + origsplit.getLength()) {
+        long bytes_read =
+            fis.read(
+                byte_counter,
+                buffer,
+                0,
+                (int)
+                    Math.min(
+                        buffer.length,
+                        origsplit.getStart() + origsplit.getLength() - byte_counter));
+        if (logger.isDebugEnabled()) {
+          logger.debug("bytes_read: {} of {} splits", bytes_read, splits.size());
+        }
+        if (bytes_read > 0) {
+          for (int i = 0; i < bytes_read; i++) {
+            if (buffer[i] == (byte) '>') {
+              if (logger.isDebugEnabled()) {
+                logger.debug("found chromosome at position {}", byte_counter + i);
+              }
+
+              if (!first_chromosome) {
+                FileSplit fsplit =
+                    new FileSplit(
+                        path,
+                        prev_chromosome_byte_offset,
+                        byte_counter + i - 1 - prev_chromosome_byte_offset,
+                        origsplit.getLocations());
+
+                if (logger.isDebugEnabled()) {
+                  logger.debug(
+                      "adding split: start: {}, length: {}", fsplit.getStart(), fsplit.getLength());
+                }
+                newSplits.add(fsplit);
+              }
+              first_chromosome = false;
+              prev_chromosome_byte_offset = byte_counter + i;
             }
+          }
+          byte_counter += bytes_read;
+        }
+      }
 
-            // now we are sure we only have one FASTA input file
+      if (j == splits.size() - 1) {
+        FileSplit fsplit =
+            new FileSplit(
+                path,
+                prev_chromosome_byte_offset,
+                byte_counter - prev_chromosome_byte_offset,
+                origsplit.getLocations());
+        newSplits.add(fsplit);
+        if (logger.isDebugEnabled()) {
+          logger.debug("adding split: {}", fsplit);
+        }
+        break;
+      }
+    }
 
-	    final List<InputSplit> newSplits = new ArrayList<InputSplit>(splits.size());
-	    FileSplit fileSplit = (FileSplit)splits.get(0);
-	    Path path = fileSplit.getPath();
+    return newSplits;
+  }
 
-	    FileSystem fs = path.getFileSystem(job.getConfiguration());
-	    FSDataInputStream fis = fs.open(path);
-	    byte[] buffer = new byte[1024];
+  @Override
+  public boolean isSplitable(JobContext context, Path path) {
+    CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
+    return codec == null;
+  }
 
-	    long byte_counter = 0;
-	    long prev_chromosome_byte_offset = 0;
-	    boolean first_chromosome = true;
+  public RecordReader<Text, ReferenceFragment> createRecordReader(
+      InputSplit genericSplit, TaskAttemptContext context)
+      throws IOException, InterruptedException {
+    context.setStatus(genericSplit.toString());
+    return new FastaRecordReader(
+        context.getConfiguration(),
+        (FileSplit) genericSplit); // cast as per example in TextInputFormat
+  }
 
-	    for(int j = 0; j < splits.size(); j++) {
-		FileSplit origsplit = (FileSplit)splits.get(j);
+  public static class FastaRecordReader extends RecordReader<Text, ReferenceFragment> {
 
-		while(byte_counter < origsplit.getStart()+origsplit.getLength()) {
-		    long bytes_read = fis.read(byte_counter, buffer, 0, (int)Math.min(buffer.length,
-										      origsplit.getStart()+origsplit.getLength()- byte_counter));
-		    if (logger.isDebugEnabled()) {
-			logger.debug("bytes_read: {} of {} splits", bytes_read, splits.size());
-		    }
-		    if(bytes_read > 0) {
-			for(int i=0;i<bytes_read;i++) {
-			    if(buffer[i] == (byte)'>') {
-				if (logger.isDebugEnabled()) {
-					logger.debug("found chromosome at position {}", byte_counter + i);
-				}
-				
-				if(!first_chromosome) {
-				    FileSplit fsplit = new FileSplit(path, prev_chromosome_byte_offset, byte_counter + i-1 - prev_chromosome_byte_offset, origsplit.getLocations());
+    // How long can a FASTA line get?
+    public static final int MAX_LINE_LENGTH = 20000;
+    // start:  first valid data index
+    private long start;
+    // end:  first index value beyond the slice, i.e. slice is in range [start,end)
+    private long end;
+    // pos: current position in file
+    private long pos;
+    // file:  the file being read
+    private Path file;
+    // current_split_pos: the current (chromosome) position within the split
+    private int current_split_pos;
+    // current_split_indexseq: the description/chromosome name
+    private String current_split_indexseq = null;
+    private LineReader lineReader;
+    private InputStream inputStream;
+    private Text currentKey = new Text();
+    private ReferenceFragment currentValue = new ReferenceFragment();
+    private Text buffer = new Text();
 
-					if (logger.isDebugEnabled()) {
-						logger.debug("adding split: start: {}, length: {}", fsplit.getStart(), fsplit.getLength());
-					}
-				    newSplits.add(fsplit);
-				}
-				first_chromosome = false;
-				prev_chromosome_byte_offset = byte_counter + i;
-			    }
-			}
-			byte_counter += bytes_read;
-		    }
-		}
+    public FastaRecordReader(Configuration conf, FileSplit split) throws IOException {
+      setConf(conf);
+      file = split.getPath();
+      start = split.getStart();
+      end = start + split.getLength();
+      current_split_pos = 1;
 
-		if(j == splits.size()-1) {
-		    FileSplit fsplit = new FileSplit(path, prev_chromosome_byte_offset, byte_counter - prev_chromosome_byte_offset, origsplit.getLocations());
-		    newSplits.add(fsplit);
-			if (logger.isDebugEnabled()) {
-				logger.debug("adding split: {}", fsplit);
-			}
-		    break;
-		}
-	    }
-	    
-	    return newSplits;
-	}
+      FileSystem fs = file.getFileSystem(conf);
+      FSDataInputStream fileIn = fs.open(file);
 
-	public static class FastaRecordReader extends RecordReader<Text,ReferenceFragment>
-	{
-		
-		// start:  first valid data index
-		private long start;
-		// end:  first index value beyond the slice, i.e. slice is in range [start,end)
-		private long end;
-		// pos: current position in file
-		private long pos;
-		// file:  the file being read
-		private Path file;
+      CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
+      CompressionCodec codec = codecFactory.getCodec(file);
 
-		// current_split_pos: the current (chromosome) position within the split
-		private int current_split_pos;
-		// current_split_indexseq: the description/chromosome name
-		private String current_split_indexseq = null;
+      if (codec == null) // no codec.  Uncompressed file.
+      {
+        positionAtFirstRecord(fileIn);
+        inputStream = fileIn;
+      } else { // compressed file
+        if (start != 0) {
+          throw new RuntimeException(
+              "Start position for compressed file is not 0! (found " + start + ")");
+        }
 
-		private LineReader lineReader;
-		private InputStream inputStream;
-		private Text currentKey = new Text();
-		private ReferenceFragment currentValue = new ReferenceFragment();
+        inputStream = codec.createInputStream(fileIn);
+        end = Long.MAX_VALUE; // read until the end of the file
+      }
 
-		private Text buffer = new Text();
+      lineReader = new LineReader(inputStream);
+    }
 
-		// How long can a FASTA line get?
-		public static final int MAX_LINE_LENGTH = 20000;
+    /*
+     * Position the input stream at the start of the first record.
+     */
+    private void positionAtFirstRecord(FSDataInputStream stream) throws IOException {
+      if (start > 0) {
+        stream.seek(start);
+      }
 
-		public FastaRecordReader(Configuration conf, FileSplit split) throws IOException
-		{
-			setConf(conf);
-			file = split.getPath();
-			start = split.getStart();
-			end = start + split.getLength();
-			current_split_pos = 1;
+      // we are now in a new chromosome/fragment, so read its name/index sequence
+      // and reset position counter
 
-			FileSystem fs = file.getFileSystem(conf);
-			FSDataInputStream fileIn = fs.open(file);
+      // index sequence
+      LineReader reader = new LineReader(stream);
+      int bytesRead = reader.readLine(buffer, (int) Math.min(MAX_LINE_LENGTH, end - start));
 
-			CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
-			CompressionCodec        codec        = codecFactory.getCodec(file);
+      current_split_indexseq = buffer.toString();
+      // now get rid of '>' character
+      current_split_indexseq = current_split_indexseq.substring(1, current_split_indexseq.length());
 
-			if (codec == null) // no codec.  Uncompressed file.
-			{
-				positionAtFirstRecord(fileIn);
-				inputStream = fileIn;
-			}
-			else
-			{ // compressed file
-				if (start != 0)
-					throw new RuntimeException("Start position for compressed file is not 0! (found " + start + ")");
+      // initialize position counter
+      current_split_pos = 1;
 
-				inputStream = codec.createInputStream(fileIn);
-				end = Long.MAX_VALUE; // read until the end of the file
-			}
+      if (logger.isDebugEnabled()) {
+        logger.debug("read index sequence: {}", current_split_indexseq);
+      }
+      start = start + bytesRead;
+      stream.seek(start);
+      pos = start;
+    }
 
-			lineReader = new LineReader(inputStream);
-		}
+    protected void setConf(Configuration conf) {}
 
-		/*
-		 * Position the input stream at the start of the first record.
-		 */
-		private void positionAtFirstRecord(FSDataInputStream stream) throws IOException
-		{
-		    if (start > 0)
-			{
-			    stream.seek(start);
-			}
+    /** Added to use mapreduce API. */
+    public void initialize(InputSplit split, TaskAttemptContext context)
+        throws IOException, InterruptedException {}
 
-		    // we are now in a new chromosome/fragment, so read its name/index sequence
-		    // and reset position counter
+    /** Added to use mapreduce API. */
+    public Text getCurrentKey() {
+      return currentKey;
+    }
 
-		    // index sequence
-		    LineReader reader = new LineReader(stream);
-		    int bytesRead = reader.readLine(buffer, (int)Math.min(MAX_LINE_LENGTH, end - start));
+    /** Added to use mapreduce API. */
+    public ReferenceFragment getCurrentValue() {
+      return currentValue;
+    }
 
-		    current_split_indexseq = buffer.toString();
-		    // now get rid of '>' character
-		    current_split_indexseq = current_split_indexseq.substring(1,current_split_indexseq.length());
-		    
-		    // initialize position counter
-		    current_split_pos = 1;
+    /** Added to use mapreduce API. */
+    public boolean nextKeyValue() throws IOException, InterruptedException {
+      return next(currentKey, currentValue);
+    }
 
-			if (logger.isDebugEnabled()) {
-				logger.debug("read index sequence: {}", current_split_indexseq);
-			}
-		    start = start + bytesRead;
-		    stream.seek(start);
-		    pos = start;
-		}
+    /** Close this RecordReader to future operations. */
+    public void close() throws IOException {
+      inputStream.close();
+    }
 
-		protected void setConf(Configuration conf)
-		{
-		}
+    /** Create an object of the appropriate type to be used as a key. */
+    public Text createKey() {
+      return new Text();
+    }
 
-		/**
-		 * Added to use mapreduce API.
-		 */
-		public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException
-		{
-		}
+    /** Create an object of the appropriate type to be used as a value. */
+    public ReferenceFragment createValue() {
+      return new ReferenceFragment();
+    }
 
-		/**
-		 * Added to use mapreduce API.
-		 */
-		public Text getCurrentKey()
-		{
-			return currentKey;
-		}
+    /** Returns the current position in the input. */
+    public long getPos() {
+      return pos;
+    }
 
-		/**
-		 * Added to use mapreduce API.
-		 */
-		public ReferenceFragment getCurrentValue()
-	 	{
-			return currentValue;
-		}
+    /** How much of the input has the RecordReader consumed i.e. */
+    public float getProgress() {
+      if (start == end) {
+        return 1.0f;
+      } else {
+        return Math.min(1.0f, (pos - start) / (float) (end - start));
+      }
+    }
 
-		/**
-		 * Added to use mapreduce API.
-		 */
-		public boolean nextKeyValue() throws IOException, InterruptedException
-		{
-			return next(currentKey, currentValue);
-		}
+    public String makePositionMessage(long pos) {
+      return file.toString() + ":" + pos;
+    }
 
-		/**
-		 * Close this RecordReader to future operations.
-		 */
-		public void close() throws IOException
-		{
-			inputStream.close();
-		}
+    public String makePositionMessage() {
+      return file.toString() + ":" + pos;
+    }
 
-		/**
-		 * Create an object of the appropriate type to be used as a key.
-		 */
-		public Text createKey()
-		{
-			return new Text();
-		}
+    /** Reads the next key/value pair from the input for processing. */
+    public boolean next(Text key, ReferenceFragment value) throws IOException {
+      if (pos >= end) {
+        return false; // past end of slice
+      }
 
-		/**
-		 * Create an object of the appropriate type to be used as a value.
-		 */
-		public ReferenceFragment createValue()
-		{
-			return new ReferenceFragment();
-		}
+      int bytesRead = lineReader.readLine(buffer, MAX_LINE_LENGTH);
+      pos += bytesRead;
+      if (bytesRead >= MAX_LINE_LENGTH) {
+        throw new RuntimeException(
+            "found abnormally large line (length "
+                + bytesRead
+                + ") at "
+                + makePositionMessage(pos - bytesRead)
+                + ": "
+                + Text.decode(buffer.getBytes(), 0, 500));
+      } else if (bytesRead <= 0) {
+        return false; // EOF
+      } else {
+        scanFastaLine(buffer, key, value);
+        current_split_pos += bytesRead;
+        return true;
+      }
+    }
 
-		/**
-		 * Returns the current position in the input.
-		 */
-		public long getPos() { return pos; }
+    private void scanFastaLine(Text line, Text key, ReferenceFragment fragment) {
+      // Build the key.  We concatenate the chromosome/fragment descripion and
+      // the start position of the FASTA sequence line, replacing the tabs with colons.
+      key.clear();
 
-		/**
-		 * How much of the input has the RecordReader consumed i.e.
-		 */
-		public float getProgress()
-		{
-			if (start == end)
-				return 1.0f;
-			else
-				return Math.min(1.0f, (pos - start) / (float)(end - start));
-		}
+      key.append(
+          current_split_indexseq.getBytes(UTF8), 0, current_split_indexseq.getBytes(UTF8).length);
+      key.append(
+          Integer.toString(current_split_pos).getBytes(UTF8),
+          0,
+          Integer.toString(current_split_pos).getBytes(UTF8).length);
+      // replace tabs with :
+      byte[] bytes = key.getBytes();
+      int temporaryEnd = key.getLength();
+      for (int i = 0; i < temporaryEnd; ++i) {
+        if (bytes[i] == '\t') {
+          bytes[i] = ':';
+        }
+      }
 
-		public String makePositionMessage(long pos)
-		{
-			return file.toString() + ":" + pos;
-		}
-
-		public String makePositionMessage()
-		{
-			return file.toString() + ":" + pos;
-		}
-
-		/**
-		 * Reads the next key/value pair from the input for processing.
-		 */
-		public boolean next(Text key, ReferenceFragment value) throws IOException
-		{
-			if (pos >= end)
-				return false; // past end of slice
-
-			int bytesRead = lineReader.readLine(buffer, MAX_LINE_LENGTH);
-			pos += bytesRead;
-			if (bytesRead >= MAX_LINE_LENGTH)
-				throw new RuntimeException("found abnormally large line (length " + bytesRead + ") at " + makePositionMessage(pos - bytesRead) + ": " + Text.decode(buffer.getBytes(), 0, 500));
-			else if (bytesRead <= 0)
-				return false; // EOF
-			else
-			{
-				scanFastaLine(buffer, key, value);
-				current_split_pos += bytesRead;
-				return true;
-			}
-		}
-
-		private void scanFastaLine(Text line, Text key, ReferenceFragment fragment)
-		{
-		    // Build the key.  We concatenate the chromosome/fragment descripion and
-		    // the start position of the FASTA sequence line, replacing the tabs with colons.
-		    key.clear();
-		    
-		    key.append(current_split_indexseq.getBytes(UTF8), 0, current_split_indexseq.getBytes(UTF8).length);
-		    key.append(Integer.toString(current_split_pos).getBytes(UTF8), 0, Integer.toString(current_split_pos).getBytes(UTF8).length);
-		    // replace tabs with :
-		    byte[] bytes = key.getBytes();
-		    int temporaryEnd = key.getLength();
-		    for (int i = 0; i < temporaryEnd; ++i)
-			if (bytes[i] == '\t')
-			    bytes[i] = ':';
-		    
-		    fragment.clear();
-		    fragment.setPosition(current_split_pos);
-		    fragment.setIndexSequence(current_split_indexseq);
-		    fragment.getSequence().append(line.getBytes(), 0, line.getBytes().length);
-		}
-	}
-
-	@Override
-	public boolean isSplitable(JobContext context, Path path)
-	{
-		CompressionCodec codec = new CompressionCodecFactory(context.getConfiguration()).getCodec(path);
-		return codec == null;
-	}
-
-	public RecordReader<Text, ReferenceFragment> createRecordReader(
-	                                        InputSplit genericSplit,
-	                                        TaskAttemptContext context) throws IOException, InterruptedException
-	{
-		context.setStatus(genericSplit.toString());
-		return new FastaRecordReader(context.getConfiguration(), (FileSplit)genericSplit); // cast as per example in TextInputFormat
-	}
+      fragment.clear();
+      fragment.setPosition(current_split_pos);
+      fragment.setIndexSequence(current_split_indexseq);
+      fragment.getSequence().append(line.getBytes(), 0, line.getBytes().length);
+    }
+  }
 }

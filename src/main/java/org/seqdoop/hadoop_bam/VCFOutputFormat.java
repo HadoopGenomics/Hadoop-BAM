@@ -25,34 +25,35 @@ package org.seqdoop.hadoop_bam;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-/** An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for VCF and
- * BCF files. Only locks down the value type and stores the output format
- * requested.
+/**
+ * An abstract {@link org.apache.hadoop.mapreduce.OutputFormat} for VCF and BCF files. Only locks
+ * down the value type and stores the output format requested.
  */
-public abstract class VCFOutputFormat<K>
-	extends FileOutputFormat<K,VariantContextWritable>
-{
-	/** A string property defining the output format to use. The value is read
-	 * directly by {@link VCFFormat#valueOf}.
-	 */
-	public static final String OUTPUT_VCF_FORMAT_PROPERTY =
-		"hadoopbam.vcf.output-format";
+public abstract class VCFOutputFormat<K> extends FileOutputFormat<K, VariantContextWritable> {
 
-	protected VCFFormat format;
+  /**
+   * A string property defining the output format to use. The value is read directly by {@link
+   * VCFFormat#valueOf}.
+   */
+  public static final String OUTPUT_VCF_FORMAT_PROPERTY = "hadoopbam.vcf.output-format";
 
-	/** Creates a new output format, reading {@link #OUTPUT_VCF_FORMAT_PROPERTY}
-	 * from the given <code>Configuration</code>.
-	 */
-	protected VCFOutputFormat(Configuration conf) {
-		final String fmtStr = conf.get(OUTPUT_VCF_FORMAT_PROPERTY);
+  protected VCFFormat format;
 
-		format = fmtStr == null ? null : VCFFormat.valueOf(fmtStr);
-	}
+  /**
+   * Creates a new output format, reading {@link #OUTPUT_VCF_FORMAT_PROPERTY} from the given <code>
+   * Configuration</code>.
+   */
+  protected VCFOutputFormat(Configuration conf) {
+    final String fmtStr = conf.get(OUTPUT_VCF_FORMAT_PROPERTY);
 
-	/** Creates a new output format for the given VCF format. */
-	protected VCFOutputFormat(VCFFormat fmt) {
-		if (fmt == null)
-			throw new IllegalArgumentException("null VCFFormat");
-		format = fmt;
-	}
+    format = fmtStr == null ? null : VCFFormat.valueOf(fmtStr);
+  }
+
+  /** Creates a new output format for the given VCF format. */
+  protected VCFOutputFormat(VCFFormat fmt) {
+    if (fmt == null) {
+      throw new IllegalArgumentException("null VCFFormat");
+    }
+    format = fmt;
+  }
 }

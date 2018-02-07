@@ -1,5 +1,8 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -26,19 +29,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 public class TestCRAMInputFormatOnHDFS {
+
+  private static MiniDFSCluster cluster;
+  private static URI clusterUri;
   private String input;
   private String reference;
   private TaskAttemptContext taskAttemptContext;
   private JobContext jobContext;
-
-
-  private static MiniDFSCluster cluster;
-  private static URI clusterUri;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -48,33 +46,9 @@ public class TestCRAMInputFormatOnHDFS {
 
   @AfterClass
   public static void teardownClass() throws Exception {
-    if (cluster != null)
-    {
+    if (cluster != null) {
       cluster.shutdown();
     }
-  }
-
-
-  @Before
-  public void setup() throws Exception {
-    Configuration conf = new Configuration();
-    input = ClassLoader.getSystemClassLoader().getResource("test.cram").getFile();
-    reference = ClassLoader.getSystemClassLoader().getResource("auxf.fa").toURI().toString();
-    String referenceIndex = ClassLoader.getSystemClassLoader().getResource("auxf.fa.fai")
-        .toURI().toString();
-    conf.set("mapred.input.dir", "file://" + input);
-
-    URI hdfsRef = clusterUri.resolve("/tmp/auxf.fa");
-    URI hdfsRefIndex = clusterUri.resolve("/tmp/auxf.fa.fai");
-    Files.copy(Paths.get(URI.create(reference)), Paths.get(hdfsRef));
-    Files.copy(Paths.get(URI.create(referenceIndex)), Paths.get(hdfsRefIndex));
-
-    conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, hdfsRef.toString());
-
-
-    taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
-    jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
-
   }
 
   private static MiniDFSCluster startMini(String testName) throws IOException {
@@ -89,23 +63,55 @@ public class TestCRAMInputFormatOnHDFS {
   }
 
   protected static URI formalizeClusterURI(URI clusterUri) throws URISyntaxException {
-    if (clusterUri.getPath()==null) {
-      return new URI(clusterUri.getScheme(), null,
-          clusterUri.getHost(), clusterUri.getPort(),
-          "/", null, null);
-    } else if (clusterUri.getPath().trim()=="") {
-      return new URI(clusterUri.getScheme(), null,
-          clusterUri.getHost(), clusterUri.getPort(),
-          "/", null, null);
+    if (clusterUri.getPath() == null) {
+      return new URI(
+          clusterUri.getScheme(),
+          null,
+          clusterUri.getHost(),
+          clusterUri.getPort(),
+          "/",
+          null,
+          null);
+    } else if (clusterUri.getPath().trim() == "") {
+      return new URI(
+          clusterUri.getScheme(),
+          null,
+          clusterUri.getHost(),
+          clusterUri.getPort(),
+          "/",
+          null,
+          null);
     }
     return clusterUri;
+  }
+
+  @Before
+  public void setup() throws Exception {
+    Configuration conf = new Configuration();
+    input = ClassLoader.getSystemClassLoader().getResource("test.cram").getFile();
+    reference = ClassLoader.getSystemClassLoader().getResource("auxf.fa").toURI().toString();
+    String referenceIndex =
+        ClassLoader.getSystemClassLoader().getResource("auxf.fa.fai").toURI().toString();
+    conf.set("mapred.input.dir", "file://" + input);
+
+    URI hdfsRef = clusterUri.resolve("/tmp/auxf.fa");
+    URI hdfsRefIndex = clusterUri.resolve("/tmp/auxf.fa.fai");
+    Files.copy(Paths.get(URI.create(reference)), Paths.get(hdfsRef));
+    Files.copy(Paths.get(URI.create(referenceIndex)), Paths.get(hdfsRefIndex));
+
+    conf.set(CRAMInputFormat.REFERENCE_SOURCE_PATH_PROPERTY, hdfsRef.toString());
+
+    taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+    jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
   }
 
   @Test
   public void testReader() throws Exception {
     int expectedCount = 0;
-    SamReader samReader = SamReaderFactory.makeDefault()
-        .referenceSequence(new File(URI.create(reference))).open(new File(input));
+    SamReader samReader =
+        SamReaderFactory.makeDefault()
+            .referenceSequence(new File(URI.create(reference)))
+            .open(new File(input));
     for (SAMRecord r : samReader) {
       expectedCount++;
     }
@@ -113,8 +119,8 @@ public class TestCRAMInputFormatOnHDFS {
     CRAMInputFormat inputFormat = new CRAMInputFormat();
     List<InputSplit> splits = inputFormat.getSplits(jobContext);
     assertEquals(1, splits.size());
-    RecordReader<LongWritable, SAMRecordWritable> reader = inputFormat
-        .createRecordReader(splits.get(0), taskAttemptContext);
+    RecordReader<LongWritable, SAMRecordWritable> reader =
+        inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
     reader.initialize(splits.get(0), taskAttemptContext);
 
     int actualCount = 0;
@@ -124,5 +130,4 @@ public class TestCRAMInputFormatOnHDFS {
 
     assertEquals(expectedCount, actualCount);
   }
-
 }

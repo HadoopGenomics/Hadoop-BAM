@@ -22,39 +22,50 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFHeader;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
 import org.apache.hadoop.io.Writable;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.vcf.VCFHeader;
 
-/** VariantContexts read here have LazyGenotypesContexts, which need to have a
- * header set before the genotype data in the VariantContexts can be decoded.
- * See the LazyGenotypesContext class.
+/**
+ * VariantContexts read here have LazyGenotypesContexts, which need to have a header set before the
+ * genotype data in the VariantContexts can be decoded. See the LazyGenotypesContext class.
  */
 public class VariantContextWritable implements Writable {
-	private VariantContext vc;
 
-	public VariantContext get()                  { return vc; }
-	public void           set(VariantContext vc) { this.vc = vc; }
-    public void           set(VariantContext vc, VCFHeader header) { this.vc = new VariantContextWithHeader(vc, header); }
+  private VariantContext vc;
 
-	// XXX: Unfortunately there's no simple way to just pass a BCF record
-	// through. Contrasting to BAM, there's no equivalent of the BAMRecord
-	// subclass of SAMRecord that saves the original BAM fields --- a
-	// VariantContext only saves the decoded info, so it's impossible to encode
-	// one to BCF without the header.
-	//
-	// VCF is also unusable because VCFWriter defensively refuses to write
-	// anything without a header, throwing IllegalStateException if attempted.
-	//
-	// Thus, we have a custom encoding.
-	@Override public void write(final DataOutput out) throws IOException {
-		VariantContextCodec.write(out, vc);
-	}
-	@Override public void readFields(final DataInput in) throws IOException {
-		vc = VariantContextCodec.read(in);
-	}
+  public VariantContext get() {
+    return vc;
+  }
+
+  public void set(VariantContext vc) {
+    this.vc = vc;
+  }
+
+  public void set(VariantContext vc, VCFHeader header) {
+    this.vc = new VariantContextWithHeader(vc, header);
+  }
+
+  // XXX: Unfortunately there's no simple way to just pass a BCF record
+  // through. Contrasting to BAM, there's no equivalent of the BAMRecord
+  // subclass of SAMRecord that saves the original BAM fields --- a
+  // VariantContext only saves the decoded info, so it's impossible to encode
+  // one to BCF without the header.
+  //
+  // VCF is also unusable because VCFWriter defensively refuses to write
+  // anything without a header, throwing IllegalStateException if attempted.
+  //
+  // Thus, we have a custom encoding.
+  @Override
+  public void write(final DataOutput out) throws IOException {
+    VariantContextCodec.write(out, vc);
+  }
+
+  @Override
+  public void readFields(final DataInput in) throws IOException {
+    vc = VariantContextCodec.read(in);
+  }
 }

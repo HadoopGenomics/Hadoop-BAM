@@ -7,26 +7,22 @@ import java.io.InputStream;
 import org.apache.hadoop.io.compress.SplitCompressionInputStream;
 
 /**
- * An implementation of {@code SplitCompressionInputStream} for BGZF, based on
- * {@code BZip2CompressionInputStream} and {@code CBZip2InputStream} from Hadoop.
- * (BZip2 is the only splittable compression codec in Hadoop.)
+ * An implementation of {@code SplitCompressionInputStream} for BGZF, based on {@code
+ * BZip2CompressionInputStream} and {@code CBZip2InputStream} from Hadoop. (BZip2 is the only
+ * splittable compression codec in Hadoop.)
  */
 class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
+
   private static final int END_OF_BLOCK = -2;
   private final BlockCompressedInputStream input;
-  private BufferedInputStream bufferedIn;
-  private long startingPos = 0L;
-  private long processedPosition;
-
-  private enum POS_ADVERTISEMENT_STATE_MACHINE {
-    HOLD, ADVERTISE
-  };
-
   POS_ADVERTISEMENT_STATE_MACHINE posSM = POS_ADVERTISEMENT_STATE_MACHINE.HOLD;
   long compressedStreamPosition = 0;
+  private BufferedInputStream bufferedIn;
+  private long startingPos = 0L;;
 
-  public BGZFSplitCompressionInputStream(InputStream in, long start, long end)
-      throws IOException {
+  private long processedPosition;
+
+  public BGZFSplitCompressionInputStream(InputStream in, long start, long end) throws IOException {
     super(in, start, end);
     bufferedIn = new BufferedInputStream(super.in);
     this.startingPos = super.getPos();
@@ -61,11 +57,12 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
 
   /**
    * Read up to <code>len</code> bytes from the stream, but no further than the end of the
-   * compressed block. If at the end of the block then no bytes will be read and a return
-   * value of -2 will be returned; on the next call to read, bytes from the next block
-   * will be returned. This is the same contract as CBZip2InputStream in Hadoop.
-   * @return int The return value greater than 0 are the bytes read.  A value
-   * of -1 means end of stream while -2 represents end of block.
+   * compressed block. If at the end of the block then no bytes will be read and a return value of
+   * -2 will be returned; on the next call to read, bytes from the next block will be returned. This
+   * is the same contract as CBZip2InputStream in Hadoop.
+   *
+   * @return int The return value greater than 0 are the bytes read. A value of -1 means end of
+   *     stream while -2 represents end of block.
    */
   private int readWithinBlock(byte[] b, int off, int len) throws IOException {
     if (input.endOfBlock()) {
@@ -101,5 +98,10 @@ class BGZFSplitCompressionInputStream extends SplitCompressionInputStream {
   @Override
   public void close() throws IOException {
     input.close();
+  }
+
+  private enum POS_ADVERTISEMENT_STATE_MACHINE {
+    HOLD,
+    ADVERTISE
   }
 }

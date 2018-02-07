@@ -22,107 +22,102 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.samtools.SAMFileHeader;
 import java.io.IOException;
 import java.io.InputStream;
-
-import htsjdk.samtools.SAMFileHeader;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import org.seqdoop.hadoop_bam.util.SAMHeaderReader;
 
-/** Writes only the SAM records, not the key.
+/**
+ * Writes only the SAM records, not the key.
  *
- * <p>A {@link SAMFileHeader} must be provided via {@link #setSAMHeader} or
- * {@link #readSAMHeaderFrom} before {@link #getRecordWriter} is called.</p>
+ * <p>A {@link SAMFileHeader} must be provided via {@link #setSAMHeader} or {@link
+ * #readSAMHeaderFrom} before {@link #getRecordWriter} is called.
  *
- * <p>By default, writes the SAM header to the output file(s). This
- * can be disabled, because in distributed usage one often ends up with (and,
- * for decent performance, wants to end up with) the output split into multiple
- * parts, which are easier to concatenate if the header is not present in each
- * file.</p>
+ * <p>By default, writes the SAM header to the output file(s). This can be disabled, because in
+ * distributed usage one often ends up with (and, for decent performance, wants to end up with) the
+ * output split into multiple parts, which are easier to concatenate if the header is not present in
+ * each file.
  */
 public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 
-	protected SAMFileHeader header;
+  /** Whether the header will be written, defaults to true.. */
+  public static final String WRITE_HEADER_PROPERTY = "hadoopbam.anysam.write-header";
 
-	/** Whether the header will be written, defaults to true..
-	 */
-	public static final String WRITE_HEADER_PROPERTY =
-		"hadoopbam.anysam.write-header";
+  protected SAMFileHeader header;
 
-	public KeyIgnoringAnySAMOutputFormat(SAMFormat fmt) {
-		super(fmt);
-	}
-	public KeyIgnoringAnySAMOutputFormat(Configuration conf) {
-		super(conf);
+  public KeyIgnoringAnySAMOutputFormat(SAMFormat fmt) {
+    super(fmt);
+  }
 
-		if (format == null)
-			throw new IllegalArgumentException(
-				"unknown SAM format: OUTPUT_SAM_FORMAT_PROPERTY not set");
-	}
-	public KeyIgnoringAnySAMOutputFormat(Configuration conf, Path path) {
-		super(conf);
+  public KeyIgnoringAnySAMOutputFormat(Configuration conf) {
+    super(conf);
 
-		if (format == null) {
-			format = SAMFormat.inferFromFilePath(path);
+    if (format == null) {
+      throw new IllegalArgumentException("unknown SAM format: OUTPUT_SAM_FORMAT_PROPERTY not set");
+    }
+  }
 
-			if (format == null)
-				throw new IllegalArgumentException("unknown SAM format: " + path);
-		}
-	}
+  public KeyIgnoringAnySAMOutputFormat(Configuration conf, Path path) {
+    super(conf);
 
-	public SAMFileHeader getSAMHeader() { return header; }
-	public void setSAMHeader(SAMFileHeader header) { this.header = header; }
+    if (format == null) {
+      format = SAMFormat.inferFromFilePath(path);
 
-	public void readSAMHeaderFrom(Path path, Configuration conf)
-		throws IOException
-	{
-		this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
-	}
-	public void readSAMHeaderFrom(InputStream in, Configuration conf) {
-		this.header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
-	}
+      if (format == null) {
+        throw new IllegalArgumentException("unknown SAM format: " + path);
+      }
+    }
+  }
 
-	/** <code>setSAMHeader</code> or <code>readSAMHeaderFrom</code> must have
-	 * been called first.
-	 */
-	@Override public RecordWriter<K,SAMRecordWritable> getRecordWriter(
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
-	}
+  public SAMFileHeader getSAMHeader() {
+    return header;
+  }
 
-	// Allows wrappers to provide their own work file.
-	public RecordWriter<K,SAMRecordWritable> getRecordWriter(
-			TaskAttemptContext ctx, Path out)
-		throws IOException
-	{
-		if (this.header == null)
-			throw new IOException(
-				"Can't create a RecordWriter without the SAM header");
+  public void setSAMHeader(SAMFileHeader header) {
+    this.header = header;
+  }
 
-		final boolean writeHeader = ctx.getConfiguration().getBoolean(
-			WRITE_HEADER_PROPERTY, true);
+  public void readSAMHeaderFrom(Path path, Configuration conf) throws IOException {
+    this.header = SAMHeaderReader.readSAMHeaderFrom(path, conf);
+  }
 
-		switch (format) {
-			case BAM:
-				return new KeyIgnoringBAMRecordWriter<K>(
-					out, header, writeHeader, ctx);
+  public void readSAMHeaderFrom(InputStream in, Configuration conf) {
+    this.header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
+  }
 
-			case SAM:
-				return new KeyIgnoringSAMRecordWriter<K>(
-						out, header, writeHeader, ctx);
+  /** <code>setSAMHeader</code> or <code>readSAMHeaderFrom</code> must have been called first. */
+  @Override
+  public RecordWriter<K, SAMRecordWritable> getRecordWriter(TaskAttemptContext ctx)
+      throws IOException {
+    return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
+  }
 
-			case CRAM:
-				return new KeyIgnoringCRAMRecordWriter<K>(
-						out, header, writeHeader, ctx);
+  // Allows wrappers to provide their own work file.
+  public RecordWriter<K, SAMRecordWritable> getRecordWriter(TaskAttemptContext ctx, Path out)
+      throws IOException {
+    if (this.header == null) {
+      throw new IOException("Can't create a RecordWriter without the SAM header");
+    }
 
-			default: assert false; return null;
-		}
-	}
+    final boolean writeHeader = ctx.getConfiguration().getBoolean(WRITE_HEADER_PROPERTY, true);
+
+    switch (format) {
+      case BAM:
+        return new KeyIgnoringBAMRecordWriter<K>(out, header, writeHeader, ctx);
+
+      case SAM:
+        return new KeyIgnoringSAMRecordWriter<K>(out, header, writeHeader, ctx);
+
+      case CRAM:
+        return new KeyIgnoringCRAMRecordWriter<K>(out, header, writeHeader, ctx);
+
+      default:
+        assert false;
+        return null;
+    }
+  }
 }

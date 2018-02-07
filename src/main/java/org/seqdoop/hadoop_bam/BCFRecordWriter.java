@@ -22,119 +22,106 @@
 
 package org.seqdoop.hadoop_bam;
 
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-
 import htsjdk.samtools.util.BlockCompressedOutputStream;
-
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
-
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.seqdoop.hadoop_bam.util.VCFHeaderReader;
 import org.seqdoop.hadoop_bam.util.WrapSeekable;
 
-/** A base {@link RecordWriter} for compressed BCF.
+/**
+ * A base {@link RecordWriter} for compressed BCF.
  *
- * <p>Handles the output stream, writing the header if requested, and provides
- * the {@link #writeRecord} function for subclasses.</p>
+ * <p>Handles the output stream, writing the header if requested, and provides the {@link
+ * #writeRecord} function for subclasses.
  */
-public abstract class BCFRecordWriter<K>
-	extends RecordWriter<K,VariantContextWritable>
-{
-	private VariantContextWriter writer;
-	private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
-		new LazyVCFGenotypesContext.HeaderDataCache();
-	private LazyBCFGenotypesContext.HeaderDataCache bcfHeaderDataCache =
-		new LazyBCFGenotypesContext.HeaderDataCache();
+public abstract class BCFRecordWriter<K> extends RecordWriter<K, VariantContextWritable> {
 
-	/** A VCF header is read from the input Path, which should refer to a VCF or
-	 * BCF file.
-	 */
-	public BCFRecordWriter(
-			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
-		throws IOException
-	{
-		final WrapSeekable in =
-			WrapSeekable.openPath(ctx.getConfiguration(), input);
-		final VCFHeader header = VCFHeaderReader.readHeaderFrom(in);
-		in.close();
+  private VariantContextWriter writer;
+  private LazyVCFGenotypesContext.HeaderDataCache vcfHeaderDataCache =
+      new LazyVCFGenotypesContext.HeaderDataCache();
+  private LazyBCFGenotypesContext.HeaderDataCache bcfHeaderDataCache =
+      new LazyBCFGenotypesContext.HeaderDataCache();
 
-		init(output, header, writeHeader, ctx);
-	}
-	public BCFRecordWriter(
-			Path output, VCFHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-	}
-	public BCFRecordWriter(
-			OutputStream output, VCFHeader header, boolean writeHeader)
-		throws IOException
-	{
-		init(output, header, writeHeader);
-	}
+  /** A VCF header is read from the input Path, which should refer to a VCF or BCF file. */
+  public BCFRecordWriter(Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    final WrapSeekable in = WrapSeekable.openPath(ctx.getConfiguration(), input);
+    final VCFHeader header = VCFHeaderReader.readHeaderFrom(in);
+    in.close();
 
-	// Working around not being able to call a constructor other than as the
-	// first statement...
-	private void init(
-			Path output, VCFHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		init(
-			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
-	}
-	private void init(
-			OutputStream output, VCFHeader header, final boolean writeHeader)
-		throws IOException
-	{
-		final BCFStoppableOutputStream stopOut =
-			new BCFStoppableOutputStream(!writeHeader, output);
+    init(output, header, writeHeader, ctx);
+  }
 
-		writer = new VariantContextWriterBuilder().clearOptions()
-				.setOption(Options.FORCE_BCF)
-				.setOutputBCFStream(stopOut).build();
+  public BCFRecordWriter(Path output, VCFHeader header, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    init(output.getFileSystem(ctx.getConfiguration()).create(output), header, writeHeader);
+  }
 
-		writer.writeHeader(header);
-		stopOut.stopped = false;
+  public BCFRecordWriter(OutputStream output, VCFHeader header, boolean writeHeader)
+      throws IOException {
+    init(output, header, writeHeader);
+  }
 
-		setInputHeader(header);
-	}
+  // Working around not being able to call a constructor other than as the
+  // first statement...
+  private void init(Path output, VCFHeader header, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    init(output.getFileSystem(ctx.getConfiguration()).create(output), header, writeHeader);
+  }
 
-	@Override public void close(TaskAttemptContext ctx) throws IOException {
-		writer.close();
-	}
+  private void init(OutputStream output, VCFHeader header, final boolean writeHeader)
+      throws IOException {
+    final BCFStoppableOutputStream stopOut = new BCFStoppableOutputStream(!writeHeader, output);
 
-	/** Used for lazy decoding of genotype data. Of course, each input record
-	 * may have a different header, but we currently only support one header
-	 * here... This is in part due to the fact that it's not clear what the best
-	 * solution is. */
-	public void setInputHeader(VCFHeader header) {
-		vcfHeaderDataCache.setHeader(header);
-		bcfHeaderDataCache.setHeader(header);
-	}
+    writer =
+        new VariantContextWriterBuilder()
+            .clearOptions()
+            .setOption(Options.FORCE_BCF)
+            .setOutputBCFStream(stopOut)
+            .build();
 
-	protected void writeRecord(VariantContext vc) {
-		final GenotypesContext gc = vc.getGenotypes();
-		if (gc instanceof LazyParsingGenotypesContext)
-			((LazyParsingGenotypesContext)gc).getParser().setHeaderDataCache(
-				gc instanceof LazyVCFGenotypesContext ? vcfHeaderDataCache
-				                                      : bcfHeaderDataCache);
+    writer.writeHeader(header);
+    stopOut.stopped = false;
 
-		writer.add(vc);
-	}
+    setInputHeader(header);
+  }
+
+  @Override
+  public void close(TaskAttemptContext ctx) throws IOException {
+    writer.close();
+  }
+
+  /**
+   * Used for lazy decoding of genotype data. Of course, each input record may have a different
+   * header, but we currently only support one header here... This is in part due to the fact that
+   * it's not clear what the best solution is.
+   */
+  public void setInputHeader(VCFHeader header) {
+    vcfHeaderDataCache.setHeader(header);
+    bcfHeaderDataCache.setHeader(header);
+  }
+
+  protected void writeRecord(VariantContext vc) {
+    final GenotypesContext gc = vc.getGenotypes();
+    if (gc instanceof LazyParsingGenotypesContext) {
+      ((LazyParsingGenotypesContext) gc)
+          .getParser()
+          .setHeaderDataCache(
+              gc instanceof LazyVCFGenotypesContext ? vcfHeaderDataCache : bcfHeaderDataCache);
+    }
+
+    writer.add(vc);
+  }
 }
 
 // We must always call writer.writeHeader() because the writer requires
@@ -148,31 +135,44 @@ public abstract class BCFRecordWriter<K>
 //
 // In addition we do BGZF compression here, to simplify things.
 final class BCFStoppableOutputStream extends FilterOutputStream {
-	public boolean stopped;
-	private final OutputStream origOut;
 
-	public BCFStoppableOutputStream(boolean startStopped, OutputStream out) {
-		super(new BlockCompressedOutputStream(out, null));
-		origOut = out;
-		stopped = startStopped;
-	}
+  private final OutputStream origOut;
+  public boolean stopped;
 
-	@Override public void write(int b) throws IOException {
-		if (!stopped) super.write(b);
-	}
-	@Override public void write(byte[] b) throws IOException {
-		if (!stopped) super.write(b);
-	}
-	@Override public void write(byte[] b, int off, int len) throws IOException {
-		if (!stopped) super.write(b, off, len);
-	}
+  public BCFStoppableOutputStream(boolean startStopped, OutputStream out) {
+    super(new BlockCompressedOutputStream(out, null));
+    origOut = out;
+    stopped = startStopped;
+  }
 
-	@Override public void close() throws IOException {
-		// Don't close the BlockCompressedOutputStream, as we don't want
-		// the BGZF terminator.
-		this.out.flush();
+  @Override
+  public void write(int b) throws IOException {
+    if (!stopped) {
+      super.write(b);
+    }
+  }
 
-		// Instead, close the lower-level output stream directly.
-		origOut.close();
-	}
+  @Override
+  public void write(byte[] b) throws IOException {
+    if (!stopped) {
+      super.write(b);
+    }
+  }
+
+  @Override
+  public void write(byte[] b, int off, int len) throws IOException {
+    if (!stopped) {
+      super.write(b, off, len);
+    }
+  }
+
+  @Override
+  public void close() throws IOException {
+    // Don't close the BlockCompressedOutputStream, as we don't want
+    // the BGZF terminator.
+    this.out.flush();
+
+    // Instead, close the lower-level output stream directly.
+    origOut.close();
+  }
 }

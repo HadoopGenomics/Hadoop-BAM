@@ -22,41 +22,37 @@
 
 package org.seqdoop.hadoop_bam;
 
+import htsjdk.variant.vcf.VCFHeader;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import htsjdk.variant.vcf.VCFHeader;
-
-/** A convenience class that you can use as a RecordWriter for VCF files.
+/**
+ * A convenience class that you can use as a RecordWriter for VCF files.
  *
- * <p>The write function ignores the key, just outputting the
- * VariantContext.</p>
+ * <p>The write function ignores the key, just outputting the VariantContext.
  */
 public class KeyIgnoringVCFRecordWriter<K> extends VCFRecordWriter<K> {
-	public KeyIgnoringVCFRecordWriter(
-			Path output, Path input, boolean writeHeader, TaskAttemptContext ctx)
-		throws IOException
-	{
-		super(output, input, writeHeader, ctx);
-	}
-	public KeyIgnoringVCFRecordWriter(
-			Path output, VCFHeader header, boolean writeHeader,
-			TaskAttemptContext ctx)
-		throws IOException
-	{
-		super(output, header, writeHeader, ctx);
-	}
-	public KeyIgnoringVCFRecordWriter(
-			OutputStream output, VCFHeader header, boolean writeHeader)
-		throws IOException
-	{
-		super(output, header, writeHeader);
-	}
 
-	@Override public void write(K ignored, VariantContextWritable vc) {
-		writeRecord(vc.get());
-	}
+  public KeyIgnoringVCFRecordWriter(
+      Path output, Path input, boolean writeHeader, TaskAttemptContext ctx) throws IOException {
+    super(output, input, writeHeader, ctx);
+  }
+
+  public KeyIgnoringVCFRecordWriter(
+      Path output, VCFHeader header, boolean writeHeader, TaskAttemptContext ctx)
+      throws IOException {
+    super(output, header, writeHeader, ctx);
+  }
+
+  public KeyIgnoringVCFRecordWriter(OutputStream output, VCFHeader header, boolean writeHeader)
+      throws IOException {
+    super(output, header, writeHeader);
+  }
+
+  @Override
+  public void write(K ignored, VariantContextWritable vc) {
+    writeRecord(vc.get());
+  }
 }

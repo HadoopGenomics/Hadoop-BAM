@@ -23,27 +23,36 @@
 package org.seqdoop.hadoop_bam.util;
 
 import java.io.DataInput;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 public class DataInputWrapper extends InputStream {
-	private final DataInput in;
 
-	public DataInputWrapper(DataInput i) { in = i; }
+  private final DataInput in;
 
-	@Override public long skip(long n) throws IOException {
-		for (; n > Integer.MAX_VALUE; n -= Integer.MAX_VALUE) {
-			final int skipped = in.skipBytes(Integer.MAX_VALUE);
-			if (skipped < Integer.MAX_VALUE)
-				return skipped;
-		}
-		return in.skipBytes((int)n);
-	}
-	@Override public int read(byte[] b, int off, int len) throws IOException {
-		in.readFully(b, off, len);
-		return len;
-	}
-	@Override public int read() throws IOException {
-		return in.readByte();
-	}
+  public DataInputWrapper(DataInput i) {
+    in = i;
+  }
+
+  @Override
+  public long skip(long n) throws IOException {
+    for (; n > Integer.MAX_VALUE; n -= Integer.MAX_VALUE) {
+      final int skipped = in.skipBytes(Integer.MAX_VALUE);
+      if (skipped < Integer.MAX_VALUE) {
+        return skipped;
+      }
+    }
+    return in.skipBytes((int) n);
+  }
+
+  @Override
+  public int read(byte[] b, int off, int len) throws IOException {
+    in.readFully(b, off, len);
+    return len;
+  }
+
+  @Override
+  public int read() throws IOException {
+    return in.readByte();
+  }
 }

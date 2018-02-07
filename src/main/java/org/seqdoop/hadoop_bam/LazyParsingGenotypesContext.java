@@ -25,11 +25,11 @@ package org.seqdoop.hadoop_bam;
 import htsjdk.variant.variantcontext.LazyGenotypesContext;
 import htsjdk.variant.vcf.VCFHeader;
 
-/** You need to call getParser().setHeader() here before trying to decode() a
- * GenotypesContext in any VariantContext that came about via
- * VariantContextWritable.readFields(). That includes calling
- * VariantContext.fullyDecode() or almost any of the GenotypesContext methods.
- * The RecordReader provided by VCFInputFormat does this for you.
+/**
+ * You need to call getParser().setHeader() here before trying to decode() a GenotypesContext in any
+ * VariantContext that came about via VariantContextWritable.readFields(). That includes calling
+ * VariantContext.fullyDecode() or almost any of the GenotypesContext methods. The RecordReader
+ * provided by VCFInputFormat does this for you.
  */
 // There's no public LazyGenotypesContext.LazyParser in Picard so we need to
 // provide our own. Since we need to have the header in the parser set
@@ -38,24 +38,27 @@ import htsjdk.variant.vcf.VCFHeader;
 //
 // And since VCF and BCF have different kinds of lazy data, we have separate
 // classes implementing the actual parsing for each.
-public abstract class LazyParsingGenotypesContext
-	extends LazyGenotypesContext
-{
-	// super.parser is inaccessible to us so we keep a copy that we can access.
-	private final Parser parserCopy;
+public abstract class LazyParsingGenotypesContext extends LazyGenotypesContext {
 
-	protected LazyParsingGenotypesContext(Parser p, byte[] data, int count) {
-		super(p, data, count);
-		parserCopy = p;
-	}
+  // super.parser is inaccessible to us so we keep a copy that we can access.
+  private final Parser parserCopy;
 
-	public Parser getParser() { return parserCopy; }
+  protected LazyParsingGenotypesContext(Parser p, byte[] data, int count) {
+    super(p, data, count);
+    parserCopy = p;
+  }
 
-	public static interface HeaderDataCache {
-		public void setHeader(VCFHeader header);
-	}
+  public Parser getParser() {
+    return parserCopy;
+  }
 
-	public static abstract class Parser implements LazyParser {
-		public abstract void setHeaderDataCache(HeaderDataCache data);
-	}
+  public static interface HeaderDataCache {
+
+    public void setHeader(VCFHeader header);
+  }
+
+  public abstract static class Parser implements LazyParser {
+
+    public abstract void setHeaderDataCache(HeaderDataCache data);
+  }
 }

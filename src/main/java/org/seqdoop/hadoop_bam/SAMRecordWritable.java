@@ -22,54 +22,59 @@
 
 package org.seqdoop.hadoop_bam;
 
-import java.io.DataOutput;
-import java.io.DataInput;
-import java.io.IOException;
-
-import org.apache.hadoop.io.Writable;
-
 import htsjdk.samtools.BAMRecordCodec;
 import htsjdk.samtools.SAMRecord;
-
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import org.apache.hadoop.io.Writable;
 import org.seqdoop.hadoop_bam.util.DataInputWrapper;
 import org.seqdoop.hadoop_bam.util.DataOutputWrapper;
 
-/** A {@link Writable} {@link SAMRecord}.
+/**
+ * A {@link Writable} {@link SAMRecord}.
  *
- * <p>In every mapper, the record will have a header, since BAMInputFormat
- * provides one. It is lost when transferring the SAMRecord to a reducer,
- * however. The current implementation of {@link BAMRecordCodec} does not
- * require a record for encoding nor decoding of a <code>SAMRecord</code>, so
- * this fortunately doesn't matter for either {@link #write} or {@link
- * #readFields}.</p>
+ * <p>In every mapper, the record will have a header, since BAMInputFormat provides one. It is lost
+ * when transferring the SAMRecord to a reducer, however. The current implementation of {@link
+ * BAMRecordCodec} does not require a record for encoding nor decoding of a <code>SAMRecord</code>,
+ * so this fortunately doesn't matter for either {@link #write} or {@link #readFields}.
  */
 public class SAMRecordWritable implements Writable {
-	private static final BAMRecordCodec lazyCodec =
-		new BAMRecordCodec(null, new LazyBAMRecordFactory());
 
-	private SAMRecord record;
+  private static final BAMRecordCodec lazyCodec =
+      new BAMRecordCodec(null, new LazyBAMRecordFactory());
 
-	public SAMRecord get()            { return record; }
-	public void      set(SAMRecord r) { record = r; }
+  private SAMRecord record;
 
-	@Override public void write(DataOutput out) throws IOException {
-		// In theory, it shouldn't matter whether we give a header to
-		// BAMRecordCodec or not, since the representation of an alignment in BAM
-		// doesn't depend on the header data at all. Only its interpretation
-		// does, and a simple read/write codec shouldn't really have anything to
-		// say about that. (But in practice, it already does matter for decode(),
-		// which is why LazyBAMRecordFactory exists.)
-		final BAMRecordCodec codec = new BAMRecordCodec(record.getHeader());
-		codec.setOutputStream(new DataOutputWrapper(out));
-		codec.encode(record);
-	}
-	@Override public void readFields(DataInput in) throws IOException {
-		lazyCodec.setInputStream(new DataInputWrapper(in));
-		record = lazyCodec.decode();
-	}
+  public SAMRecord get() {
+    return record;
+  }
 
-	@Override
-	public String toString() {
-		return record.getSAMString().trim(); // remove trailing newline
-	}
+  public void set(SAMRecord r) {
+    record = r;
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    // In theory, it shouldn't matter whether we give a header to
+    // BAMRecordCodec or not, since the representation of an alignment in BAM
+    // doesn't depend on the header data at all. Only its interpretation
+    // does, and a simple read/write codec shouldn't really have anything to
+    // say about that. (But in practice, it already does matter for decode(),
+    // which is why LazyBAMRecordFactory exists.)
+    final BAMRecordCodec codec = new BAMRecordCodec(record.getHeader());
+    codec.setOutputStream(new DataOutputWrapper(out));
+    codec.encode(record);
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    lazyCodec.setInputStream(new DataInputWrapper(in));
+    record = lazyCodec.decode();
+  }
+
+  @Override
+  public String toString() {
+    return record.getSAMString().trim(); // remove trailing newline
+  }
 }

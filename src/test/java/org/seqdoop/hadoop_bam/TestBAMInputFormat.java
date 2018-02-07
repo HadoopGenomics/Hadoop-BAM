@@ -1,5 +1,9 @@
 package org.seqdoop.hadoop_bam;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
@@ -19,11 +23,8 @@ import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 public class TestBAMInputFormat {
+
   private String input;
   private TaskAttemptContext taskAttemptContext;
   private JobContext jobContext;
@@ -36,13 +37,13 @@ public class TestBAMInputFormat {
     completeSetupWithBoundedTraversal(intervals, false);
   }
 
-  private void completeSetupWithBoundedTraversal(List<Interval> intervals, boolean
-      traverseUnplacedUnmapped) {
+  private void completeSetupWithBoundedTraversal(
+      List<Interval> intervals, boolean traverseUnplacedUnmapped) {
     completeSetup(true, intervals, traverseUnplacedUnmapped);
   }
 
-  private void completeSetup(boolean boundedTraversal, List<Interval> intervals, boolean
-      traverseUnplacedUnmapped) {
+  private void completeSetup(
+      boolean boundedTraversal, List<Interval> intervals, boolean traverseUnplacedUnmapped) {
     Configuration conf = new Configuration();
     conf.set("mapred.input.dir", "file://" + input);
     if (boundedTraversal) {
@@ -63,8 +64,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testMultipleSplits() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname).getAbsolutePath();
     completeSetup();
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
     BAMInputFormat inputFormat = new BAMInputFormat();
@@ -83,8 +83,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testMultipleSplitsBaiEnabled() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     completeSetup();
     BAMInputFormat.setEnableBAISplitCalculator(jobContext.getConfiguration(), true);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
@@ -101,8 +100,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testMultipleSplitsBaiEnabledSuffixPath() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     File index = new File(input.replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix));
     index.renameTo(new File(input + BAMIndex.BAMIndexSuffix));
     completeSetup();
@@ -121,8 +119,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testMultipleSplitsBaiEnabledNoIndex() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.queryname).getAbsolutePath();
     completeSetup();
     BAMInputFormat.setEnableBAISplitCalculator(jobContext.getConfiguration(), true);
     jobContext.getConfiguration().setInt(FileInputFormat.SPLIT_MAXSIZE, 40000);
@@ -142,8 +139,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testIntervals() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     List<Interval> intervals = new ArrayList<Interval>();
     intervals.add(new Interval("chr21", 5000, 9999)); // includes two unpaired fragments
     intervals.add(new Interval("chr21", 20000, 22999));
@@ -160,8 +156,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testIntervalCoveringWholeChromosome() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     List<Interval> intervals = new ArrayList<Interval>();
     intervals.add(new Interval("chr21", 1, 1000135));
 
@@ -179,8 +174,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testIntervalsAndUnmapped() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
     List<Interval> intervals = new ArrayList<Interval>();
     intervals.add(new Interval("chr21", 5000, 9999)); // includes two unpaired fragments
     intervals.add(new Interval("chr21", 20000, 22999));
@@ -199,8 +193,7 @@ public class TestBAMInputFormat {
 
   @Test
   public void testUnmapped() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
 
     completeSetupWithBoundedTraversal(null, true);
 
@@ -214,17 +207,16 @@ public class TestBAMInputFormat {
 
   @Test(expected = IllegalArgumentException.class)
   public void testMappedOnly() throws Exception {
-    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate)
-        .getAbsolutePath();
+    input = BAMTestUtil.writeBamFile(1000, SAMFileHeader.SortOrder.coordinate).getAbsolutePath();
 
     // Mapped only (-XL unmapped) is currently unsupported and throws an exception.
     completeSetupWithBoundedTraversal(null, false);
   }
 
-  private List<SAMRecord> getSAMRecordsFromSplit(BAMInputFormat inputFormat,
-      InputSplit split) throws Exception {
-    RecordReader<LongWritable, SAMRecordWritable> reader = inputFormat
-        .createRecordReader(split, taskAttemptContext);
+  private List<SAMRecord> getSAMRecordsFromSplit(BAMInputFormat inputFormat, InputSplit split)
+      throws Exception {
+    RecordReader<LongWritable, SAMRecordWritable> reader =
+        inputFormat.createRecordReader(split, taskAttemptContext);
     reader.initialize(split, taskAttemptContext);
 
     List<SAMRecord> records = new ArrayList<SAMRecord>();

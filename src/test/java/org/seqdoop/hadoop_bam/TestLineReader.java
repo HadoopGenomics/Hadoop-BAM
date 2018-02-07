@@ -22,69 +22,60 @@
 
 package org.seqdoop.hadoop_bam;
 
-import org.junit.*;
 import static org.junit.Assert.*;
-
-import org.seqdoop.hadoop_bam.LineReader;
-
-import org.apache.hadoop.io.Text;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import org.apache.hadoop.io.Text;
+import org.junit.*;
 
-public class TestLineReader
-{
-	public static final String input10 = "0123456789";
-	public static final String input22 = "0123456789\n0987654321\n";
+public class TestLineReader {
 
-	private LineReader reader;
-	private Text dest = new Text();
+  public static final String input10 = "0123456789";
+  public static final String input22 = "0123456789\n0987654321\n";
 
-	@Test
-	public void testReadBufferedLine() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
-		reader.readLine(dest);
-		assertEquals("0123456789", dest.toString());
-	}
+  private LineReader reader;
+  private Text dest = new Text();
 
-	@Test
-	public void testSkipOnBufferedLine() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
-		long skipped = reader.skip(1);
-		assertEquals(1, skipped);
-		reader.readLine(dest);
-		assertEquals("123456789", dest.toString());
-	}
+  @Test
+  public void testReadBufferedLine() throws IOException {
+    reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
+    reader.readLine(dest);
+    assertEquals("0123456789", dest.toString());
+  }
 
-	@Test
-	public void testReadBeyondBuffer() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
-		reader.readLine(dest);
-		assertEquals("0123456789", dest.toString());
-	}
+  @Test
+  public void testSkipOnBufferedLine() throws IOException {
+    reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 22);
+    long skipped = reader.skip(1);
+    assertEquals(1, skipped);
+    reader.readLine(dest);
+    assertEquals("123456789", dest.toString());
+  }
 
-	@Test
-	public void testSkipBeyondBuffer() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
-		long skipped = reader.skip(11);
-		assertEquals(11, skipped);
-		reader.readLine(dest);
-		assertEquals("0987654321", dest.toString());
-	}
+  @Test
+  public void testReadBeyondBuffer() throws IOException {
+    reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
+    reader.readLine(dest);
+    assertEquals("0123456789", dest.toString());
+  }
 
-	@Test
-	public void testSkipBeyondInput() throws IOException
-	{
-		reader = new LineReader(new ByteArrayInputStream(input10.getBytes()), 5);
-		long skipped = reader.skip(11);
-		assertEquals(10, skipped);
+  @Test
+  public void testSkipBeyondBuffer() throws IOException {
+    reader = new LineReader(new ByteArrayInputStream(input22.getBytes()), 5);
+    long skipped = reader.skip(11);
+    assertEquals(11, skipped);
+    reader.readLine(dest);
+    assertEquals("0987654321", dest.toString());
+  }
 
-		skipped = reader.skip(11);
-		assertEquals(0, skipped);
-	}
+  @Test
+  public void testSkipBeyondInput() throws IOException {
+    reader = new LineReader(new ByteArrayInputStream(input10.getBytes()), 5);
+    long skipped = reader.skip(11);
+    assertEquals(10, skipped);
 
+    skipped = reader.skip(11);
+    assertEquals(0, skipped);
+  }
 }
