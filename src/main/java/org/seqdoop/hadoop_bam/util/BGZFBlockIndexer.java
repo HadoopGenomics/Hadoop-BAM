@@ -22,13 +22,7 @@
 
 package org.seqdoop.hadoop_bam.util;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.LongBuffer;
@@ -95,36 +89,36 @@ public final class BGZFBlockIndexer {
 	}
 
 	private void index(final File file) throws IOException {
-		final InputStream in = new FileInputStream(file);
+		try (final InputStream in = new FileInputStream(file)) {
 
-		final OutputStream out = new BufferedOutputStream(
-			new FileOutputStream(file.getPath() + ".bgzfi"));
+			try (final OutputStream out = new BufferedOutputStream(
+					new FileOutputStream(file.getPath() + ".bgzfi"))) {
 
-		final LongBuffer lb =
-			byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
+				final LongBuffer lb =
+						byteBuffer.order(ByteOrder.BIG_ENDIAN).asLongBuffer();
 
-		long prevPrint = 0;
-		pos = 0;
+				long prevPrint = 0;
+				pos = 0;
 
-		for (int i = 0;;) {
-			if (!skipBlock(in))
-				break;
+				for (int i = 0; ; ) {
+					if (!skipBlock(in))
+						break;
 
-			if (++i == granularity) {
-				i = 0;
-				lb.put(0, pos);
-				out.write(byteBuffer.array(), 2, 6);
+					if (++i == granularity) {
+						i = 0;
+						lb.put(0, pos);
+						out.write(byteBuffer.array(), 2, 6);
 
-				if (pos - prevPrint >= PRINT_EVERY) {
-					System.out.print("-");
-					prevPrint = pos;
+						if (pos - prevPrint >= PRINT_EVERY) {
+							System.out.print("-");
+							prevPrint = pos;
+						}
+					}
 				}
-			}
-		}
-		lb.put(0, file.length());
-		out.write(byteBuffer.array(), 2, 6);
-		out.close();
-		in.close();
+				lb.put(0, file.length());
+				out.write(byteBuffer.array(), 2, 6);
+			} catch (IOException e) {}
+		} catch (IOException e) {}
 	}
 
 	private boolean skipBlock(final InputStream in) throws IOException {
