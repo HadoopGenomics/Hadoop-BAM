@@ -328,139 +328,145 @@ public class BAMInputFormat
                 int splitsEnd = i;
                 
                 try (FSDataInputStream in = fs.open(path)) {
-                        SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
-                        SAMSequenceDictionary dict = header.getSequenceDictionary();
-                        
-                        final SeekableStream guesserSin =
-                                WrapSeekable.openPath(fs, path);
-                        final BAMSplitGuesser guesser = new BAMSplitGuesser(guesserSin, conf);
+					SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
+					SAMSequenceDictionary dict = header.getSequenceDictionary();
 
-                        final SeekableStream sin;
-                        if (fs.exists(getBAIPath(path))) {
-                                sin = WrapSeekable.openPath(fs, getBAIPath(path));
-                        } else {
-                                sin = WrapSeekable.openPath(fs, new Path(path.toString()
-                                                                         .replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix)));
-                        }
-                        final LinearBAMIndex idx = new LinearBAMIndex(sin, dict);
+					final SeekableStream guesserSin =
+								 WrapSeekable.openPath(fs, path);
+					final BAMSplitGuesser guesser = new BAMSplitGuesser(guesserSin, conf);
 
-			// searches for the first contig that contains linear bins
-			// a contig will have no linear bins if there are no reads mapped to that
-			// contig (e.g., reads were aligned to a whole genome, and then reads from
-			// only a single contig were selected)
-                        int ctgIdx = -1;
-                        int bin = 0;
-                        LinearIndex linIdx;
-                        int ctgBins;
-                        long lastStart = 0;
-                        do {
-                                ctgIdx++;
-                                linIdx = idx.getLinearIndex(ctgIdx);
-                                ctgBins = linIdx.size();
-                        } while(ctgBins == 0);
-                        long nextStart = linIdx.get(bin);
-                        
-                        FileVirtualSplit newSplit = null;
-                        boolean lastWasGuessed = false;
+					final SeekableStream sin;
+					if (fs.exists(getBAIPath(path))) {
+						sin = WrapSeekable.openPath(fs, getBAIPath(path));
+					} else {
+						sin = WrapSeekable.openPath(fs, new Path(path.toString()
+								.replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix)));
+					}
+					final LinearBAMIndex idx = new LinearBAMIndex(sin, dict);
 
-			// loop and process all of the splits that share a single .bai
-                        while(splitsEnd < splits.size() &&
-                              ((FileSplit)(splits.get(splitsEnd))).getPath() == path) {
-                                FileSplit fSplit = (FileSplit)splits.get(splitsEnd);
-                                splitsEnd++;
-                                
-                                if (splitsEnd >= splits.size()) {
-                                        break;
-                                }
+					// searches for the first contig that contains linear bins
+					// a contig will have no linear bins if there are no reads mapped to that
+					// contig (e.g., reads were aligned to a whole genome, and then reads from
+					// only a single contig were selected)
+					int ctgIdx = -1;
+					int bin = 0;
+					LinearIndex linIdx;
+					int ctgBins;
+					long lastStart = 0;
+					do {
+						ctgIdx++;
+						linIdx = idx.getLinearIndex(ctgIdx);
+						ctgBins = linIdx.size();
+					} while (ctgBins == 0);
+					long nextStart = linIdx.get(bin);
 
-                                long fSplitEnd = (fSplit.getStart() + fSplit.getLength()) << 16;
-                                lastStart = nextStart;
+					FileVirtualSplit newSplit = null;
+					boolean lastWasGuessed = false;
 
-				// we need to advance and find the first linear index bin
-				// that starts after the current split ends.
-				// this is the end of our split.
-				while(nextStart < fSplitEnd && ctgIdx < dict.size()) {
+					// loop and process all of the splits that share a single .bai
+					while (splitsEnd < splits.size() &&
+							((FileSplit) (splits.get(splitsEnd))).getPath() == path) {
+						FileSplit fSplit = (FileSplit) splits.get(splitsEnd);
+						splitsEnd++;
 
-					// are we going off of the end of this contig?
-					// if so, advance to the next contig with a linear bin
-					if (bin + 1 >= ctgBins) {
-						do {
-                                                        ctgIdx += 1;
-                                                        bin = 0;
-                                                        if (ctgIdx >= dict.size()) {
-                                                                break;
-                                                        }
-                                                        linIdx = idx.getLinearIndex(ctgIdx);
-                                                        ctgBins = linIdx.size();
-                                                } while (ctgBins == 0);
-                                        }
-                                        if (ctgIdx < dict.size() && linIdx.size() > bin) {
-                                                nextStart = linIdx.get(bin);
-                                                bin++;
-                                        }
-                                }
+						if (splitsEnd >= splits.size()) {
+							break;
+						}
 
-				// is this the first split?
-				// if so, split ranges from where the reads start until the identified end
-                                if (fSplit.getStart() == 0) {
-                                        final SeekableStream inFile =
-                                                WrapSeekable.openPath(path.getFileSystem(conf), path);
-                                        SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
-                                                .open(SamInputResource.of(inFile));
-                                        SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
-                                        long bamStart = ((BAMFileSpan) span).getFirstOffset();
-                                        newSplit = new FileVirtualSplit(fSplit.getPath(),
-                                                                        bamStart,
-                                                                        nextStart - 1,
-                                                                        fSplit.getLocations());
-                                        newSplits.add(newSplit);
-                                } else {
+						long fSplitEnd = (fSplit.getStart() + fSplit.getLength()) << 16;
+						lastStart = nextStart;
 
-					// did we find any blocks that started in the last split?
-					// if yes, then we're fine
-					// if no, then we need to guess a split start (in the else clause)
-					if (lastStart != nextStart) {
-                                                if (lastWasGuessed) {
-                                                        newSplit.setEndVirtualOffset(lastStart - 1);
-                                                        lastWasGuessed = false;
-                                                }
-                                                newSplit = new FileVirtualSplit(fSplit.getPath(),
-                                                                                lastStart,
-                                                                                nextStart - 1,
-                                                                                fSplit.getLocations());
-                                                newSplits.add(newSplit);
-                                        } else {
-						// guess the start
-                                                long alignedBeg = guesser.guessNextBAMRecordStart(fSplit.getStart(),
-                                                                                                  fSplit.getStart() + fSplit.getLength());
-                                                newSplit.setEndVirtualOffset(alignedBeg - 1);
-                                                lastStart = alignedBeg;
-                                                nextStart = alignedBeg;
-                                                newSplit = new FileVirtualSplit(fSplit.getPath(),
-                                                                                alignedBeg,
-                                                                                alignedBeg + 1,
-                                                                                fSplit.getLocations());
-                                                lastWasGuessed = true;
-                                                newSplits.add(newSplit);
-                                        }
-                                }
-                                lastStart = nextStart;
-                        }
-			// clean up the last split
-                        if (splitsEnd == splits.size()) {
-                                if (lastWasGuessed) {
-                                        newSplit.setEndVirtualOffset(lastStart - 1);
-                                        lastWasGuessed = false;
-                                }
-                                FileSplit fSplit = (FileSplit)splits.get(splitsEnd - 1);
-                                long fSplitEnd = (fSplit.getStart() + fSplit.getLength()) << 16;
-                                newSplit = new FileVirtualSplit(fSplit.getPath(),
-                                                                lastStart,
-                                                                fSplitEnd,
-                                                                fSplit.getLocations());
-                                newSplits.add(newSplit);
-                        }
-                }
+						// we need to advance and find the first linear index bin
+						// that starts after the current split ends.
+						// this is the end of our split.
+						while (nextStart < fSplitEnd && ctgIdx < dict.size()) {
+
+							// are we going off of the end of this contig?
+							// if so, advance to the next contig with a linear bin
+							if (bin + 1 >= ctgBins) {
+								do {
+									ctgIdx += 1;
+									bin = 0;
+									if (ctgIdx >= dict.size()) {
+										break;
+									}
+									linIdx = idx.getLinearIndex(ctgIdx);
+									ctgBins = linIdx.size();
+								} while (ctgBins == 0);
+							}
+							if (ctgIdx < dict.size() && linIdx.size() > bin) {
+								nextStart = linIdx.get(bin);
+								bin++;
+							}
+						}
+
+						// is this the first split?
+						// if so, split ranges from where the reads start until the identified end
+						if (fSplit.getStart() == 0) {
+							final SeekableStream inFile =
+									WrapSeekable.openPath(path.getFileSystem(conf), path);
+							SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
+									.open(SamInputResource.of(inFile));
+							SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
+							long bamStart = ((BAMFileSpan) span).getFirstOffset();
+							newSplit = new FileVirtualSplit(fSplit.getPath(),
+									bamStart,
+									nextStart - 1,
+									fSplit.getLocations());
+							newSplits.add(newSplit);
+							open.close();
+							inFile.close();
+						} else {
+
+							// did we find any blocks that started in the last split?
+							// if yes, then we're fine
+							// if no, then we need to guess a split start (in the else clause)
+							if (lastStart != nextStart) {
+								if (lastWasGuessed) {
+									newSplit.setEndVirtualOffset(lastStart - 1);
+									lastWasGuessed = false;
+								}
+								newSplit = new FileVirtualSplit(fSplit.getPath(),
+										lastStart,
+										nextStart - 1,
+										fSplit.getLocations());
+								newSplits.add(newSplit);
+							} else {
+								// guess the start
+								long alignedBeg = guesser.guessNextBAMRecordStart(fSplit.getStart(),
+										fSplit.getStart() + fSplit.getLength());
+								newSplit.setEndVirtualOffset(alignedBeg - 1);
+								lastStart = alignedBeg;
+								nextStart = alignedBeg;
+								newSplit = new FileVirtualSplit(fSplit.getPath(),
+										alignedBeg,
+										alignedBeg + 1,
+										fSplit.getLocations());
+								lastWasGuessed = true;
+								newSplits.add(newSplit);
+							}
+						}
+						lastStart = nextStart;
+					}
+					// clean up the last split
+					if (splitsEnd == splits.size()) {
+						if (lastWasGuessed) {
+							newSplit.setEndVirtualOffset(lastStart - 1);
+							lastWasGuessed = false;
+						}
+						FileSplit fSplit = (FileSplit) splits.get(splitsEnd - 1);
+						long fSplitEnd = (fSplit.getStart() + fSplit.getLength()) << 16;
+						newSplit = new FileVirtualSplit(fSplit.getPath(),
+								lastStart,
+								fSplitEnd,
+								fSplit.getLocations());
+						newSplits.add(newSplit);
+					}
+					logger.info("closing");
+					System.out.println("sin and guesser closing00");
+					sin.close();
+					guesserSin.close();
+				}
                 return splitsEnd + 1;
         }
         
