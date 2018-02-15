@@ -51,7 +51,8 @@ public final class GetSortedBAMHeader {
 						.open(new File(args[0])).getFileHeader();
 		h.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
-		new SAMOutputPreparer().prepareForRecords(
-			new FileOutputStream(args[1]), SAMFormat.BAM, h);
+        try (FileOutputStream stream = new FileOutputStream(args[1])) {
+            new SAMOutputPreparer().prepareForRecords(stream, SAMFormat.BAM, h);
+        }
 	}
 }

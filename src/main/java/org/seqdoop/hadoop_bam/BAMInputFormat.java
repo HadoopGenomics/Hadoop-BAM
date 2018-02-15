@@ -323,25 +323,26 @@ public class BAMInputFormat
                                  int i,
                                  List<InputSplit> newSplits,
                                  Configuration conf) throws IOException {
-                final Path path = ((FileSplit)splits.get(i)).getPath();
-                FileSystem fs = path.getFileSystem(conf);
                 int splitsEnd = i;
-                
-                try (FSDataInputStream in = fs.open(path)) {
+
+                final Path path = ((FileSplit)splits.get(i)).getPath();
+                final Path baiPath = getBAIPath(path);
+                final FileSystem fs = path.getFileSystem(conf);
+                final Path sinPath;
+                if (fs.exists(baiPath)) {
+                    sinPath = baiPath;
+                } else {
+                    sinPath = new Path(path.toString().replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix));
+                }
+                try (final FSDataInputStream in = fs.open(path);
+                     final SeekableStream guesserSin = WrapSeekable.openPath(fs, path);
+                     final SeekableStream sin = WrapSeekable.openPath(fs, sinPath)) {
+
                         SAMFileHeader header = SAMHeaderReader.readSAMHeaderFrom(in, conf);
                         SAMSequenceDictionary dict = header.getSequenceDictionary();
                         
-                        final SeekableStream guesserSin =
-                                WrapSeekable.openPath(fs, path);
                         final BAMSplitGuesser guesser = new BAMSplitGuesser(guesserSin, conf);
 
-                        final SeekableStream sin;
-                        if (fs.exists(getBAIPath(path))) {
-                                sin = WrapSeekable.openPath(fs, getBAIPath(path));
-                        } else {
-                                sin = WrapSeekable.openPath(fs, new Path(path.toString()
-                                                                         .replaceFirst("\\.bam$", BAMIndex.BAMIndexSuffix)));
-                        }
                         final LinearBAMIndex idx = new LinearBAMIndex(sin, dict);
 
 			// searches for the first contig that contains linear bins
@@ -403,17 +404,17 @@ public class BAMInputFormat
 				// is this the first split?
 				// if so, split ranges from where the reads start until the identified end
                                 if (fSplit.getStart() == 0) {
-                                        final SeekableStream inFile =
-                                                WrapSeekable.openPath(path.getFileSystem(conf), path);
-                                        SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
+                                        try (final SeekableStream inFile = WrapSeekable.openPath(path.getFileSystem(conf), path)) {
+                                            SamReader open = SamReaderFactory.makeDefault().setUseAsyncIo(false)
                                                 .open(SamInputResource.of(inFile));
-                                        SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
-                                        long bamStart = ((BAMFileSpan) span).getFirstOffset();
-                                        newSplit = new FileVirtualSplit(fSplit.getPath(),
+                                            SAMFileSpan span = open.indexing().getFilePointerSpanningReads();
+                                            long bamStart = ((BAMFileSpan) span).getFirstOffset();
+                                            newSplit = new FileVirtualSplit(fSplit.getPath(),
                                                                         bamStart,
                                                                         nextStart - 1,
                                                                         fSplit.getLocations());
-                                        newSplits.add(newSplit);
+                                            newSplits.add(newSplit);
+                                        }
                                 } else {
 
 					// did we find any blocks that started in the last split?
@@ -472,61 +473,59 @@ public class BAMInputFormat
 		throws IOException
 	{
 		final Path path = ((FileSplit)splits.get(i)).getPath();
-		final SeekableStream sin =
-			WrapSeekable.openPath(path.getFileSystem(cfg), path);
+        try (final SeekableStream sin = WrapSeekable.openPath(path.getFileSystem(cfg), path)) {
 
-		final BAMSplitGuesser guesser = new BAMSplitGuesser(sin, cfg);
+            final BAMSplitGuesser guesser = new BAMSplitGuesser(sin, cfg);
 
-		FileVirtualSplit previousSplit = null;
+            FileVirtualSplit previousSplit = null;
 
-		for (; i < splits.size(); ++i) {
-			FileSplit fspl = (FileSplit)splits.get(i);
-			if (!fspl.getPath().equals(path))
-				break;
+            for (; i < splits.size(); ++i) {
+                FileSplit fspl = (FileSplit)splits.get(i);
+                if (!fspl.getPath().equals(path))
+                    break;
 
-			long beg =       fspl.getStart();
-			long end = beg + fspl.getLength();
+                long beg =       fspl.getStart();
+                long end = beg + fspl.getLength();
 
-			long alignedBeg = guesser.guessNextBAMRecordStart(beg, end);
+                long alignedBeg = guesser.guessNextBAMRecordStart(beg, end);
 
-			// As the guesser goes to the next BGZF block before looking for BAM
-			// records, the ending BGZF blocks have to always be traversed fully.
-			// Hence force the length to be 0xffff, the maximum possible.
-			long alignedEnd = end << 16 | 0xffff;
+                // As the guesser goes to the next BGZF block before looking for BAM
+                // records, the ending BGZF blocks have to always be traversed fully.
+                // Hence force the length to be 0xffff, the maximum possible.
+                long alignedEnd = end << 16 | 0xffff;
 
-			if (alignedBeg == end) {
-				// No records detected in this split: merge it to the previous one.
-				// This could legitimately happen e.g. if we have a split that is
-				// so small that it only contains the middle part of a BGZF block.
-				//
-				// Of course, if it's the first split, then this is simply not a
-				// valid BAM file.
-				//
-				// FIXME: In theory, any number of splits could only contain parts
-				// of the BAM header before we start to see splits that contain BAM
-				// records. For now, we require that the split size is at least as
-				// big as the header and don't handle that case.
-				if (previousSplit == null)
-					throw new IOException("'" + path + "': "+
-						"no reads in first split: bad BAM file or tiny split size?");
+                if (alignedBeg == end) {
+                    // No records detected in this split: merge it to the previous one.
+                    // This could legitimately happen e.g. if we have a split that is
+                    // so small that it only contains the middle part of a BGZF block.
+                    //
+                    // Of course, if it's the first split, then this is simply not a
+                    // valid BAM file.
+                    //
+                    // FIXME: In theory, any number of splits could only contain parts
+                    // of the BAM header before we start to see splits that contain BAM
+                    // records. For now, we require that the split size is at least as
+                    // big as the header and don't handle that case.
+                    if (previousSplit == null)
+                        throw new IOException("'" + path + "': "+
+                            "no reads in first split: bad BAM file or tiny split size?");
 
-				previousSplit.setEndVirtualOffset(alignedEnd);
-			} else {
-				previousSplit = new FileVirtualSplit(
-                                        path, alignedBeg, alignedEnd, fspl.getLocations());
-				if (logger.isDebugEnabled()) {
-					final long byteOffset  = alignedBeg >>> 16;
-					final long recordOffset = alignedBeg & 0xffff;
-					logger.debug(
-						"Split {}: byte offset: {} record offset: {}, virtual offset: {}",
-						i, byteOffset, recordOffset, alignedBeg);
-				}
-				newSplits.add(previousSplit);
-			}
-		}
-
-		sin.close();
-		return i;
+                    previousSplit.setEndVirtualOffset(alignedEnd);
+                } else {
+                    previousSplit = new FileVirtualSplit(
+                                            path, alignedBeg, alignedEnd, fspl.getLocations());
+                    if (logger.isDebugEnabled()) {
+                        final long byteOffset  = alignedBeg >>> 16;
+                        final long recordOffset = alignedBeg & 0xffff;
+                        logger.debug(
+                            "Split {}: byte offset: {} record offset: {}, virtual offset: {}",
+                            i, byteOffset, recordOffset, alignedBeg);
+                    }
+                    newSplits.add(previousSplit);
+                }
+            }
+        }
+        return i;
 	}
 
 	private List<InputSplit> filterByInterval(List<InputSplit> splits, Configuration conf)
