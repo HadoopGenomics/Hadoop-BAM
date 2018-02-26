@@ -116,33 +116,35 @@ public class VCFRecordReader
 		final Path file = split.getPath();
 		final FileSystem fs = file.getFileSystem(ctx.getConfiguration());
 
-		final FSDataInputStream ins = fs.open(file);
+		try (final FSDataInputStream ins = fs.open(file)) {
 
-		CompressionCodec compressionCodec =
-				new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
-		AsciiLineReader reader;
-		if (compressionCodec == null) {
+		    CompressionCodec compressionCodec =
+			new CompressionCodecFactory(ctx.getConfiguration()).getCodec(file);
+		    AsciiLineReader reader;
+		    if (compressionCodec == null) {
 			reader = new AsciiLineReader(ins);
-		} else {
+		    } else {
 			Decompressor decompressor = CodecPool.getDecompressor(compressionCodec);
 			CompressionInputStream in = compressionCodec.createInputStream(ins,
-					decompressor);
+										       decompressor);
 			reader = new AsciiLineReader(in);
-		}
-
-		AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
-
-		final FeatureCodecHeader h = codec.readHeader(it);
-		if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
+		    }
+		    
+		    AsciiLineReaderIterator it = new AsciiLineReaderIterator(reader);
+		    
+		    final FeatureCodecHeader h = codec.readHeader(it);
+		    if (h == null || !(h.getHeaderValue() instanceof VCFHeader))
 			throw new IOException("No VCF header found in "+ file);
-
-		header = (VCFHeader) h.getHeaderValue();
-
-		contigDict.clear();
-		int i = 0;
-		for (final VCFContigHeaderLine contig : header.getContigLines())
+		    
+		    header = (VCFHeader) h.getHeaderValue();
+		    
+		    contigDict.clear();
+		    int i = 0;
+		    for (final VCFContigHeaderLine contig : header.getContigLines()) {
 			contigDict.put(contig.getID(), i++);
-
+		    }
+		}
+		    
 		lineRecordReader.initialize(spl, ctx);
 
 		intervals = VCFInputFormat.getIntervals(ctx.getConfiguration());
