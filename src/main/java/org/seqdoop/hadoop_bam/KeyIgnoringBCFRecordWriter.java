@@ -49,11 +49,23 @@ public class KeyIgnoringBCFRecordWriter<K> extends BCFRecordWriter<K> {
 	{
 		super(output, header, writeHeader, ctx);
 	}
+	/**
+	 * @deprecated This constructor has no {@link TaskAttemptContext} so it is not
+	 * possible to pass configuration properties to the writer.
+	 */
+	@Deprecated
 	public KeyIgnoringBCFRecordWriter(
 			OutputStream output, VCFHeader header, boolean writeHeader)
 		throws IOException
 	{
 		super(output, header, writeHeader);
+	}
+	public KeyIgnoringBCFRecordWriter(
+			OutputStream output, VCFHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
+			throws IOException
+	{
+		super(output, header, writeHeader, ctx);
 	}
 
 	@Override public void write(K ignored, VariantContextWritable vc) {
