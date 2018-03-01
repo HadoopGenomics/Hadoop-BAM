@@ -1,8 +1,0 @@
-
-- update CHANGELOG.txt and version in README.md
-- mvn clean package
-- mvn release:prepare
-- mvn release:perform
-- login here: https://oss.sonatype.org/
-- First close staging repo, then release it
-- Done 
