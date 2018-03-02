@@ -96,9 +96,10 @@ public class SAMFileMerger {
   private static void writeTerminatorBlock(final OutputStream out, final SAMFormat samOutputFormat) throws IOException {
     if (SAMFormat.CRAM == samOutputFormat) {
       CramIO.issueEOF(CramVersions.DEFAULT_CRAM_VERSION, out); // terminate with CRAM EOF container
-    } else {
+    } else if (SAMFormat.BAM == samOutputFormat) {
       out.write(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK); // add the BGZF terminator
     }
+    // no terminator for SAM
   }
 
   static void mergeSplittingBaiFiles(OutputStream out, Path directory, long headerLength,
