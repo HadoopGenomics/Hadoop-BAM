@@ -1,3 +1,7 @@
+2017-03-05 --- 7.9.2
+   - Fixes to close streams properly after use. (Thanks Frank Nothaft)
+   - Don't add a terminator when merging SAM files.
+
 2017-12-18 --- 7.9.1
    - Upgrade to htsjdk 2.13.2.
    - Require at least mvn 3.3.9.
