@@ -14,8 +14,14 @@ releasing from before you do the release.
 
 Then from the project root directory, run `./scripts/release/release.sh`.
 When you run this script, it takes the release version and the new development
-version as arguments. This script can be run off of a different branch from
-master, which makes it possible to cut maintainance releases.
+version as arguments. For example:
+
+```bash
+./scripts/release/release.sh 7.9.2 7.9.3-SNAPSHOT
+```
+
+This script can be run off of a different branch from
+master, which makes it possible to cut maintenance releases.
 
 Once you've successfully published the release, you will need to "close" and
 "release" it following the instructions at

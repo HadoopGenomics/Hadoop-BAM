@@ -13,7 +13,7 @@ release=$1
 devel=$2
 
 # get current branch
-branch=$(git status -bs | awk '{ print $2 }' | awk -F'.' '{ print $1 }' | head -n 1)
+branch=$(git rev-parse --abbrev-ref HEAD)
 
 commit=$(git log --pretty=format:"%H" | head -n 1)
 echo "releasing from ${commit} on branch ${branch}"
