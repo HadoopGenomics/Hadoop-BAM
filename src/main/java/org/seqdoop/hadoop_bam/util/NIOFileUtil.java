@@ -98,6 +98,7 @@ public class NIOFileUtil {
 
   /**
    * Merge the given part files in order into an output stream.
+   * This deletes the parts.
    * @param parts the part files to merge
    * @param out the stream to write each file into, in order
    * @throws IOException
@@ -106,8 +107,6 @@ public class NIOFileUtil {
       throws IOException {
     for (final Path part : parts) {
       Files.copy(part, out);
-    }
-    for (final Path part : parts) {
       Files.delete(part);
     }
   }
