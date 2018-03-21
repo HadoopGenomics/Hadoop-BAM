@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 /** Currently this only locks down the value type of the {@link
@@ -38,4 +39,15 @@ public abstract class BAMOutputFormat<K>
 	 */
 	public static final String WRITE_SPLITTING_BAI =
 			"hadoopbam.bam.write-splitting-bai";
+
+	/**
+	 * If set to true, use the Intel deflater for compressing DEFLATE compressed streams.
+	 * If set, the <a href="https://github.com/Intel-HLS/GKL">GKL library</a> must be
+	 * provided on the classpath.
+	 */
+	public static final String USE_INTEL_DEFLATER_PROPERTY = "hadoopbam.bam.use-intel-deflater";
+
+	static boolean useIntelDeflater(Configuration conf) {
+		return conf.getBoolean(USE_INTEL_DEFLATER_PROPERTY, false);
+	}
 }
