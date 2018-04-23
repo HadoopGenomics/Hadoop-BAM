@@ -63,9 +63,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</connection>
-        <developerConnection>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</developerConnection>
-        <url>scm:git:git@github.com:HadoopGenomics/Hadoop-BAM.git</url>
+        <connection>scm:git:https://github.com/HadoopGenomics/Hadoop-BAM.git</connection>
+        <developerConnection>scm:git:https://github.com/HadoopGenomics/Hadoop-BAM.git</developerConnection>
+        <url>scm:git:https://github.com/HadoopGenomics/Hadoop-BAM.git</url>
         <tag>master</tag>
     </scm>
     <developers>
