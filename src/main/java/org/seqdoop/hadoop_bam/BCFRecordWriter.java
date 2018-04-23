@@ -28,6 +28,7 @@ import java.io.OutputStream;
 
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -76,13 +77,20 @@ public abstract class BCFRecordWriter<K>
 	{
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
+			header, writeHeader, ctx);
 	}
 	public BCFRecordWriter(
 			OutputStream output, VCFHeader header, boolean writeHeader)
 		throws IOException
 	{
-		init(output, header, writeHeader);
+		init(output, header, writeHeader, null);
+	}
+	public BCFRecordWriter(
+			OutputStream output, VCFHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
+			throws IOException
+	{
+		init(output, header, writeHeader, ctx);
 	}
 
 	// Working around not being able to call a constructor other than as the
@@ -94,23 +102,29 @@ public abstract class BCFRecordWriter<K>
 	{
 		init(
 			output.getFileSystem(ctx.getConfiguration()).create(output),
-			header, writeHeader);
+			header, writeHeader, ctx);
 	}
 	private void init(
-			OutputStream output, VCFHeader header, final boolean writeHeader)
+			OutputStream output, VCFHeader header, final boolean writeHeader,
+			TaskAttemptContext ctx)
 		throws IOException
 	{
 		final BCFStoppableOutputStream stopOut =
 			new BCFStoppableOutputStream(!writeHeader, output);
 
-		writer = new VariantContextWriterBuilder().clearOptions()
-				.setOption(Options.FORCE_BCF)
-				.setOutputBCFStream(stopOut).build();
+		writer = createVariantContextWriter(ctx == null ? null : ctx.getConfiguration(), stopOut);
 
 		writer.writeHeader(header);
 		stopOut.stopped = false;
 
 		setInputHeader(header);
+	}
+
+	protected VariantContextWriter createVariantContextWriter(Configuration conf,
+			OutputStream out) {
+		return new VariantContextWriterBuilder().clearOptions()
+				.setOption(Options.FORCE_BCF)
+				.setOutputBCFStream(out).build();
 	}
 
 	@Override public void close(TaskAttemptContext ctx) throws IOException {

@@ -132,7 +132,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 		}
 	}
 
-	private RecordWriter<K,VariantContextWritable> getRecordWriter(
+	public RecordWriter<K,VariantContextWritable> getRecordWriter(
 			TaskAttemptContext ctx, OutputStream outputStream)
 			throws IOException
 	{
@@ -144,8 +144,8 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 				WRITE_HEADER_PROPERTY, true);
 
 		switch (format) {
-			case BCF: return new KeyIgnoringBCFRecordWriter<K>(outputStream,header,wh);
-			case VCF: return new KeyIgnoringVCFRecordWriter<K>(outputStream,header,wh);
+			case BCF: return new KeyIgnoringBCFRecordWriter<K>(outputStream,header,wh,ctx);
+			case VCF: return new KeyIgnoringVCFRecordWriter<K>(outputStream,header,wh,ctx);
 			default: assert false; return null;
 		}
 	}

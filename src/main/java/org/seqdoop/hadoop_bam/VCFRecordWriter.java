@@ -91,6 +91,14 @@ public abstract class VCFRecordWriter<K>
 		init(output, header, writeHeader, null);
 	}
 
+	public VCFRecordWriter(
+			OutputStream output, VCFHeader header, boolean writeHeader,
+			TaskAttemptContext ctx)
+			throws IOException
+	{
+		init(output, header, writeHeader, ctx);
+	}
+
 	// Working around not being able to call a constructor other than as the
 	// first statement...
 	private void init(
