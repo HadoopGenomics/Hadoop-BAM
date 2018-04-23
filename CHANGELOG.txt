@@ -1,3 +1,9 @@
+2017-04-23 --- 7.10.0
+   - When merging files delete shards as they are merged. (Thanks Louis Bergelson)
+   - Add options to use the Intel inflater or deflater when reading or
+     writing BAM files.
+   - Changes to make it possible to subclass VCF and BCF input formats and writers.
+
 2017-03-05 --- 7.9.2
    - Fixes to close streams properly after use. (Thanks Frank Nothaft)
    - Don't add a terminator when merging SAM files.
