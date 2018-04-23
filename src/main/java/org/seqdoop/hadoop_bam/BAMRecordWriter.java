@@ -99,7 +99,7 @@ public abstract class BAMRecordWriter<K>
 			OutputStream output, SAMFileHeader header, boolean writeHeader)
 		throws IOException
 	{
-		init(output, header, writeHeader);
+		init(output, header, writeHeader, false);
 	}
 
 	// Working around not being able to call a constructor other than as the
