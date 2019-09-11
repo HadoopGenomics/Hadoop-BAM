@@ -1,6 +1,7 @@
 package org.seqdoop.hadoop_bam.util;
 
 import htsjdk.samtools.util.BlockCompressedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
@@ -20,7 +21,7 @@ class BGZFCompressionOutputStream extends CompressionOutputStream {
   public BGZFCompressionOutputStream(OutputStream out)
       throws IOException {
     super(out);
-    this.output = new BlockCompressedOutputStream(out, null);
+    this.output = new BlockCompressedOutputStream(out, (File) null);
   }
 
   public void write(int b) throws IOException {
@@ -37,7 +38,7 @@ class BGZFCompressionOutputStream extends CompressionOutputStream {
 
   public void resetState() throws IOException {
     output.flush();
-    output = new BlockCompressedOutputStream(out, null);
+    output = new BlockCompressedOutputStream(out, (File) null);
   }
 
   public void close() throws IOException {

@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam.util;
 
+import java.io.File;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -101,7 +102,7 @@ public class SAMOutputPreparer {
 		final String text = sw.toString();
 
 		if (format == SAMFormat.BAM) {
-			out = new BlockCompressedOutputStream(out, null);
+                    out = new BlockCompressedOutputStream(out, (File) null);
 			out.write(BAM_MAGIC);
 			writeInt32(out, text.length());
 		}

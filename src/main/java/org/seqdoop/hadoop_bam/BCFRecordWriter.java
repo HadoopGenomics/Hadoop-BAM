@@ -22,6 +22,7 @@
 
 package org.seqdoop.hadoop_bam;
 
+import java.io.File;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -166,7 +167,7 @@ final class BCFStoppableOutputStream extends FilterOutputStream {
 	private final OutputStream origOut;
 
 	public BCFStoppableOutputStream(boolean startStopped, OutputStream out) {
-		super(new BlockCompressedOutputStream(out, null));
+            super(new BlockCompressedOutputStream(out, (File) null));
 		origOut = out;
 		stopped = startStopped;
 	}

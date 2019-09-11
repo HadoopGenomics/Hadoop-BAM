@@ -8,6 +8,7 @@ import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -95,7 +96,7 @@ public class VCFFileMerger {
     boolean gzipCompressed = isGzipCompressed(parts);
     OutputStream headerOut;
     if (blockCompressed) {
-      headerOut = new BlockCompressedOutputStream(out, null);
+      headerOut = new BlockCompressedOutputStream(out, (File) null);
     } else if (gzipCompressed) {
       headerOut = new GZIPOutputStream(out);
     } else {
