@@ -23,6 +23,7 @@
 package org.seqdoop.hadoop_bam;
 
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
@@ -109,11 +110,11 @@ public abstract class BAMRecordWriter<K>
 		origOutput = output;
 
 		if (useIntelDeflater) {
-			compressedOut = new BlockCompressedOutputStream(origOutput, null,
+                    compressedOut = new BlockCompressedOutputStream(origOutput, (File) null,
 					BlockCompressedStreamConstants.DEFAULT_COMPRESSION_LEVEL,
 					IntelGKLAccessor.newDeflaterFactory());
 		} else {
-			compressedOut = new BlockCompressedOutputStream(origOutput, null);
+                    compressedOut = new BlockCompressedOutputStream(origOutput, (File) null);
 		}
 
 		binaryCodec = new BinaryCodec(compressedOut);
