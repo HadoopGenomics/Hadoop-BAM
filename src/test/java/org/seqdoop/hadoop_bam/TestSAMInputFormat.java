@@ -106,4 +106,50 @@ public class TestSAMInputFormat {
     }
     br.close();
   }
+
+    @Test
+    public void testCorruptedReadNameSAM() throws Exception {
+        // override setup with different input
+        Configuration conf = new Configuration();
+        input = ClassLoader.getSystemClassLoader().getResource("small.sam").getFile();
+        conf.set("mapred.input.dir", "file://" + input);
+
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+        jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
+
+        AnySAMInputFormat inputFormat = new AnySAMInputFormat();
+        List<InputSplit> splits = inputFormat.getSplits(jobContext);
+        assertEquals(1, splits.size());
+        RecordReader<LongWritable, SAMRecordWritable> reader = inputFormat
+            .createRecordReader(splits.get(0), taskAttemptContext);
+        reader.initialize(splits.get(0), taskAttemptContext);
+
+        assertTrue(reader.nextKeyValue());
+        SAMRecord record = reader.getCurrentValue().get();
+        assertEquals("1", record.getReferenceName());
+        assertEquals(26472784, record.getStart());
+        assertEquals("simread:1:26472783:false", record.getReadName());
+    }
+
+    @Test
+    public void testCorruptedHeaderSAM() throws Exception {
+        // override setup with different input
+        Configuration conf = new Configuration();
+        input = ClassLoader.getSystemClassLoader().getResource("flag-values.sam").getFile();
+        conf.set("mapred.input.dir", "file://" + input);
+
+        taskAttemptContext = new TaskAttemptContextImpl(conf, mock(TaskAttemptID.class));
+        jobContext = new JobContextImpl(conf, taskAttemptContext.getJobID());
+
+        AnySAMInputFormat inputFormat = new AnySAMInputFormat();
+        List<InputSplit> splits = inputFormat.getSplits(jobContext);
+        assertEquals(1, splits.size());
+        RecordReader<LongWritable, SAMRecordWritable> reader = inputFormat
+            .createRecordReader(splits.get(0), taskAttemptContext);
+        reader.initialize(splits.get(0), taskAttemptContext);
+
+        assertTrue(reader.nextKeyValue());
+        SAMRecord record = reader.getCurrentValue().get();
+        assertEquals("read:0", record.getReadName());
+    }
 }
