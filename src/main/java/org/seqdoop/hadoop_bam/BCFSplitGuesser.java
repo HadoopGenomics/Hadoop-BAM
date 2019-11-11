@@ -364,6 +364,9 @@ public class BCFSplitGuesser extends BaseSplitGuesser {
 	private short getUByte(final int idx) {
 		return (short)((short)buf.get(idx) & 0xff);
 	}
+	private short getUShort(final int idx) {
+		return (short)(buf.getShort(idx) & 0xffff);
+	}
 
 	public static void main(String[] args) throws IOException {
 		final GenericOptionsParser parser;

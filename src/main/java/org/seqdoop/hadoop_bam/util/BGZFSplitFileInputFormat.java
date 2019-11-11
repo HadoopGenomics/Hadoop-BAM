@@ -36,6 +36,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import org.seqdoop.hadoop_bam.util.WrapSeekable;
+
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for BGZF-compressed
  * files.
  *
@@ -130,9 +132,7 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 		throws IOException
 	{
 		final Path path = ((FileSplit)splits.get(i)).getPath();
-		final FSDataInputStream in = path.getFileSystem(cfg).open(path);
-
-		final BGZFSplitGuesser guesser = new BGZFSplitGuesser(in);
+		final BGZFSplitGuesser guesser = new BGZFSplitGuesser(WrapSeekable.openPath(cfg, path));
 
 		FileSplit fspl;
 		do {
@@ -149,7 +149,6 @@ public abstract class BGZFSplitFileInputFormat<K,V>
 			++i;
 		} while (i < splits.size() && fspl.getPath().equals(path));
 
-		in.close();
 		return i;
 	}
 
