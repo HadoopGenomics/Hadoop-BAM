@@ -24,6 +24,7 @@ package org.seqdoop.hadoop_bam;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -229,6 +230,9 @@ public class AnySAMInputFormat
 		final List<InputSplit> origSplits =
 				BAMInputFormat.removeIndexFiles(super.getSplits(job));
 
+		final List<InputSplit> sortedSplits = new ArrayList<>(origSplits);
+		sortedSplits.sort(Comparator.comparing(split -> ((FileSplit) split).getPath()));
+
 		// We have to partition the splits by input format and hand them over to
 		// the *InputFormats for any further handling.
 		//
@@ -236,11 +240,11 @@ public class AnySAMInputFormat
 		// just extract the BAM and CRAM ones and leave the rest as they are.
 
 		final List<InputSplit>
-			bamOrigSplits = new ArrayList<InputSplit>(origSplits.size()),
-			cramOrigSplits = new ArrayList<InputSplit>(origSplits.size()),
-			newSplits     = new ArrayList<InputSplit>(origSplits.size());
+			bamOrigSplits = new ArrayList<InputSplit>(sortedSplits.size()),
+			cramOrigSplits = new ArrayList<InputSplit>(sortedSplits.size()),
+			newSplits     = new ArrayList<InputSplit>(sortedSplits.size());
 
-		for (final InputSplit iSplit : origSplits) {
+		for (final InputSplit iSplit : sortedSplits) {
 			final FileSplit split = (FileSplit)iSplit;
 
 			if (SAMFormat.BAM.equals(getFormat(split.getPath())))
