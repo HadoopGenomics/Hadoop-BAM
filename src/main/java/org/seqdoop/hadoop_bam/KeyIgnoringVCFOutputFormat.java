@@ -97,7 +97,7 @@ public class KeyIgnoringVCFOutputFormat<K> extends VCFOutputFormat<K> {
 		Configuration conf = ctx.getConfiguration();
 		boolean isCompressed = getCompressOutput(ctx);
 		CompressionCodec codec = null;
-		String extension = "";
+		String extension = ".vcf";
 		if (isCompressed) {
 			Class<? extends CompressionCodec> codecClass =
 					getOutputCompressorClass(ctx, BGZFCodec.class);

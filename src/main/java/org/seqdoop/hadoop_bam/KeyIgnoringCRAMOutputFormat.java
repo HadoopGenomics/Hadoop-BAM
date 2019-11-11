@@ -54,7 +54,7 @@ public class KeyIgnoringCRAMOutputFormat<K> extends CRAMOutputFormat<K> {
             TaskAttemptContext ctx)
             throws IOException
     {
-        return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
+        return getRecordWriter(ctx, getDefaultWorkFile(ctx, ".cram"));
     }
 
     // Allows wrappers to provide their own work file.

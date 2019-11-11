@@ -94,7 +94,7 @@ public class KeyIgnoringAnySAMOutputFormat<K> extends AnySAMOutputFormat<K> {
 			TaskAttemptContext ctx)
 		throws IOException
 	{
-		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
+		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ".sam"));
 	}
 
 	// Allows wrappers to provide their own work file.

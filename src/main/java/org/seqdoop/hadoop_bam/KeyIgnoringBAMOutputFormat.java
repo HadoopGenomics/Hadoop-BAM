@@ -76,7 +76,7 @@ public class KeyIgnoringBAMOutputFormat<K> extends BAMOutputFormat<K> {
 			TaskAttemptContext ctx)
 		throws IOException
 	{
-		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ""));
+		return getRecordWriter(ctx, getDefaultWorkFile(ctx, ".bam"));
 	}
 
 	// Allows wrappers to provide their own work file.
