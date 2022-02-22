@@ -220,6 +220,7 @@
                 <version>2.20.1</version>
                 <configuration>
                   <argLine>-Xms1g -Xmx4g</argLine>
+                	<forkCount>1.5C</forkCount>
                 </configuration>
             </plugin>
             <plugin>
@@ -443,6 +444,7 @@
                         <configuration>
                             <!-- Needed for jacoco data to be written, cf. http://stackoverflow.com/a/25378458/544236 -->
                             <argLine>${argLine}</argLine>
+                	<forkCount>1.5C</forkCount>
                         </configuration>
                     </plugin>
                 </plugins>
