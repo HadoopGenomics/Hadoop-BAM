@@ -47,7 +47,7 @@
         <htsjdk.version>1.133</htsjdk.version>
         <hadoopbam.version>7.2.1</hadoopbam.version>
         <!-- CHANGE THIS FOR A DIFFERENT VERSION OF HADOOP -->
-        <hadoop.version>2.2.0</hadoop.version>
+        <hadoop.version>2.7.0</hadoop.version>
         <!--
         Below you'll find some example hadoop.version tags.  The value you set
         must have a corresponding version in one of the repositories that are
