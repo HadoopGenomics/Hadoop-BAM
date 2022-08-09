@@ -18,9 +18,7 @@ public class TestVCFFileMerger {
 
   @Before
   public void setup() throws Exception {
-    File partsDir = File.createTempFile("parts", "");
-    partsDir.delete();
-    partsDir.mkdir();
+    File partsDir = Files.createTempDirectory("parts").toFile();
     Files.createFile(new File(partsDir, "_SUCCESS").toPath());
     partsDirectory = partsDir.toURI().toString();
     header = VCFHeaderReader.readHeaderFrom(TestVCFHeaderReader.seekableStream("test.vcf"));
