@@ -29,6 +29,7 @@ import org.seqdoop.hadoop_bam.FormatException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.FileOutputStream;
@@ -92,8 +93,8 @@ public class TestQseqInputFormat
 	@Before
 	public void setup() throws IOException
 	{
-		tempQseq = File.createTempFile("test_qseq_input_format", "qseq");
-		tempGz = File.createTempFile("test_qseq_input_format", ".gz");
+		tempQseq = Files.createTempFile("test_qseq_input_format", "qseq").toFile();
+		tempGz = Files.createTempFile("test_qseq_input_format", ".gz").toFile();
 		conf = new JobConf();
 		key = new Text();
 		fragment = new SequencedFragment();

@@ -27,6 +27,7 @@ import org.seqdoop.hadoop_bam.FastqInputFormat.FastqRecordReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.FileOutputStream;
@@ -137,8 +138,8 @@ public class TestFastqInputFormat
 	@Before
 	public void setup() throws IOException
 	{
-		tempFastq = File.createTempFile("test_fastq_input_format", "fastq");
-		tempGz = File.createTempFile("test_fastq_input_format", ".gz");
+		tempFastq = Files.createTempFile("test_fastq_input_format", "fastq").toFile();
+		tempGz = Files.createTempFile("test_fastq_input_format", ".gz").toFile();
 		conf = new JobConf();
 		key = new Text();
 		fragment = new SequencedFragment();

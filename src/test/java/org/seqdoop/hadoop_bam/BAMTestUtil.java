@@ -11,6 +11,7 @@ import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 class BAMTestUtil {
   public static File writeBamFile(int numPairs, SAMFileHeader.SortOrder sortOrder)
@@ -42,7 +43,7 @@ class BAMTestUtil {
           ("test-read-%03d-unplaced-unmapped", numPairs++));
     }
 
-    final File bamFile = File.createTempFile("test", ".bam");
+    final File bamFile = Files.createTempFile("test", ".bam").toFile();
     bamFile.deleteOnExit();
     SAMFileHeader samHeader = samRecordSetBuilder.getHeader();
     final SAMFileWriter bamWriter = new SAMFileWriterFactory()
@@ -75,7 +76,7 @@ class BAMTestUtil {
           start2);
     }
 
-    final File bamFile = File.createTempFile("test", ".bam");
+    final File bamFile = Files.createTempFile("test", ".bam").toFile();
     bamFile.deleteOnExit();
     SAMFileHeader samHeader = samRecordSetBuilder.getHeader();
     StringBuffer sb = new StringBuffer();
