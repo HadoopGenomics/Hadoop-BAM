@@ -91,7 +91,7 @@ public class TestBAMOutputFormat {
 
     @Test
     public void testBAMRecordWriterNoHeader() throws Exception {
-        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        final File outFile = Files.createTempFile("testBAMWriter", ".bam").toFile();
         outFile.deleteOnExit();
         final Path outPath = new Path(outFile.toURI());
 
@@ -120,7 +120,7 @@ public class TestBAMOutputFormat {
 
     @Test
     public void testBAMRecordWriterWithHeader() throws Exception {
-        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        final File outFile = Files.createTempFile("testBAMWriter", ".bam").toFile();
         outFile.deleteOnExit();
         final Path outPath = new Path(outFile.toURI());
 
@@ -150,7 +150,7 @@ public class TestBAMOutputFormat {
     @Test
     public void testBAMOutput() throws Exception {
         final Path outputPath = doMapReduce(testBAMFileName);
-        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        final File outFile = Files.createTempFile("testBAMWriter", ".bam").toFile();
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             SAMFormat.BAM, samFileHeader);
@@ -164,7 +164,7 @@ public class TestBAMOutputFormat {
             SAMFileHeader.SortOrder.coordinate).toURI().toString();
         conf.setBoolean(BAMOutputFormat.WRITE_SPLITTING_BAI, true);
         final Path outputPath = doMapReduce(bam);
-        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        final File outFile = Files.createTempFile("testBAMWriter", ".bam").toFile();
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             SAMFormat.BAM, new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.coordinate).getHeader());
@@ -194,7 +194,7 @@ public class TestBAMOutputFormat {
             recordsAtSplits.addAll(getRecordsAtSplits(bamFile, index));
         }
 
-        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        final File outFile = Files.createTempFile("testBAMWriter", ".bam").toFile();
         //outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             SAMFormat.BAM,
@@ -231,7 +231,7 @@ public class TestBAMOutputFormat {
         Path outputPath = doMapReduce(testBAMFileName);
 
         // merge the parts, and write to a temp file
-        final File outFile = File.createTempFile("testBAMWriter", ".bam");
+        final File outFile = Files.createTempFile("testBAMWriter", ".bam").toFile();
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             SAMFormat.BAM, samFileHeader);

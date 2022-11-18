@@ -32,6 +32,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -199,8 +200,7 @@ public class TestVCFRoundTrip {
         // merge the output
         VCFHeader vcfHeader = VCFHeaderReader.readHeaderFrom(new SeekableFileStream(new
             File(testVCFFileName)));
-        final File outFile = File.createTempFile("testVCFWriter",
-            testVCFFileName.substring(testVCFFileName.lastIndexOf(".")));
+        final File outFile = Files.createTempFile("testVCFWriter", testVCFFileName.substring(testVCFFileName.lastIndexOf("."))).toFile();
         outFile.deleteOnExit();
         VCFFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             vcfHeader);
@@ -256,7 +256,7 @@ public class TestVCFRoundTrip {
         File actualVcf;
         // work around TribbleIndexedFeatureReader not reading header from .bgz files
         if (vcf.getName().endsWith(".bgz")) {
-            actualVcf = File.createTempFile(vcf.getName(), ".gz");
+            actualVcf = Files.createTempFile(vcf.getName(), ".gz").toFile();
             actualVcf.deleteOnExit();
             Files.copy(vcf, actualVcf);
         } else {

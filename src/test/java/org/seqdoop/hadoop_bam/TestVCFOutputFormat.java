@@ -22,6 +22,7 @@ package org.seqdoop.hadoop_bam;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.util.*;
 
 import htsjdk.samtools.seekablestream.SeekableFileStream;
@@ -54,7 +55,7 @@ public class TestVCFOutputFormat {
 
     @Before
     public void setup() throws IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        test_vcf_output = File.createTempFile("test_vcf_output", "");
+        test_vcf_output = Files.createTempFile("test_vcf_output", "").toFile();
         test_vcf_output.delete();
         writable = new VariantContextWritable();
         Configuration conf = new Configuration();

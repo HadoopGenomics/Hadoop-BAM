@@ -95,7 +95,7 @@ public class TestCRAMOutputFormat {
 
     @Test
     public void testCRAMRecordWriterNoHeader() throws Exception {
-        final File outFile = File.createTempFile("testCRAMWriter", ".cram");
+        final File outFile = Files.createTempFile("testCRAMWriter", ".cram").toFile();
         outFile.deleteOnExit();
         final Path outPath = new Path(outFile.toURI());
 
@@ -125,7 +125,7 @@ public class TestCRAMOutputFormat {
 
     @Test
     public void testCRAMRecordWriterWithHeader() throws Exception {
-        final File outFile = File.createTempFile("testCRAMWriter", ".cram");
+        final File outFile = Files.createTempFile("testCRAMWriter", ".cram").toFile();
         outFile.deleteOnExit();
         final Path outPath = new Path(outFile.toURI());
 
@@ -155,7 +155,7 @@ public class TestCRAMOutputFormat {
     @Test
     public void testCRAMOutput() throws Exception {
         final Path outputPath = doMapReduce(testCRAMFileName);
-        final File outFile = File.createTempFile("testCRAMWriter", ".cram");
+        final File outFile = Files.createTempFile("testCRAMWriter", ".cram").toFile();
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             SAMFormat.CRAM, samFileHeader);
@@ -171,7 +171,7 @@ public class TestCRAMOutputFormat {
         Path outputPath = doMapReduce(testCRAMFileName);
 
         // merge the parts, and write to a temp file
-        final File outFile = File.createTempFile("testCRAMWriter", ".cram");
+        final File outFile = Files.createTempFile("testCRAMWriter", ".cram").toFile();
         outFile.deleteOnExit();
         SAMFileMerger.mergeParts(outputPath.toUri().toString(), outFile.toURI().toString(),
             SAMFormat.CRAM, samFileHeader);
